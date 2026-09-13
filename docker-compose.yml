@@ -65,7 +65,7 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
-      - file_uploads:/app/uploads
+      - ./apps/api/var/uploads:/app/uploads
     healthcheck:
       <<: *healthcheck-defaults
       test:
@@ -171,5 +171,4 @@ networks:
     driver: bridge
 
 volumes:
-  file_uploads:
   n8n_data:

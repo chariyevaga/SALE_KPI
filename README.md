@@ -263,7 +263,7 @@ pnpm migration:check
 ```
 
 > [!CAUTION]
-> `docker compose down -v` komutu `n8n_data` ve `file_uploads` kalıcı volume'lerini siler. Veri kaybı istemiyorsanız `-v` kullanmayın.
+> `docker compose down -v` komutu `n8n_data` kalıcı volume'ünü siler. Yüklenen görseller host üzerindeki `apps/api/var/uploads` klasöründe bulunduğu için bu komutla silinmez; bu klasörü ayrıca yedekleyin.
 
 ## Yerel geliştirme
 
@@ -277,10 +277,12 @@ Docker servisleri aynı host portlarını kullanıyorsa önce `docker compose do
 
 ## Kalıcı veriler
 
-| Volume         | İçerik                                            |
-| -------------- | ------------------------------------------------- |
-| `file_uploads` | API üzerinden yüklenen fiziksel görseller         |
-| `n8n_data`     | n8n ayarları, credential'lar ve workflow verileri |
+| Konum                      | İçerik                                            |
+| -------------------------- | ------------------------------------------------- |
+| `apps/api/var/uploads`     | API görselleri; `/app/uploads` yoluna bind edilir |
+| `n8n_data` (Docker volume) | n8n ayarları, credential'lar ve workflow verileri |
+
+API görselleri named volume yerine doğrudan repository içindeki klasörde tutulur. Böylece yerel API ve Docker API aynı fiziksel dosya alanını kullanır. Görsel içerikleri `.gitignore` kapsamındadır; yalnız boş klasörü koruyan `.gitkeep` Git'e eklenir.
 
 SQL Server verileri Docker volume'lerinde değildir. `KPI_DB` ve `TIGERDB` harici SQL Server tarafından yönetilir.
 

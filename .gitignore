@@ -23,6 +23,13 @@ tmp/
 temp/
 var/
 
+# Keep the shared upload bind-mount directory, but never commit uploaded content.
+!apps/api/var/
+apps/api/var/*
+!apps/api/var/uploads/
+apps/api/var/uploads/*
+!apps/api/var/uploads/.gitkeep
+
 # Internal documentation is not published to the remote.
 *.md
 !README.md
