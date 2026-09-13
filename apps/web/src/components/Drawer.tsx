@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { useTranslation } from '../i18n/locale-store';
+
 interface DrawerProps {
   open: boolean;
   onClose: () => void;
@@ -14,7 +16,14 @@ interface DrawerProps {
   variant?: 'sidebar' | 'overlay';
 }
 
-export function Drawer({ open, onClose, children, side = 'left', variant = 'sidebar' }: DrawerProps) {
+export function Drawer({
+  open,
+  onClose,
+  children,
+  side = 'left',
+  variant = 'sidebar',
+}: DrawerProps) {
+  const { t } = useTranslation();
   const isOverlay = variant === 'overlay';
 
   return (
@@ -26,7 +35,7 @@ export function Drawer({ open, onClose, children, side = 'left', variant = 'side
     >
       <button
         type="button"
-        aria-label="Close menu"
+        aria-label={t('appShell.closeMenu')}
         tabIndex={open ? 0 : -1}
         onClick={onClose}
         className={`absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-200 ${isOverlay ? '' : 'lg:hidden'} ${
@@ -35,7 +44,9 @@ export function Drawer({ open, onClose, children, side = 'left', variant = 'side
       />
       <nav
         className={`absolute inset-y-0 flex w-[82vw] max-w-xs flex-col bg-white pt-[env(safe-area-inset-top)] shadow-2xl transition-transform duration-200 ease-out dark:bg-slate-950 ${
-          isOverlay ? '' : 'lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:max-w-none lg:translate-x-0 lg:pt-0 lg:shadow-none'
+          isOverlay
+            ? ''
+            : 'lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:max-w-none lg:translate-x-0 lg:pt-0 lg:shadow-none'
         } ${
           side === 'left'
             ? `left-0 border-r border-slate-200 dark:border-slate-800 ${open ? 'translate-x-0' : '-translate-x-full'}`

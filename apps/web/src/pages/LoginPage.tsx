@@ -6,8 +6,8 @@ import { login } from '../api/auth';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Modal } from '../components/Modal';
 import { PasswordInput } from '../components/PasswordInput';
+import { localizeApiError } from '../i18n/api-errors';
 import { useTranslation } from '../i18n/locale-store';
-import { ApiError } from '../lib/api-client';
 import { useAuthStore } from '../store/auth-store';
 
 const inputClassName =
@@ -43,14 +43,11 @@ export function LoginPage() {
     loginMutation.mutate({ username, password, rememberMe });
   }
 
-  const errorMessage =
-    loginMutation.error instanceof ApiError
-      ? loginMutation.error.status === 401
-        ? t('login.errorInvalidCredentials')
-        : loginMutation.error.message
-      : loginMutation.isError
-        ? t('login.errorGeneric')
-        : null;
+  const errorMessage = loginMutation.isError
+    ? localizeApiError(loginMutation.error, t, 'login.errorGeneric', {
+        401: 'login.errorInvalidCredentials',
+      })
+    : null;
 
   return (
     <div className="relative flex min-h-screen bg-gradient-to-br from-white via-slate-50 to-white text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
@@ -75,22 +72,30 @@ export function LoginPage() {
                 Lorem & Glamur
               </p>
             </div>
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+            <p
+              lang="en"
+              className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400"
+            >
               {t('login.brand')}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="animate-in fade-in slide-in-from-top-4 duration-700 delay-200" noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className="animate-in fade-in slide-in-from-top-4 duration-700 delay-200"
+            noValidate
+          >
             <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/60 backdrop-blur p-6 dark:border-slate-800 dark:bg-slate-900/40">
               <div className="mb-2 space-y-1 text-center">
                 <h1 className="text-3xl font-bold tracking-tight">{t('login.title')}</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Hesabınıza giriş yaparak başlayın
-                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('login.subtitle')}</p>
               </div>
 
               <div>
-                <label htmlFor="username" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <label
+                  htmlFor="username"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400"
+                >
                   {t('login.usernameLabel')}
                 </label>
                 <input
@@ -104,12 +109,15 @@ export function LoginPage() {
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   className={inputClassName}
-                  placeholder="john.doe"
+                  placeholder={t('login.usernamePlaceholder')}
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400"
+                >
                   {t('login.passwordLabel')}
                 </label>
                 <PasswordInput
@@ -142,7 +150,10 @@ export function LoginPage() {
               </div>
 
               {errorMessage ? (
-                <p role="alert" className="animate-in fade-in duration-300 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+                <p
+                  role="alert"
+                  className="animate-in fade-in duration-300 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
+                >
                   {errorMessage}
                 </p>
               ) : null}
@@ -181,7 +192,9 @@ export function LoginPage() {
         onClose={() => setForgotPasswordOpen(false)}
         title={t('login.forgotPassword')}
       >
-        <p className="text-sm text-slate-600 dark:text-slate-300">{t('login.forgotPasswordHelp')}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {t('login.forgotPasswordHelp')}
+        </p>
       </Modal>
     </div>
   );

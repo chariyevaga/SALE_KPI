@@ -7,6 +7,7 @@ import { AppShell } from '../components/AppShell';
 import { AuthenticatedImage } from '../components/AuthenticatedImage';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { Drawer } from '../components/Drawer';
+import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type TranslationKey } from '../i18n/locale-store';
 import { useAuthStore } from '../store/auth-store';
 import type { EmployeeResponse } from '../types/api';
@@ -43,6 +44,9 @@ function AvatarButton({
   employee: EmployeeResponse;
   onShowCard: (employee: EmployeeResponse) => void;
 }) {
+  const { t } = useTranslation();
+  const employeeName = `${employee.firstname} ${employee.lastname}`;
+
   return (
     <button
       type="button"
@@ -52,7 +56,7 @@ function AvatarButton({
         event.stopPropagation();
         onShowCard(employee);
       }}
-      aria-label={`${employee.firstname} ${employee.lastname}`}
+      aria-label={t('employees.openCard', { name: employeeName })}
       className="flex-shrink-0 rounded-full transition hover:ring-2 hover:ring-emerald-400/60"
     >
       <AvatarOrInitials employee={employee} />
@@ -110,7 +114,13 @@ function EmployeeCard({
         </span>
       </span>
       {canManage ? (
-        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 flex-shrink-0 text-slate-400" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-4 w-4 flex-shrink-0 text-slate-400"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : null}
@@ -163,8 +173,12 @@ function EmployeeRow({
       <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">@{employee.username}</td>
       {canManage ? (
         <>
-          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">{employee.email ?? '—'}</td>
-          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">{employee.phoneNumber ?? '—'}</td>
+          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">
+            {employee.email ?? '—'}
+          </td>
+          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">
+            {employee.phoneNumber ?? '—'}
+          </td>
         </>
       ) : null}
       <td className="py-2 pr-3">
@@ -174,10 +188,18 @@ function EmployeeRow({
         <td className="py-2 pr-4 text-right">
           <Link
             to={`/employees/${employee.id}`}
-            aria-label={t('employees.columnActions')}
+            aria-label={t('employees.editEmployee', {
+              name: `${employee.firstname} ${employee.lastname}`,
+            })}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-400/10 dark:text-emerald-400"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-4 w-4"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Link>
@@ -228,8 +250,18 @@ interface SortOption {
 }
 
 const SORT_OPTIONS: [SortOption, ...SortOption[]] = [
-  { value: 'firstname-asc', labelKey: 'employees.sortFirstnameAsc', sort: 'firstname', order: 'asc' },
-  { value: 'firstname-desc', labelKey: 'employees.sortFirstnameDesc', sort: 'firstname', order: 'desc' },
+  {
+    value: 'firstname-asc',
+    labelKey: 'employees.sortFirstnameAsc',
+    sort: 'firstname',
+    order: 'asc',
+  },
+  {
+    value: 'firstname-desc',
+    labelKey: 'employees.sortFirstnameDesc',
+    sort: 'firstname',
+    order: 'desc',
+  },
   { value: 'lastname-asc', labelKey: 'employees.sortLastname', sort: 'lastname', order: 'asc' },
   { value: 'username-asc', labelKey: 'employees.sortUsername', sort: 'username', order: 'asc' },
   { value: 'createdAt-desc', labelKey: 'employees.sortNewest', sort: 'createdAt', order: 'desc' },
@@ -237,7 +269,7 @@ const SORT_OPTIONS: [SortOption, ...SortOption[]] = [
 ];
 
 export function EmployeesPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const [searchInput, setSearchInput] = useState('');
@@ -289,7 +321,11 @@ export function EmployeesPage() {
     if (!sentinel) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting && employeesQuery.hasNextPage && !employeesQuery.isFetchingNextPage) {
+      if (
+        entries[0]?.isIntersecting &&
+        employeesQuery.hasNextPage &&
+        !employeesQuery.isFetchingNextPage
+      ) {
         void employeesQuery.fetchNextPage();
       }
     });
@@ -321,18 +357,29 @@ export function EmployeesPage() {
     <AppShell
       title={t('employees.title')}
       fullWidth
-      breadcrumbs={[{ label: t('common.home'), to: '/leaderboard' }, { label: t('employees.title') }]}
+      breadcrumbs={[
+        { label: t('common.home'), to: '/leaderboard' },
+        { label: t('employees.title') },
+      ]}
     >
       <Drawer open={filterOpen} onClose={() => setFilterOpen(false)} side="right" variant="overlay">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('employees.filters')}</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {t('employees.filters')}
+          </h2>
           <button
             type="button"
             onClick={() => setFilterOpen(false)}
             aria-label={t('appShell.closeMenu')}
             className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-900"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
             </svg>
           </button>
@@ -343,12 +390,17 @@ export function EmployeesPage() {
             <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t('employees.statusColumn')}
             </legend>
-            {([
-              ['all', t('employees.filterStatusAll')],
-              ['active', t('employees.filterOnlyActive')],
-              ['inactive', t('employees.filterOnlyInactive')],
-            ] as const).map(([value, label]) => (
-              <label key={value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            {(
+              [
+                ['all', t('employees.filterStatusAll')],
+                ['active', t('employees.filterOnlyActive')],
+                ['inactive', t('employees.filterOnlyInactive')],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300"
+              >
                 <input
                   type="radio"
                   name="status"
@@ -365,16 +417,23 @@ export function EmployeesPage() {
             <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {t('employees.filters')}
             </legend>
-            {([
-              ['managersOnly', t('employees.filterManagers')],
-              ['erpLinkedOnly', t('employees.filterErpLinked')],
-              ['withAvatarOnly', t('employees.filterWithAvatar')],
-            ] as const).map(([key, label]) => (
-              <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            {(
+              [
+                ['managersOnly', t('employees.filterManagers')],
+                ['erpLinkedOnly', t('employees.filterErpLinked')],
+                ['withAvatarOnly', t('employees.filterWithAvatar')],
+              ] as const
+            ).map(([key, label]) => (
+              <label
+                key={key}
+                className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300"
+              >
                 <input
                   type="checkbox"
                   checked={draftFilters[key]}
-                  onChange={(event) => setDraftFilters((prev) => ({ ...prev, [key]: event.target.checked }))}
+                  onChange={(event) =>
+                    setDraftFilters((prev) => ({ ...prev, [key]: event.target.checked }))
+                  }
                   className="h-4 w-4 rounded accent-emerald-400"
                 />
                 {label}
@@ -447,7 +506,13 @@ export function EmployeesPage() {
                 : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900'
             }`}
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-4 w-4"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
             </svg>
             <span className="hidden sm:inline">{t('employees.filters')}</span>
@@ -464,13 +529,24 @@ export function EmployeesPage() {
       {isFiltered ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs">
           <span className="text-slate-500 dark:text-slate-400">
-            {total} {t('employees.title').toLowerCase()}
+            {t('employees.resultCount', { count: formatNumber(total, locale) })}
           </span>
           {search ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               “{search}”
-              <button type="button" onClick={() => setSearchInput('')} aria-label={t('common.clear')} className="text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-100">
-                <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" stroke="currentColor" strokeWidth="3">
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                aria-label={t('common.clear')}
+                className="text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-100"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-3 w-3"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                >
                   <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
                 </svg>
               </button>
@@ -478,9 +554,22 @@ export function EmployeesPage() {
           ) : null}
           {activeFilterCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-300">
-              {activeFilterCount} {t('employees.filtersActiveCount')}
-              <button type="button" onClick={clearFilters} aria-label={t('common.clear')} className="transition hover:text-emerald-900 dark:hover:text-emerald-100">
-                <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" stroke="currentColor" strokeWidth="3">
+              {t('employees.filtersActiveCount', {
+                count: formatNumber(activeFilterCount, locale),
+              })}
+              <button
+                type="button"
+                onClick={clearFilters}
+                aria-label={t('common.clear')}
+                className="transition hover:text-emerald-900 dark:hover:text-emerald-100"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-3 w-3"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                >
                   <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
                 </svg>
               </button>
@@ -490,7 +579,9 @@ export function EmployeesPage() {
       ) : null}
 
       {employeesQuery.isLoading ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">{t('employees.loading')}</p>
+        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          {t('employees.loading')}
+        </p>
       ) : null}
 
       {employeesQuery.isError ? (
@@ -509,7 +600,12 @@ export function EmployeesPage() {
         <>
           <div className="flex flex-col gap-2 px-4 lg:hidden">
             {employees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} onShowCard={setCardEmployee} canManage={canManage} />
+              <EmployeeCard
+                key={employee.id}
+                employee={employee}
+                onShowCard={setCardEmployee}
+                canManage={canManage}
+              />
             ))}
           </div>
 
@@ -528,13 +624,20 @@ export function EmployeesPage() {
                   ) : null}
                   <th className="py-2 pr-3 font-medium">{t('employees.statusColumn')}</th>
                   {canManage ? (
-                    <th className="py-2 pr-4 text-right font-medium">{t('employees.columnActions')}</th>
+                    <th className="py-2 pr-4 text-right font-medium">
+                      {t('employees.columnActions')}
+                    </th>
                   ) : null}
                 </tr>
               </thead>
               <tbody>
                 {employees.map((employee) => (
-                  <EmployeeRow key={employee.id} employee={employee} onShowCard={setCardEmployee} canManage={canManage} />
+                  <EmployeeRow
+                    key={employee.id}
+                    employee={employee}
+                    onShowCard={setCardEmployee}
+                    canManage={canManage}
+                  />
                 ))}
               </tbody>
             </table>
@@ -555,15 +658,21 @@ export function EmployeesPage() {
       />
 
       {canManage ? (
-      <Link
-        to="/employees/new"
-        aria-label={t('employees.addEmployee')}
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-300 active:scale-95"
-      >
-        <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="2.5">
-          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-        </svg>
-      </Link>
+        <Link
+          to="/employees/new"
+          aria-label={t('employees.addEmployee')}
+          className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-300 active:scale-95"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-7 w-7"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+          </svg>
+        </Link>
       ) : null}
     </AppShell>
   );

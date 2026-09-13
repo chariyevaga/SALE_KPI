@@ -2,19 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import {
-  createEmployee,
-  deactivateEmployee,
-  getEmployee,
-  updateEmployee,
-} from '../api/employees';
+import { createEmployee, deactivateEmployee, getEmployee, updateEmployee } from '../api/employees';
 import { listErpEmployees } from '../api/erp-employees';
 import { AppShell } from '../components/AppShell';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
 import { Spinner } from '../components/Spinner';
 import { PasswordInput } from '../components/PasswordInput';
+import { localizeApiError } from '../i18n/api-errors';
 import { useTranslation, type TranslationKey } from '../i18n/locale-store';
-import { ApiError } from '../lib/api-client';
 import { useAuthStore } from '../store/auth-store';
 
 interface FormValues {
@@ -39,6 +34,20 @@ const EMPTY_FORM: FormValues = {
   fullAccess: false,
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateForm(form: FormValues, mode: 'create' | 'edit'): TranslationKey | null {
+  if (!form.username.trim()) return 'employeeForm.usernameRequired';
+  if (form.username.trim().length < 3) return 'employeeForm.usernameTooShort';
+  if (mode === 'create' && !form.password) return 'employeeForm.passwordRequired';
+  if (form.password && form.password.length < 8) return 'employeeForm.passwordTooShort';
+  if (!form.firstname.trim()) return 'employeeForm.firstnameRequired';
+  if (!form.lastname.trim()) return 'employeeForm.lastnameRequired';
+  if (form.email && !EMAIL_PATTERN.test(form.email.trim())) return 'employeeForm.emailInvalid';
+
+  return null;
+}
+
 const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'details', labelKey: 'employeeForm.tabDetails' },
   { value: 'sessions', labelKey: 'employeeForm.tabSessions' },
@@ -54,7 +63,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const currentEmployee = useAuthStore((state) => state.employee);
 
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formErrorKey, setFormErrorKey] = useState<TranslationKey | null>(null);
 
   const employeeQuery = useQuery({
     queryKey: ['employees', id],
@@ -104,15 +113,6 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
       await queryClient.invalidateQueries({ queryKey: ['employees'] });
       void navigate('/employees', { replace: true });
     },
-    onError: (error: unknown) => {
-      setFormError(
-        error instanceof ApiError
-          ? Array.isArray(error.body?.message)
-            ? error.body.message.join(' ')
-            : error.message
-          : t('employeeForm.genericSaveError'),
-      );
-    },
   });
 
   const deactivateMutation = useMutation({
@@ -133,7 +133,17 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setFormError(null);
+    saveMutation.reset();
+    deactivateMutation.reset();
+    reactivateMutation.reset();
+
+    const validationErrorKey = validateForm(form, mode);
+    setFormErrorKey(validationErrorKey);
+
+    if (validationErrorKey) {
+      return;
+    }
+
     saveMutation.mutate();
   }
 
@@ -141,6 +151,15 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const activeTab = searchParams.get('tab') ?? 'details';
   const isLoadingExisting = mode === 'edit' && employeeQuery.isLoading;
   const pageTitle = mode === 'create' ? t('employeeForm.titleCreate') : t('employeeForm.titleEdit');
+  const formError = formErrorKey
+    ? t(formErrorKey)
+    : saveMutation.isError
+      ? localizeApiError(saveMutation.error, t, 'employeeForm.genericSaveError')
+      : deactivateMutation.isError
+        ? localizeApiError(deactivateMutation.error, t, 'employeeForm.deactivateError')
+        : reactivateMutation.isError
+          ? localizeApiError(reactivateMutation.error, t, 'employeeForm.reactivateError')
+          : null;
 
   return (
     <AppShell
@@ -171,17 +190,32 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </div>
       ) : null}
 
-      {mode === 'edit' && id && activeTab === 'sessions' ? <EmployeeSessionsPanel employeeId={id} /> : null}
+      {mode === 'edit' && id && activeTab === 'sessions' ? (
+        <EmployeeSessionsPanel employeeId={id} />
+      ) : null}
 
       {mode === 'edit' && activeTab === 'kpi' ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('common.comingSoon')}</h2>
-          <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">{t('common.comingSoonHint')}</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t('common.comingSoon')}
+          </h2>
+          <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+            {t('common.comingSoonHint')}
+          </p>
         </div>
       ) : null}
 
       {activeTab !== 'details' && mode === 'edit' ? null : isLoadingExisting ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">{t('employeeForm.loading')}</p>
+        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          {t('employeeForm.loading')}
+        </p>
+      ) : employeeQuery.isError ? (
+        <p
+          role="alert"
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400"
+        >
+          {localizeApiError(employeeQuery.error, t, 'employeeForm.errorLoading')}
+        </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8" noValidate>
           <Field label={t('employeeForm.usernameLabel')} htmlFor="username">
@@ -191,6 +225,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               minLength={3}
               autoCapitalize="none"
               autoCorrect="off"
+              maxLength={100}
               value={form.username}
               onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
               className={inputClassName}
@@ -198,7 +233,11 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
           </Field>
 
           <Field
-            label={mode === 'create' ? t('employeeForm.passwordLabelCreate') : t('employeeForm.passwordLabelEdit')}
+            label={
+              mode === 'create'
+                ? t('employeeForm.passwordLabelCreate')
+                : t('employeeForm.passwordLabelEdit')
+            }
             htmlFor="password"
             hint={mode === 'edit' ? t('employeeForm.passwordHintEdit') : undefined}
           >
@@ -207,6 +246,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               autoComplete="new-password"
               required={mode === 'create'}
               minLength={8}
+              maxLength={128}
               value={form.password}
               onChange={(value) => setForm((prev) => ({ ...prev, password: value }))}
               className={inputClassName}
@@ -218,6 +258,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               <input
                 id="firstname"
                 required
+                maxLength={100}
                 value={form.firstname}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, firstname: event.target.value }))
@@ -229,6 +270,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               <input
                 id="lastname"
                 required
+                maxLength={100}
                 value={form.lastname}
                 onChange={(event) => setForm((prev) => ({ ...prev, lastname: event.target.value }))}
                 className={inputClassName}
@@ -242,6 +284,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               type="email"
               inputMode="email"
               autoCapitalize="none"
+              maxLength={320}
               value={form.email}
               onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
               className={inputClassName}
@@ -253,6 +296,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               id="phoneNumber"
               type="tel"
               inputMode="tel"
+              maxLength={32}
               value={form.phoneNumber}
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, phoneNumber: event.target.value }))
@@ -278,6 +322,11 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 </option>
               ))}
             </select>
+            {erpEmployeesQuery.isError ? (
+              <p role="alert" className="mt-1 text-xs text-red-500 dark:text-red-400">
+                {t('employeeForm.erpEmployeesError')}
+              </p>
+            ) : null}
           </Field>
 
           <label className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
@@ -322,7 +371,12 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 <button
                   type="button"
                   disabled={isSelf || deactivateMutation.isPending}
-                  onClick={() => deactivateMutation.mutate()}
+                  onClick={() => {
+                    setFormErrorKey(null);
+                    saveMutation.reset();
+                    reactivateMutation.reset();
+                    deactivateMutation.mutate();
+                  }}
                   title={isSelf ? t('employeeForm.selfDeactivateHint') : undefined}
                   className="h-12 w-full rounded-xl border border-red-500/30 text-base font-semibold text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -334,7 +388,12 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 <button
                   type="button"
                   disabled={reactivateMutation.isPending}
-                  onClick={() => reactivateMutation.mutate()}
+                  onClick={() => {
+                    setFormErrorKey(null);
+                    saveMutation.reset();
+                    deactivateMutation.reset();
+                    reactivateMutation.mutate();
+                  }}
                   className="h-12 w-full rounded-xl border border-emerald-400/30 text-base font-semibold text-emerald-400 transition hover:bg-emerald-400/10"
                 >
                   {reactivateMutation.isPending
@@ -371,7 +430,10 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+      <label
+        htmlFor={htmlFor}
+        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+      >
         {label}
       </label>
       {children}

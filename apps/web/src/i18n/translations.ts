@@ -13,6 +13,9 @@ interface TranslationShape {
   common: {
     showPassword: string;
     hidePassword: string;
+    close: string;
+    closeDialog: string;
+    breadcrumb: string;
     cancel: string;
     apply: string;
     clear: string;
@@ -23,7 +26,9 @@ interface TranslationShape {
   login: {
     brand: string;
     title: string;
+    subtitle: string;
     usernameLabel: string;
+    usernamePlaceholder: string;
     passwordLabel: string;
     submit: string;
     submitting: string;
@@ -57,6 +62,7 @@ interface TranslationShape {
     searchPlaceholder: string;
     noSearchResults: string;
     filters: string;
+    resultCount: string;
     filtersActiveCount: string;
     filterStatusAll: string;
     filterOnlyActive: string;
@@ -75,20 +81,26 @@ interface TranslationShape {
     columnUsername: string;
     columnPhone: string;
     columnActions: string;
+    openCard: string;
+    editEmployee: string;
   };
   settings: {
     profilePhoto: string;
     changePhoto: string;
     cropPhoto: string;
     cropHint: string;
+    zoom: string;
     cropSave: string;
     photoError: string;
+    photoReadError: string;
     changePassword: string;
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
     passwordMismatch: string;
     passwordTooShort: string;
+    currentPasswordIncorrect: string;
+    passwordChangeError: string;
     passwordUpdated: string;
     submitPassword: string;
     saving: string;
@@ -116,6 +128,8 @@ interface TranslationShape {
     rememberMeBadge: string;
     shortSessionBadge: string;
     expiryHint: string;
+    revokeError: string;
+    logoutAllError: string;
   };
   employeeCard: {
     title: string;
@@ -136,6 +150,8 @@ interface TranslationShape {
     titleCreate: string;
     titleEdit: string;
     loading: string;
+    errorLoading: string;
+    erpEmployeesError: string;
     usernameLabel: string;
     passwordLabelCreate: string;
     passwordLabelEdit: string;
@@ -155,7 +171,28 @@ interface TranslationShape {
     reactivate: string;
     reactivating: string;
     selfDeactivateHint: string;
+    usernameRequired: string;
+    usernameTooShort: string;
+    passwordRequired: string;
+    passwordTooShort: string;
+    firstnameRequired: string;
+    lastnameRequired: string;
+    emailInvalid: string;
+    deactivateError: string;
+    reactivateError: string;
     genericSaveError: string;
+  };
+  errors: {
+    generic: string;
+    network: string;
+    validation: string;
+    unauthorized: string;
+    forbidden: string;
+    notFound: string;
+    conflict: string;
+    payloadTooLarge: string;
+    tooManyRequests: string;
+    server: string;
   };
 }
 
@@ -164,6 +201,9 @@ export const translations: Record<Locale, TranslationShape> = {
     common: {
       showPassword: 'Parolayı göster',
       hidePassword: 'Parolayı gizle',
+      close: 'Kapat',
+      closeDialog: '{title} penceresini kapat',
+      breadcrumb: 'Gezinme yolu',
       cancel: 'Vazgeç',
       apply: 'Uygula',
       clear: 'Temizle',
@@ -174,7 +214,9 @@ export const translations: Record<Locale, TranslationShape> = {
     login: {
       brand: 'Retail KPI Platform',
       title: 'Giriş yap',
+      subtitle: 'Hesabınıza giriş yaparak başlayın',
       usernameLabel: 'Kullanıcı adı',
+      usernamePlaceholder: 'Örn. admin',
       passwordLabel: 'Parola',
       submit: 'Giriş yap',
       submitting: 'Giriş yapılıyor…',
@@ -209,7 +251,8 @@ export const translations: Record<Locale, TranslationShape> = {
       searchPlaceholder: 'Ad, soyad, kullanıcı adı, e-posta veya telefonda ara',
       noSearchResults: 'Aramanızla eşleşen çalışan bulunamadı.',
       filters: 'Filtreler',
-      filtersActiveCount: 'filtre aktif',
+      resultCount: '{count} çalışan',
+      filtersActiveCount: '{count} filtre aktif',
       filterStatusAll: 'Tümü',
       filterOnlyActive: 'Yalnızca aktif çalışanlar',
       filterOnlyInactive: 'Yalnızca pasif çalışanlar',
@@ -227,20 +270,26 @@ export const translations: Record<Locale, TranslationShape> = {
       columnUsername: 'Kullanıcı adı',
       columnPhone: 'Telefon',
       columnActions: 'İşlem',
+      openCard: '{name} çalışan kartını aç',
+      editEmployee: '{name} çalışanını düzenle',
     },
     settings: {
       profilePhoto: 'Profil fotoğrafı',
       changePhoto: 'Fotoğrafı değiştir',
       cropPhoto: 'Fotoğrafı kırp',
       cropHint: 'Fotoğrafı sürükleyerek konumlandırın, kaydırıcı ile yakınlaştırın',
+      zoom: 'Fotoğraf yakınlaştırma düzeyi',
       cropSave: 'Kırp ve kaydet',
       photoError: 'Fotoğraf güncellenemedi. Lütfen tekrar deneyin.',
+      photoReadError: 'Seçilen fotoğraf okunamadı. Lütfen başka bir dosya deneyin.',
       changePassword: 'Parola değiştir',
       currentPassword: 'Mevcut parola',
       newPassword: 'Yeni parola',
       confirmPassword: 'Parolayı onayla',
       passwordMismatch: 'Parolalar eşleşmiyor.',
       passwordTooShort: 'Parola en az 6 karakter olmalıdır.',
+      currentPasswordIncorrect: 'Mevcut parola hatalı.',
+      passwordChangeError: 'Parola değiştirilemedi. Lütfen tekrar deneyin.',
       passwordUpdated: 'Parola güncellendi.',
       submitPassword: 'Parolayı değiştir',
       saving: 'Kaydediliyor…',
@@ -263,11 +312,14 @@ export const translations: Record<Locale, TranslationShape> = {
       revoke: 'Oturumu kapat',
       revoking: 'Kapatılıyor…',
       logoutAll: 'Tüm cihazlardan çık',
-      logoutAllConfirm: 'Tüm cihazlardaki oturumlar kapatılacak ve yeniden giriş yapmanız gerekecek. Devam edilsin mi?',
+      logoutAllConfirm:
+        'Tüm cihazlardaki oturumlar kapatılacak ve yeniden giriş yapmanız gerekecek. Devam edilsin mi?',
       revokeConfirm: 'Bu cihazdaki oturum kapatılacak. Devam edilsin mi?',
       rememberMeBadge: 'Kalıcı oturum',
       shortSessionBadge: 'Kısa oturum',
       expiryHint: 'Oturum her kullanımda uzar; bu tarihe kadar işlem yapılmazsa kapanır.',
+      revokeError: 'Oturum kapatılamadı. Lütfen tekrar deneyin.',
+      logoutAllError: 'Oturumlar kapatılamadı. Lütfen tekrar deneyin.',
     },
     employeeCard: {
       title: 'Çalışan kartı',
@@ -288,6 +340,8 @@ export const translations: Record<Locale, TranslationShape> = {
       titleCreate: 'Yeni çalışan',
       titleEdit: 'Çalışanı düzenle',
       loading: 'Yükleniyor…',
+      errorLoading: 'Çalışan bilgileri yüklenemedi.',
+      erpEmployeesError: 'ERP satış personeli listesi yüklenemedi.',
       usernameLabel: 'Kullanıcı adı',
       passwordLabelCreate: 'Parola',
       passwordLabelEdit: 'Yeni parola (opsiyonel)',
@@ -307,13 +361,37 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Yeniden etkinleştir',
       reactivating: 'Etkinleştiriliyor…',
       selfDeactivateHint: 'Kendi hesabınızı buradan devre dışı bırakamazsınız.',
+      usernameRequired: 'Kullanıcı adı zorunludur.',
+      usernameTooShort: 'Kullanıcı adı en az 3 karakter olmalıdır.',
+      passwordRequired: 'Parola zorunludur.',
+      passwordTooShort: 'Parola en az 8 karakter olmalıdır.',
+      firstnameRequired: 'Ad zorunludur.',
+      lastnameRequired: 'Soyad zorunludur.',
+      emailInvalid: 'Geçerli bir e-posta adresi girin.',
+      deactivateError: 'Çalışan devre dışı bırakılamadı.',
+      reactivateError: 'Çalışan yeniden etkinleştirilemedi.',
       genericSaveError: 'Kaydedilemedi. Lütfen tekrar deneyin.',
+    },
+    errors: {
+      generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
+      network: 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.',
+      validation: 'Girdiğiniz bilgileri kontrol edin.',
+      unauthorized: 'Oturumunuz sona erdi. Lütfen yeniden giriş yapın.',
+      forbidden: 'Bu işlemi yapmaya yetkiniz yok.',
+      notFound: 'İstenen kayıt bulunamadı.',
+      conflict: 'Bu bilgiler başka bir kayıtla çakışıyor.',
+      payloadTooLarge: 'Seçilen dosya izin verilen boyuttan büyük.',
+      tooManyRequests: 'Çok fazla deneme yapıldı. Lütfen biraz bekleyin.',
+      server: 'Sunucuda bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
     },
   },
   en: {
     common: {
       showPassword: 'Show password',
       hidePassword: 'Hide password',
+      close: 'Close',
+      closeDialog: 'Close {title}',
+      breadcrumb: 'Breadcrumb',
       cancel: 'Cancel',
       apply: 'Apply',
       clear: 'Clear',
@@ -324,7 +402,9 @@ export const translations: Record<Locale, TranslationShape> = {
     login: {
       brand: 'Retail KPI Platform',
       title: 'Sign in',
+      subtitle: 'Sign in to your account to get started',
       usernameLabel: 'Username',
+      usernamePlaceholder: 'e.g. admin',
       passwordLabel: 'Password',
       submit: 'Sign in',
       submitting: 'Signing in…',
@@ -359,7 +439,8 @@ export const translations: Record<Locale, TranslationShape> = {
       searchPlaceholder: 'Search name, surname, username, email or phone',
       noSearchResults: 'No employees match your search.',
       filters: 'Filters',
-      filtersActiveCount: 'filters active',
+      resultCount: '{count} employees',
+      filtersActiveCount: '{count} filters active',
       filterStatusAll: 'All',
       filterOnlyActive: 'Active employees only',
       filterOnlyInactive: 'Inactive employees only',
@@ -377,20 +458,26 @@ export const translations: Record<Locale, TranslationShape> = {
       columnUsername: 'Username',
       columnPhone: 'Phone',
       columnActions: 'Actions',
+      openCard: 'Open employee card for {name}',
+      editEmployee: 'Edit {name}',
     },
     settings: {
       profilePhoto: 'Profile photo',
       changePhoto: 'Change photo',
       cropPhoto: 'Crop photo',
       cropHint: 'Drag the photo to position it, use the slider to zoom',
+      zoom: 'Photo zoom level',
       cropSave: 'Crop and save',
       photoError: 'Could not update the photo. Please try again.',
+      photoReadError: 'Could not read the selected photo. Please try another file.',
       changePassword: 'Change password',
       currentPassword: 'Current password',
       newPassword: 'New password',
       confirmPassword: 'Confirm password',
       passwordMismatch: 'Passwords do not match.',
       passwordTooShort: 'Password must be at least 6 characters.',
+      currentPasswordIncorrect: 'The current password is incorrect.',
+      passwordChangeError: 'Could not change the password. Please try again.',
       passwordUpdated: 'Password updated.',
       submitPassword: 'Change password',
       saving: 'Saving…',
@@ -413,11 +500,14 @@ export const translations: Record<Locale, TranslationShape> = {
       revoke: 'Sign out',
       revoking: 'Signing out…',
       logoutAll: 'Sign out of all devices',
-      logoutAllConfirm: 'This signs you out on every device and you will need to log in again. Continue?',
+      logoutAllConfirm:
+        'This signs you out on every device and you will need to log in again. Continue?',
       revokeConfirm: 'This signs out the session on that device. Continue?',
       rememberMeBadge: 'Long-lived session',
       shortSessionBadge: 'Short session',
       expiryHint: 'The session extends on each use; it closes if left idle past this time.',
+      revokeError: 'Could not sign out this session. Please try again.',
+      logoutAllError: 'Could not sign out the sessions. Please try again.',
     },
     employeeCard: {
       title: 'Employee card',
@@ -438,10 +528,12 @@ export const translations: Record<Locale, TranslationShape> = {
       titleCreate: 'New employee',
       titleEdit: 'Edit employee',
       loading: 'Loading…',
+      errorLoading: 'Could not load the employee details.',
+      erpEmployeesError: 'Could not load the ERP sales representative list.',
       usernameLabel: 'Username',
       passwordLabelCreate: 'Password',
       passwordLabelEdit: 'New password (optional)',
-      passwordHintEdit: "Leave blank to keep the current password.",
+      passwordHintEdit: 'Leave blank to keep the current password.',
       firstnameLabel: 'First name',
       lastnameLabel: 'Last name',
       emailLabel: 'Email (optional)',
@@ -457,13 +549,37 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Reactivate',
       reactivating: 'Reactivating…',
       selfDeactivateHint: 'You cannot deactivate your own account from here.',
+      usernameRequired: 'Username is required.',
+      usernameTooShort: 'Username must be at least 3 characters.',
+      passwordRequired: 'Password is required.',
+      passwordTooShort: 'Password must be at least 8 characters.',
+      firstnameRequired: 'First name is required.',
+      lastnameRequired: 'Last name is required.',
+      emailInvalid: 'Enter a valid email address.',
+      deactivateError: 'Could not deactivate the employee.',
+      reactivateError: 'Could not reactivate the employee.',
       genericSaveError: 'Could not save. Please try again.',
+    },
+    errors: {
+      generic: 'An unexpected error occurred. Please try again.',
+      network: 'Could not connect to the server. Check your internet connection.',
+      validation: 'Check the information you entered.',
+      unauthorized: 'Your session has ended. Please sign in again.',
+      forbidden: 'You do not have permission to perform this action.',
+      notFound: 'The requested record was not found.',
+      conflict: 'This information conflicts with another record.',
+      payloadTooLarge: 'The selected file exceeds the allowed size.',
+      tooManyRequests: 'Too many attempts. Please wait a moment.',
+      server: 'A server error occurred. Please try again later.',
     },
   },
   ru: {
     common: {
       showPassword: 'Показать пароль',
       hidePassword: 'Скрыть пароль',
+      close: 'Закрыть',
+      closeDialog: 'Закрыть окно «{title}»',
+      breadcrumb: 'Навигационная цепочка',
       cancel: 'Отмена',
       apply: 'Применить',
       clear: 'Сбросить',
@@ -474,7 +590,9 @@ export const translations: Record<Locale, TranslationShape> = {
     login: {
       brand: 'Retail KPI Platform',
       title: 'Вход',
+      subtitle: 'Войдите в свою учётную запись, чтобы начать',
       usernameLabel: 'Имя пользователя',
+      usernamePlaceholder: 'Например, admin',
       passwordLabel: 'Пароль',
       submit: 'Войти',
       submitting: 'Выполняется вход…',
@@ -509,7 +627,8 @@ export const translations: Record<Locale, TranslationShape> = {
       searchPlaceholder: 'Поиск по имени, фамилии, логину, эл. почте или телефону',
       noSearchResults: 'Нет сотрудников, соответствующих запросу.',
       filters: 'Фильтры',
-      filtersActiveCount: 'фильтров активно',
+      resultCount: 'Сотрудников: {count}',
+      filtersActiveCount: 'Активных фильтров: {count}',
       filterStatusAll: 'Все',
       filterOnlyActive: 'Только активные',
       filterOnlyInactive: 'Только неактивные',
@@ -527,20 +646,26 @@ export const translations: Record<Locale, TranslationShape> = {
       columnUsername: 'Логин',
       columnPhone: 'Телефон',
       columnActions: 'Действия',
+      openCard: 'Открыть карточку сотрудника {name}',
+      editEmployee: 'Редактировать сотрудника {name}',
     },
     settings: {
       profilePhoto: 'Фото профиля',
       changePhoto: 'Изменить фото',
       cropPhoto: 'Обрезать фото',
       cropHint: 'Перетащите фото, чтобы расположить его, ползунком измените масштаб',
+      zoom: 'Масштаб фотографии',
       cropSave: 'Обрезать и сохранить',
       photoError: 'Не удалось обновить фото. Попробуйте ещё раз.',
+      photoReadError: 'Не удалось прочитать выбранное фото. Выберите другой файл.',
       changePassword: 'Смена пароля',
       currentPassword: 'Текущий пароль',
       newPassword: 'Новый пароль',
       confirmPassword: 'Подтвердите пароль',
       passwordMismatch: 'Пароли не совпадают.',
       passwordTooShort: 'Пароль должен содержать не менее 6 символов.',
+      currentPasswordIncorrect: 'Текущий пароль указан неверно.',
+      passwordChangeError: 'Не удалось изменить пароль. Попробуйте ещё раз.',
       passwordUpdated: 'Пароль обновлён.',
       submitPassword: 'Сменить пароль',
       saving: 'Сохранение…',
@@ -563,11 +688,15 @@ export const translations: Record<Locale, TranslationShape> = {
       revoke: 'Завершить сессию',
       revoking: 'Завершение…',
       logoutAll: 'Выйти на всех устройствах',
-      logoutAllConfirm: 'Сессии будут завершены на всех устройствах, потребуется войти заново. Продолжить?',
+      logoutAllConfirm:
+        'Сессии будут завершены на всех устройствах, потребуется войти заново. Продолжить?',
       revokeConfirm: 'Сессия на этом устройстве будет завершена. Продолжить?',
       rememberMeBadge: 'Долгая сессия',
       shortSessionBadge: 'Короткая сессия',
-      expiryHint: 'Сессия продлевается при каждом использовании и закрывается при бездействии до этого времени.',
+      expiryHint:
+        'Сессия продлевается при каждом использовании и закрывается при бездействии до этого времени.',
+      revokeError: 'Не удалось завершить сессию. Попробуйте ещё раз.',
+      logoutAllError: 'Не удалось завершить сессии. Попробуйте ещё раз.',
     },
     employeeCard: {
       title: 'Карточка сотрудника',
@@ -588,6 +717,8 @@ export const translations: Record<Locale, TranslationShape> = {
       titleCreate: 'Новый сотрудник',
       titleEdit: 'Редактировать сотрудника',
       loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить данные сотрудника.',
+      erpEmployeesError: 'Не удалось загрузить список продавцов ERP.',
       usernameLabel: 'Имя пользователя',
       passwordLabelCreate: 'Пароль',
       passwordLabelEdit: 'Новый пароль (необязательно)',
@@ -607,13 +738,37 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Восстановить',
       reactivating: 'Восстановление…',
       selfDeactivateHint: 'Вы не можете деактивировать собственную учётную запись здесь.',
+      usernameRequired: 'Имя пользователя обязательно.',
+      usernameTooShort: 'Имя пользователя должно содержать не менее 3 символов.',
+      passwordRequired: 'Пароль обязателен.',
+      passwordTooShort: 'Пароль должен содержать не менее 8 символов.',
+      firstnameRequired: 'Имя обязательно.',
+      lastnameRequired: 'Фамилия обязательна.',
+      emailInvalid: 'Введите корректный адрес электронной почты.',
+      deactivateError: 'Не удалось деактивировать сотрудника.',
+      reactivateError: 'Не удалось восстановить сотрудника.',
       genericSaveError: 'Не удалось сохранить. Попробуйте ещё раз.',
+    },
+    errors: {
+      generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
+      network: 'Не удалось подключиться к серверу. Проверьте интернет-соединение.',
+      validation: 'Проверьте введённые данные.',
+      unauthorized: 'Сессия завершена. Войдите снова.',
+      forbidden: 'У вас нет разрешения на выполнение этого действия.',
+      notFound: 'Запрошенная запись не найдена.',
+      conflict: 'Эти данные конфликтуют с другой записью.',
+      payloadTooLarge: 'Выбранный файл превышает допустимый размер.',
+      tooManyRequests: 'Слишком много попыток. Подождите немного.',
+      server: 'Произошла ошибка сервера. Повторите попытку позже.',
     },
   },
   tk: {
     common: {
       showPassword: 'Paroly görkez',
       hidePassword: 'Paroly gizle',
+      close: 'Ýap',
+      closeDialog: '{title} penjiresini ýap',
+      breadcrumb: 'Nawigasiýa ýoly',
       cancel: 'Ýatyr',
       apply: 'Ulan',
       clear: 'Arassala',
@@ -624,7 +779,9 @@ export const translations: Record<Locale, TranslationShape> = {
     login: {
       brand: 'Retail KPI Platform',
       title: 'Giriş',
+      subtitle: 'Başlamak üçin hasabyňyza giriň',
       usernameLabel: 'Ulanyjy ady',
+      usernamePlaceholder: 'Mysal üçin, admin',
       passwordLabel: 'Parol',
       submit: 'Giriş et',
       submitting: 'Giriş edilýär…',
@@ -659,7 +816,8 @@ export const translations: Record<Locale, TranslationShape> = {
       searchPlaceholder: 'Ady, familiýasy, ulanyjy ady, e-poçta ýa-da telefon boýunça gözle',
       noSearchResults: 'Gözlegiňize laýyk işgär tapylmady.',
       filters: 'Filtrler',
-      filtersActiveCount: 'filtr işjeň',
+      resultCount: '{count} işgär',
+      filtersActiveCount: '{count} filtr işjeň',
       filterStatusAll: 'Ählisi',
       filterOnlyActive: 'Diňe aktiw işgärler',
       filterOnlyInactive: 'Diňe passiw işgärler',
@@ -677,20 +835,26 @@ export const translations: Record<Locale, TranslationShape> = {
       columnUsername: 'Ulanyjy ady',
       columnPhone: 'Telefon',
       columnActions: 'Amal',
+      openCard: '{name} işgär kartasyny aç',
+      editEmployee: '{name} işgärini üýtget',
     },
     settings: {
       profilePhoto: 'Profil suraty',
       changePhoto: 'Suraty üýtget',
       cropPhoto: 'Suraty kes',
       cropHint: 'Surady süýşürip ýerleşdiriň, slaýder bilen ulaldyň',
+      zoom: 'Suratyň ulaldyş derejesi',
       cropSave: 'Kes we sakla',
       photoError: 'Surat täzelenip bilinmedi. Gaýtadan synanyşyň.',
+      photoReadError: 'Saýlanan surat okalmady. Başga faýly synap görüň.',
       changePassword: 'Paroly üýtget',
       currentPassword: 'Häzirki parol',
       newPassword: 'Täze parol',
       confirmPassword: 'Paroly tassykla',
       passwordMismatch: 'Parollar gabat gelmeýär.',
       passwordTooShort: 'Parol azyndan 6 belgiden ybarat bolmaly.',
+      currentPasswordIncorrect: 'Häzirki parol nädogry.',
+      passwordChangeError: 'Paroly üýtgedip bolmady. Gaýtadan synanyşyň.',
       passwordUpdated: 'Parol täzelendi.',
       submitPassword: 'Paroly üýtget',
       saving: 'Saklanýar…',
@@ -713,11 +877,14 @@ export const translations: Record<Locale, TranslationShape> = {
       revoke: 'Sessiýany ýap',
       revoking: 'Ýapylýar…',
       logoutAll: 'Ähli enjamlardan çyk',
-      logoutAllConfirm: 'Ähli enjamlardaky sessiýalar ýapylar we gaýtadan girmeli bolarsyňyz. Dowam edilsinmi?',
+      logoutAllConfirm:
+        'Ähli enjamlardaky sessiýalar ýapylar we gaýtadan girmeli bolarsyňyz. Dowam edilsinmi?',
       revokeConfirm: 'Bu enjamdaky sessiýa ýapylar. Dowam edilsinmi?',
       rememberMeBadge: 'Uzyn sessiýa',
       shortSessionBadge: 'Gysga sessiýa',
       expiryHint: 'Sessiýa her ulanylanda uzalýar; şu wagta çenli hereket edilmese ýapylýar.',
+      revokeError: 'Sessiýany ýapyp bolmady. Gaýtadan synanyşyň.',
+      logoutAllError: 'Sessiýalary ýapyp bolmady. Gaýtadan synanyşyň.',
     },
     employeeCard: {
       title: 'Işgär kartasy',
@@ -738,6 +905,8 @@ export const translations: Record<Locale, TranslationShape> = {
       titleCreate: 'Täze işgär',
       titleEdit: 'Işgäri üýtget',
       loading: 'Ýüklenýär…',
+      errorLoading: 'Işgär maglumatlary ýüklenip bilinmedi.',
+      erpEmployeesError: 'ERP satyjylarynyň sanawy ýüklenip bilinmedi.',
       usernameLabel: 'Ulanyjy ady',
       passwordLabelCreate: 'Parol',
       passwordLabelEdit: 'Täze parol (hökman däl)',
@@ -757,7 +926,28 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Gaýtadan aktiwleşdir',
       reactivating: 'Aktiwleşdirilýär…',
       selfDeactivateHint: 'Öz hasabyňyzy şu ýerden passiwleşdirip bilmersiňiz.',
+      usernameRequired: 'Ulanyjy ady hökmany.',
+      usernameTooShort: 'Ulanyjy ady azyndan 3 belgiden ybarat bolmaly.',
+      passwordRequired: 'Parol hökmany.',
+      passwordTooShort: 'Parol azyndan 8 belgiden ybarat bolmaly.',
+      firstnameRequired: 'Ady hökmany.',
+      lastnameRequired: 'Familiýasy hökmany.',
+      emailInvalid: 'Dogry e-poçta salgysyny giriziň.',
+      deactivateError: 'Işgäri passiwleşdirip bolmady.',
+      reactivateError: 'Işgäri gaýtadan aktiwleşdirip bolmady.',
       genericSaveError: 'Saklanyp bilinmedi. Gaýtadan synanyşyň.',
+    },
+    errors: {
+      generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',
+      network: 'Serwere birikmek başartmady. Internet baglanyşygyňyzy barlaň.',
+      validation: 'Girizen maglumatlaryňyzy barlaň.',
+      unauthorized: 'Sessiýaňyz tamamlandy. Gaýtadan giriň.',
+      forbidden: 'Bu amaly ýerine ýetirmäge hukugyňyz ýok.',
+      notFound: 'Talap edilen ýazgy tapylmady.',
+      conflict: 'Bu maglumatlar başga bir ýazgy bilen gabat gelýär.',
+      payloadTooLarge: 'Saýlanan faýl rugsat berlen ölçegden uly.',
+      tooManyRequests: 'Gaty köp synanyşyk edildi. Biraz garaşyň.',
+      server: 'Serwerde ýalňyşlyk ýüze çykdy. Soňrak gaýtadan synanyşyň.',
     },
   },
 };

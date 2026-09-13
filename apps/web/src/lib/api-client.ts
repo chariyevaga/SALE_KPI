@@ -12,11 +12,7 @@ export class ApiError extends Error {
   readonly body: ApiErrorBody | null;
 
   constructor(status: number, body: ApiErrorBody | null) {
-    super(
-      typeof body?.message === 'string'
-        ? body.message
-        : (body?.message?.[0] ?? `İstek başarısız oldu (${status}).`),
-    );
+    super(`HTTP ${status}`);
     this.status = status;
     this.body = body;
   }

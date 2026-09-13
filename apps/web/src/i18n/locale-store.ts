@@ -29,8 +29,17 @@ interface LocaleState {
   setLocale: (locale: Locale) => void;
 }
 
+function applyDocumentLocale(locale: Locale): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale;
+  }
+}
+
+const initialLocale = detectInitialLocale();
+applyDocumentLocale(initialLocale);
+
 export const useLocaleStore = create<LocaleState>((set) => ({
-  locale: detectInitialLocale(),
+  locale: initialLocale,
   setLocale: (locale) => {
     try {
       localStorage.setItem(STORAGE_KEY, locale);
@@ -38,17 +47,18 @@ export const useLocaleStore = create<LocaleState>((set) => ({
       // Private-mode/blocked storage: the choice just won't survive a reload.
     }
 
+    applyDocumentLocale(locale);
     set({ locale });
   },
 }));
 
 type Path<T, Prefix extends string = ''> = {
-  [K in keyof T & string]: T[K] extends string
-    ? `${Prefix}${K}`
-    : Path<T[K], `${Prefix}${K}.`>;
+  [K in keyof T & string]: T[K] extends string ? `${Prefix}${K}` : Path<T[K], `${Prefix}${K}.`>;
 }[keyof T & string];
 
 export type TranslationKey = Path<(typeof translations)['tr']>;
+export type TranslationParams = Record<string, number | string>;
+export type Translate = (key: TranslationKey, params?: TranslationParams) => string;
 
 function getByPath(source: unknown, path: string): unknown {
   return path.split('.').reduce<unknown>((accumulator, segment) => {
@@ -64,10 +74,20 @@ export function useTranslation() {
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
 
-  function t(key: TranslationKey): string {
+  function t(key: TranslationKey, params?: TranslationParams): string {
     const value = getByPath(translations[locale], key) ?? getByPath(translations.tr, key);
 
-    return typeof value === 'string' ? value : key;
+    if (typeof value !== 'string') {
+      return key;
+    }
+
+    if (!params) {
+      return value;
+    }
+
+    return value.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
+      Object.hasOwn(params, name) ? String(params[name]) : placeholder,
+    );
   }
 
   return { t, locale, setLocale };

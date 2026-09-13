@@ -11,6 +11,7 @@ import { PasswordInput } from '../components/PasswordInput';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { ProfileAvatar } from '../components/ProfileAvatar';
 import { Spinner } from '../components/Spinner';
+import { localizeApiError } from '../i18n/api-errors';
 import { useTranslation, type TranslationKey } from '../i18n/locale-store';
 import { LOCALE_LABELS, SUPPORTED_LOCALES } from '../i18n/translations';
 import { useAuthStore } from '../store/auth-store';
@@ -33,10 +34,10 @@ export function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordErrorKey, setPasswordErrorKey] = useState<TranslationKey | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarErrorKey, setAvatarErrorKey] = useState<TranslationKey | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
 
   const changePasswordMutation = useMutation({
@@ -45,11 +46,8 @@ export function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setPasswordError(null);
+      setPasswordErrorKey(null);
       setPasswordSuccess(true);
-    },
-    onError: () => {
-      setPasswordError(t('employeeForm.genericSaveError'));
     },
   });
 
@@ -61,36 +59,54 @@ export function SettingsPage() {
     onSuccess: (updatedEmployee) => {
       setEmployee(updatedEmployee);
       setSelectedImage(null);
-      setAvatarError(null);
-    },
-    onError: () => {
-      setAvatarError(t('settings.photoError'));
+      setAvatarErrorKey(null);
     },
   });
 
   function handleChangePassword() {
-    setPasswordError(null);
+    setPasswordErrorKey(null);
     setPasswordSuccess(false);
+    changePasswordMutation.reset();
     if (newPassword !== confirmPassword) {
-      setPasswordError(t('settings.passwordMismatch'));
+      setPasswordErrorKey('settings.passwordMismatch');
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError(t('settings.passwordTooShort'));
+      setPasswordErrorKey('settings.passwordTooShort');
       return;
     }
     changePasswordMutation.mutate();
   }
 
+  const passwordError = passwordErrorKey
+    ? t(passwordErrorKey)
+    : changePasswordMutation.isError
+      ? localizeApiError(changePasswordMutation.error, t, 'settings.passwordChangeError', {
+          401: 'settings.currentPasswordIncorrect',
+        })
+      : null;
+  const avatarError = avatarErrorKey
+    ? t(avatarErrorKey)
+    : avatarMutation.isError
+      ? localizeApiError(avatarMutation.error, t, 'settings.photoError', {
+          400: 'settings.photoError',
+        })
+      : null;
+
   return (
     <AppShell
       title={t('appShell.navSettings')}
-      breadcrumbs={[{ label: t('common.home'), to: '/leaderboard' }, { label: t('appShell.navSettings') }]}
+      breadcrumbs={[
+        { label: t('common.home'), to: '/leaderboard' },
+        { label: t('appShell.navSettings') },
+      ]}
     >
       <div className="flex flex-col gap-6">
         {/* Profile Section */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{t('settings.profilePhoto')}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {t('settings.profilePhoto')}
+          </h2>
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -117,28 +133,45 @@ export function SettingsPage() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            aria-label={t('settings.changePhoto')}
             className="hidden"
             onChange={(e) => {
+              setAvatarErrorKey(null);
+              avatarMutation.reset();
               const file = e.target.files?.[0];
               if (file) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                  setSelectedImage(event.target?.result as string);
+                  if (typeof event.target?.result === 'string') {
+                    setSelectedImage(event.target.result);
+                  } else {
+                    setAvatarErrorKey('settings.photoReadError');
+                  }
                 };
+                reader.onerror = () => setAvatarErrorKey('settings.photoReadError');
                 reader.readAsDataURL(file);
               }
               e.target.value = '';
             }}
           />
-          {avatarError ? <p className="mt-3 text-xs text-red-500">{avatarError}</p> : null}
+          {avatarError ? (
+            <p role="alert" className="mt-3 text-xs text-red-500">
+              {avatarError}
+            </p>
+          ) : null}
         </section>
 
         {/* Password Change Section */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{t('settings.changePassword')}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {t('settings.changePassword')}
+          </h2>
           <div className="flex flex-col gap-3 max-w-sm">
             <div>
-              <label htmlFor="current-pwd" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="current-pwd"
+                className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
                 {t('settings.currentPassword')}
               </label>
               <PasswordInput
@@ -149,7 +182,10 @@ export function SettingsPage() {
               />
             </div>
             <div>
-              <label htmlFor="new-pwd" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="new-pwd"
+                className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
                 {t('settings.newPassword')}
               </label>
               <PasswordInput
@@ -160,7 +196,10 @@ export function SettingsPage() {
               />
             </div>
             <div>
-              <label htmlFor="confirm-pwd" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="confirm-pwd"
+                className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
                 {t('settings.confirmPassword')}
               </label>
               <PasswordInput
@@ -170,17 +209,32 @@ export function SettingsPage() {
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
-            {passwordError ? <p className="text-xs text-red-500">{passwordError}</p> : null}
-            {passwordSuccess ? <p className="text-xs text-emerald-600 dark:text-emerald-400">{t('settings.passwordUpdated')}</p> : null}
+            {passwordError ? (
+              <p role="alert" className="text-xs text-red-500">
+                {passwordError}
+              </p>
+            ) : null}
+            {passwordSuccess ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                {t('settings.passwordUpdated')}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={handleChangePassword}
-              disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+              disabled={
+                changePasswordMutation.isPending ||
+                !currentPassword ||
+                !newPassword ||
+                !confirmPassword
+              }
               className="h-9 rounded-lg bg-emerald-400 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex items-center justify-center gap-2">
                 {changePasswordMutation.isPending ? <Spinner /> : null}
-                {changePasswordMutation.isPending ? t('settings.saving') : t('settings.submitPassword')}
+                {changePasswordMutation.isPending
+                  ? t('settings.saving')
+                  : t('settings.submitPassword')}
               </span>
             </button>
           </div>
@@ -188,7 +242,9 @@ export function SettingsPage() {
 
         {/* Language Section */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{t('appShell.language')}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {t('appShell.language')}
+          </h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:max-w-xl">
             {SUPPORTED_LOCALES.map((code) => {
               const isActive = code === locale;
@@ -218,7 +274,13 @@ export function SettingsPage() {
                     <span className="font-medium">{LOCALE_LABELS[code]}</span>
                   </span>
                   {isActive ? (
-                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 flex-shrink-0" stroke="currentColor" strokeWidth="2.5">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="h-4 w-4 flex-shrink-0"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
                       <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   ) : null}
@@ -230,7 +292,9 @@ export function SettingsPage() {
 
         {/* Theme Section */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{t('settings.theme')}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {t('settings.theme')}
+          </h2>
           <div className="flex gap-2 max-w-sm">
             {THEME_OPTIONS.map((option) => (
               <button
@@ -238,6 +302,7 @@ export function SettingsPage() {
                 type="button"
                 onClick={() => setPreference(option.value)}
                 aria-pressed={preference === option.value}
+                aria-label={t(option.labelKey)}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm transition ${
                   preference === option.value
                     ? 'bg-emerald-400/15 text-emerald-600 dark:text-emerald-400'
@@ -254,7 +319,11 @@ export function SettingsPage() {
 
       <EmployeeCardModal open={cardOpen} onClose={() => setCardOpen(false)} employee={employee} />
 
-      <Modal open={!!selectedImage} onClose={() => setSelectedImage(null)} title={t('settings.cropPhoto')}>
+      <Modal
+        open={!!selectedImage}
+        onClose={() => setSelectedImage(null)}
+        title={t('settings.cropPhoto')}
+      >
         {selectedImage ? (
           <ImageCropper
             imageSrc={selectedImage}

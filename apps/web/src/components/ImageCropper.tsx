@@ -24,7 +24,12 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-export function ImageCropper({ imageSrc, onCancel, onCropped, pending = false }: ImageCropperProps) {
+export function ImageCropper({
+  imageSrc,
+  onCancel,
+  onCropped,
+  pending = false,
+}: ImageCropperProps) {
   const { t } = useTranslation();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const naturalSizeRef = useRef({ width: 0, height: 0 });
@@ -93,7 +98,6 @@ export function ImageCropper({ imageSrc, onCancel, onCropped, pending = false }:
   useEffect(() => {
     setPosition((prev) => clampPosition(prev, displayScale));
     // Re-clamp whenever zoom changes so the image never leaves gaps in the frame.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom]);
 
   function handleSave() {
@@ -131,15 +135,19 @@ export function ImageCropper({ imageSrc, onCancel, onCropped, pending = false }:
     <div className="flex flex-col gap-4">
       <div
         className="relative mx-auto touch-none select-none overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-800"
-        style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE, cursor: isDragging ? 'grabbing' : 'grab' }}
+        style={{
+          width: CONTAINER_SIZE,
+          height: CONTAINER_SIZE,
+          cursor: isDragging ? 'grabbing' : 'grab',
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- decorative crop surface, not user-facing content */}
         <img
           ref={imageRef}
           src={imageSrc}
+          alt=""
           onLoad={handleImageLoad}
           draggable={false}
           className="absolute left-0 top-0 max-w-none"
@@ -154,12 +162,19 @@ export function ImageCropper({ imageSrc, onCancel, onCropped, pending = false }:
       </div>
 
       <div className="flex items-center gap-3 px-2">
-        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 flex-shrink-0 text-slate-400" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-4 w-4 flex-shrink-0 text-slate-400"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <circle cx="11" cy="11" r="7" />
           <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
         </svg>
         <input
           type="range"
+          aria-label={t('settings.zoom')}
           min={MIN_ZOOM}
           max={MAX_ZOOM}
           step={0.01}
@@ -167,7 +182,13 @@ export function ImageCropper({ imageSrc, onCancel, onCropped, pending = false }:
           onChange={(e) => setZoom(Number(e.target.value))}
           className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-400 dark:bg-slate-700"
         />
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 flex-shrink-0 text-slate-400" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-5 w-5 flex-shrink-0 text-slate-400"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <circle cx="11" cy="11" r="7" />
           <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
         </svg>

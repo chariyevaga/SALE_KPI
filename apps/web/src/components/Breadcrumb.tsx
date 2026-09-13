@@ -1,17 +1,24 @@
 import { Link } from 'react-router-dom';
 
+import { useTranslation } from '../i18n/locale-store';
+
 export interface BreadcrumbItem {
   label: string;
   to?: string;
 }
 
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
+  const { t } = useTranslation();
+
   if (items.length < 2) {
     return null;
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 overflow-x-auto text-sm">
+    <nav
+      aria-label={t('common.breadcrumb')}
+      className="mb-3 flex items-center gap-1.5 overflow-x-auto text-sm"
+    >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
 
