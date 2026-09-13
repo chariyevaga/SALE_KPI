@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/playwright:v1.62.0-noble
+
+USER root
+
+# Browser binaries already exist in the base image. Install only the matching
+# server package at build time so startup does not require internet access.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+RUN npm install --global --omit=dev --no-audit --no-fund playwright@1.62.0
+
+CMD ["playwright", "run-server", "--port", "3000", "--host", "0.0.0.0"]

@@ -1,0 +1,117 @@
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+
+import { fetchCurrentEmployee } from './api/auth';
+import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute';
+import { ComingSoonPage } from './pages/ComingSoonPage';
+import { EmployeeFormPage } from './pages/EmployeeFormPage';
+import { EmployeesPage } from './pages/EmployeesPage';
+import { LoginPage } from './pages/LoginPage';
+import { SessionsPage } from './pages/SessionsPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { useAuthStore } from './store/auth-store';
+
+function SessionBootstrap() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const employee = useAuthStore((state) => state.employee);
+  const setEmployee = useAuthStore((state) => state.setEmployee);
+  const clearSession = useAuthStore((state) => state.clearSession);
+
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: fetchCurrentEmployee,
+    enabled: isAuthenticated && !employee,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (meQuery.data) {
+      setEmployee(meQuery.data);
+    }
+  }, [meQuery.data, setEmployee]);
+
+  useEffect(() => {
+    if (meQuery.isError) {
+      clearSession();
+    }
+  }, [meQuery.isError, clearSession]);
+
+  return null;
+}
+
+export function App() {
+  return (
+    <>
+      <SessionBootstrap />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/employees"
+          element={
+            <AdminRoute>
+              <EmployeesPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/employees/new"
+          element={
+            <AdminRoute>
+              <EmployeeFormPage mode="create" />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/employees/:id"
+          element={
+            <AdminRoute>
+              <EmployeeFormPage mode="edit" />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sessions"
+          element={
+            <ProtectedRoute>
+              <SessionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage titleKey="appShell.navLeaderboard" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-kpi"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage titleKey="appShell.navMyKpi" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/kpi-plans"
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage titleKey="appShell.navKpiPlans" />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/leaderboard" replace />} />
+      </Routes>
+    </>
+  );
+}

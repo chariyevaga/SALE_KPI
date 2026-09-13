@@ -1,0 +1,27 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+.vite/
+
+.env
+.env.*
+!.env.example
+
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+.DS_Store
+.idea/
+.vscode/
+.claude/settings.local.json
+
+n8n_data/
+tmp/
+temp/
+var/
+
+# Internal documentation is not published to the remote.
+*.md

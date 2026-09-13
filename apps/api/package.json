@@ -1,0 +1,45 @@
+{
+  "name": "@retail-kpi/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Retail KPI Platform NestJS REST API.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "trap 'kill 0' EXIT; tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch --enable-source-maps dist/main.js",
+    "lint": "eslint src --max-warnings 0",
+    "migration:check": "tsx src/database/schema-check.ts",
+    "migration:create": "node scripts/migration-create.mjs",
+    "migration:run": "tsx node_modules/typeorm/cli.js -d src/database/data-source.ts migration:run",
+    "migration:revert": "tsx node_modules/typeorm/cli.js -d src/database/data-source.ts migration:revert",
+    "migration:show": "tsx node_modules/typeorm/cli.js -d src/database/data-source.ts migration:show",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.spec.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/schedule": "^12.0.1",
+    "@nestjs/swagger": "^12.0.1",
+    "@nestjs/typeorm": "^12.0.1",
+    "blurhash": "^2.0.5",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "dotenv": "^17.4.2",
+    "mssql": "^12.7.1",
+    "multer": "^2.2.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.4",
+    "typeorm": "^0.3.31"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "24.13.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

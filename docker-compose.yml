@@ -1,0 +1,175 @@
+name: retail-kpi
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks:
+    - retail-kpi
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 20s
+
+x-api-build: &api-build
+  context: .
+  dockerfile: docker/api/Dockerfile
+
+x-api-database-environment: &api-database-environment
+  FIRM_NR: ${FIRM_NR:-1}
+  KPI_DB_ENCRYPT: ${KPI_DB_ENCRYPT:-false}
+  KPI_DB_HOST: ${KPI_DB_HOST:-}
+  KPI_DB_NAME: ${KPI_DB_NAME:-}
+  KPI_DB_PASSWORD: ${KPI_DB_PASSWORD:-}
+  KPI_DB_PORT: ${KPI_DB_PORT:-1433}
+  KPI_DB_TRUST_SERVER_CERTIFICATE: ${KPI_DB_TRUST_SERVER_CERTIFICATE:-true}
+  KPI_DB_USER: ${KPI_DB_USER:-}
+  TIGER_DB_ENCRYPT: ${TIGER_DB_ENCRYPT:-false}
+  TIGER_DB_HOST: ${TIGER_DB_HOST:-}
+  TIGER_DB_NAME: ${TIGER_DB_NAME:-}
+  TIGER_DB_PASSWORD: ${TIGER_DB_PASSWORD:-}
+  TIGER_DB_PORT: ${TIGER_DB_PORT:-1433}
+  TIGER_DB_TRUST_SERVER_CERTIFICATE: ${TIGER_DB_TRUST_SERVER_CERTIFICATE:-true}
+  TIGER_DB_USER: ${TIGER_DB_USER:-}
+
+services:
+  schema-check:
+    build: *api-build
+    image: retail-kpi-api:local
+    command: ['node', 'apps/api/dist/database/schema-check.js']
+    environment: *api-database-environment
+    restart: 'no'
+    networks:
+      - retail-kpi
+
+  api:
+    <<: *service-defaults
+    build: *api-build
+    image: retail-kpi-api:local
+    depends_on:
+      schema-check:
+        condition: service_completed_successfully
+    environment:
+      <<: *api-database-environment
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?ACCESS_TOKEN_SECRET is required}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      API_PORT: 3000
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      FILE_CLEANUP_TIME_ZONE: ${FILE_CLEANUP_TIME_ZONE:-Asia/Ashgabat}
+      FILE_MAX_UPLOAD_BYTES: ${FILE_MAX_UPLOAD_BYTES:-5242880}
+      FILE_STORAGE_ROOT: /app/uploads
+      NODE_ENV: production
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?REFRESH_TOKEN_SECRET is required}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-30d}
+      SHORT_SESSION_TTL: ${SHORT_SESSION_TTL:-2h}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    volumes:
+      - file_uploads:/app/uploads
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/health')
+          .then((response) => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+
+  web:
+    <<: *service-defaults
+    depends_on:
+      api:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+    ports:
+      - '${WEB_PORT:-5173}:80'
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1/health']
+
+  n8n:
+    <<: *service-defaults
+    depends_on:
+      schema-check:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: docker/n8n/Dockerfile
+    image: retail-kpi-n8n:2.35.7-local
+    environment:
+      GENERIC_TIMEZONE: ${N8N_TIME_ZONE:-Asia/Ashgabat}
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_LISTEN_ADDRESS: 0.0.0.0
+      N8N_NATIVE_PYTHON_RUNNER: 'false'
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN is required}
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      N8N_RUNNERS_BROKER_PORT: ${N8N_RUNNERS_BROKER_PORT:-5679}
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_TASK_TIMEOUT: ${N8N_RUNNERS_TASK_TIMEOUT:-300}
+      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/
+      N8N_UNVERIFIED_PACKAGES_ENABLED: 'false'
+      TZ: ${N8N_TIME_ZONE:-Asia/Ashgabat}
+    ports:
+      - '${N8N_PORT:-5678}:5678'
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:5678/healthz/readiness')
+          .then((response) => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+
+  n8n-task-runners:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: docker/n8n/Dockerfile.runners
+    image: retail-kpi-n8n-runners:2.35.7-local
+    depends_on:
+      n8n:
+        condition: service_healthy
+    environment:
+      GENERIC_TIMEZONE: ${N8N_TIME_ZONE:-Asia/Ashgabat}
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:?N8N_RUNNERS_AUTH_TOKEN is required}
+      N8N_RUNNERS_CONFIG_FILE: /etc/n8n-task-runners.json
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n:${N8N_RUNNERS_BROKER_PORT:-5679}
+      N8N_RUNNERS_TASK_TIMEOUT: ${N8N_RUNNERS_TASK_TIMEOUT:-300}
+      TZ: ${N8N_TIME_ZONE:-Asia/Ashgabat}
+
+  playwright:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: docker/n8n/Dockerfile.playwright
+    image: retail-kpi-playwright:1.62.0-local
+    ipc: host
+
+  quickchart:
+    <<: *service-defaults
+    image: ianw/quickchart:v1.8.1
+    platform: linux/amd64
+    environment:
+      ENABLE_CORS: 'true'
+      PORT: 3400
+      TZ: ${N8N_TIME_ZONE:-Asia/Ashgabat}
+
+networks:
+  retail-kpi:
+    driver: bridge
+
+volumes:
+  file_uploads:
+  n8n_data:

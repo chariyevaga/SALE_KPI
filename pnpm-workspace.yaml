@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  # Analytics-only postinstall; nothing the build needs.
+  '@scarf/scarf': false
+  '@swc/core': set this to true or false
+  esbuild: true
+  sharp: true
