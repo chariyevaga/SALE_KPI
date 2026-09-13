@@ -4,12 +4,17 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
-// Ports and the API URL live in the repo-root .env so docker-compose and local dev agree.
+// Ports live in the repo-root .env so Docker Compose and local development agree.
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, repoRoot, '');
-  const apiBaseUrl = rootEnv.API_BASE_URL ?? 'http://localhost:3000';
+  const apiPort = Number(rootEnv.API_PORT);
+  const resolvedApiPort = Number.isInteger(apiPort) && apiPort > 0 ? apiPort : 3000;
+  const apiBaseUrl =
+    process.env.VITE_API_BASE_URL?.trim() ||
+    rootEnv.API_BASE_URL?.trim() ||
+    `http://localhost:${resolvedApiPort}`;
   const webPort = Number(rootEnv.WEB_PORT);
 
   return {

@@ -118,17 +118,19 @@ cp .env.example .env
 
 Özellikle doldurulması gereken alanlar:
 
-| Değişken                 | Açıklama                                                        |
-| ------------------------ | --------------------------------------------------------------- |
-| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı       |
-| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                               |
-| `FIRM_NR`                | Logo Tiger firma numarası                                       |
-| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                      |
-| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı |
-| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                  |
-| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token               |
-| `API_BASE_URL`           | Browser'ın erişeceği API adresi                                 |
-| `CORS_ORIGINS`           | Web uygulamasının browser origin'i                              |
+| Değişken                 | Açıklama                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı                         |
+| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                                                 |
+| `FIRM_NR`                | Logo Tiger firma numarası                                                         |
+| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                                        |
+| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı                   |
+| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                                    |
+| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token                                 |
+| `API_PORT`               | API'nin host üzerinde yayımlanacağı port; web varsayılan olarak bu portu kullanır |
+| `API_BASE_URL`           | İsteğe bağlı tam API adresi override'ı; yalnız domain/reverse proxy için          |
+| `WEB_PORT`               | Web uygulamasının host üzerinde yayımlanacağı port                                |
+| `CORS_ORIGINS`           | Web uygulamasının browser origin'i                                                |
 
 Güçlü secret üretmek için her secret alanında ayrı bir çıktı kullanın:
 
@@ -185,7 +187,7 @@ Varsayılan adresler:
 | OpenAPI JSON | <http://localhost:3000/api/docs-json> |
 | n8n          | <http://localhost:5678>               |
 
-Portları `.env` içindeki `API_PORT`, `WEB_PORT` ve `N8N_PORT` ile değiştirebilirsiniz. `API_PORT` değişirse `API_BASE_URL` değerini; `WEB_PORT` değişirse `CORS_ORIGINS` değerini de güncelleyin. `API_BASE_URL` build sırasında web image'ına yazıldığı için ardından web image'ını yeniden build edin.
+Portları `.env` içindeki `API_PORT`, `WEB_PORT` ve `N8N_PORT` ile değiştirebilirsiniz. Yerel kullanımda web'in API adresi otomatik olarak `http://localhost:${API_PORT}` biçiminde üretilir; aynı portu ikinci bir değişkende tekrar etmeniz gerekmez. `API_BASE_URL` yalnız farklı bir domain veya reverse proxy adresi gerektiğinde doldurulur ve `API_PORT` tabanlı adresi geçersiz kılar. `WEB_PORT` değişirse `CORS_ORIGINS` değerini de güncelleyin. Bu değerler web build sırasında bundle'a yazıldığı için değişiklikten sonra web image'ını yeniden build edin.
 
 ### 6. İlk yönetici hesabını güvenli hâle getirin
 
@@ -306,11 +308,13 @@ docker compose up -d --build
 
 ### Web eski API adresine istek gönderiyor
 
-`API_BASE_URL` web build sırasında gömülür. Değeri değiştirdikten sonra:
+Web'in API adresi varsayılan olarak `API_PORT` değerinden üretilir ve build sırasında bundle'a gömülür. `API_PORT` veya isteğe bağlı `API_BASE_URL` override'ını değiştirdikten sonra:
 
 ```bash
 docker compose up -d --build web
 ```
+
+Yerel Vite geliştirme sunucusu çalışıyorsa yeni `.env` değerlerini okuması için onu da yeniden başlatın.
 
 ### n8n logunda Confluence credential uyarısı görünüyor
 
