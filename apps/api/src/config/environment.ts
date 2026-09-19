@@ -28,6 +28,20 @@ function getIntegerEnvironmentVariable(name: string, defaultValue: number): numb
   return value;
 }
 
+function getBoundedIntegerEnvironmentVariable(
+  name: string,
+  defaultValue: number,
+  max: number,
+): number {
+  const value = getIntegerEnvironmentVariable(name, defaultValue);
+
+  if (value > max) {
+    throw new Error(`${name} must be an integer between 1 and ${max}.`);
+  }
+
+  return value;
+}
+
 function getBooleanEnvironmentVariable(name: string, defaultValue: boolean): boolean {
   const rawValue = process.env[name];
 
@@ -114,8 +128,38 @@ export function getTigerDatabaseConfig(): TigerDatabaseConfig {
   };
 }
 
+/** Logo Tiger firm number: tables of firm 3 are `LG_003_…` (ADR-037). */
 export function getFirmNumber(): number {
-  return getIntegerEnvironmentVariable('FIRM_NR', 1);
+  return getBoundedIntegerEnvironmentVariable('FIRM_NR', 1, 999);
+}
+
+/** Logo Tiger period of that firm: period 1 of firm 3 is `LG_003_01_…` (ADR-037). */
+export function getTigerPeriodNumber(): number {
+  return getBoundedIntegerEnvironmentVariable('TIGER_PERIOD_NR', 1, 99);
+}
+
+/** Tiger's `LG_xxx_CLCARD.CODE` is varchar(17). */
+const MAX_TIGER_CUSTOMER_CODE_LENGTH = 17;
+
+/**
+ * Customer (CLCARD) codes of shared/anonymous cash accounts, comma-separated in
+ * TIGER_SHARED_CUSTOMER_CODES. No customer KPI counts them (business decision 17).
+ */
+export function getTigerSharedCustomerCodes(): string[] {
+  const codes = (process.env.TIGER_SHARED_CUSTOMER_CODES ?? '')
+    .split(',')
+    .map((code) => code.trim())
+    .filter(Boolean);
+
+  for (const code of codes) {
+    if (code.length > MAX_TIGER_CUSTOMER_CODE_LENGTH) {
+      throw new Error(
+        `TIGER_SHARED_CUSTOMER_CODES entries must be at most ${MAX_TIGER_CUSTOMER_CODE_LENGTH} characters ("${code}").`,
+      );
+    }
+  }
+
+  return [...new Set(codes)];
 }
 
 export function getFileStorageRoot(): string {

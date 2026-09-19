@@ -14,12 +14,14 @@ import { HealthModule } from './health/health.module.js';
 import { KpiDefinitionsModule } from './kpi-definitions/kpi-definitions.module.js';
 import { KpiTemplatesModule } from './kpi-templates/kpi-templates.module.js';
 import { StoresModule } from './stores/stores.module.js';
+import { TigerModule } from './tiger/tiger.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(getKpiDataSourceOptions()),
     ScheduleModule.forRoot(),
     AuditModule,
+    TigerModule,
     HealthModule,
     AuthModule,
     FilesModule,

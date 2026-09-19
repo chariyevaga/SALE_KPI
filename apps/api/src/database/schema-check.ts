@@ -1,7 +1,22 @@
 import '../config/load-environment.js';
 import 'reflect-metadata';
 
-import { getFirmNumber } from '../config/environment.js';
+import { DataSource } from 'typeorm';
+
+import {
+  getFirmNumber,
+  getTigerDatabaseConfig,
+  getTigerSharedCustomerCodes,
+} from '../config/environment.js';
+import {
+  findStaleReferences,
+  findTigerWriteRights,
+  findUnknownCustomerCodes,
+  findViewSourceMismatches,
+  readTigerPeriod,
+} from '../tiger/tiger-checks.js';
+import { getTigerDataSourceOptions } from '../tiger/tiger-data-source.options.js';
+import { TigerTables } from '../tiger/tiger-tables.js';
 import dataSource from './data-source.js';
 
 const REQUIRED_OBJECTS = [
@@ -78,6 +93,89 @@ async function getPendingMigrationNames(): Promise<string[]> {
   return configuredNames.filter((name) => !executedNames.has(name));
 }
 
+/**
+ * The Tiger source (ADR-037): views and settings must name the same company, and the
+ * configured firm/period must exist. Risky but workable states are printed as warnings.
+ */
+async function checkTigerSource(): Promise<void> {
+  const tigerDatabase = getTigerDatabaseConfig().database;
+  const tables = TigerTables.fromEnvironment();
+  const mismatches = await findViewSourceMismatches(dataSource, tigerDatabase);
+
+  if (mismatches.length > 0) {
+    throw new Error(
+      `${mismatches.join('; ')}, but TIGER_DB_NAME is ${tigerDatabase}. Fix TIGER_DB_NAME, or recreate the views for the new database with a migration.`,
+    );
+  }
+
+  const tiger = new DataSource(getTigerDataSourceOptions());
+  await tiger.initialize();
+
+  try {
+    const period = await readTigerPeriod(tiger, tables);
+    console.log(
+      `Tiger source: ${tigerDatabase}, firm ${tables.firm}, period ${tables.period} (${formatDay(period.beginDate)} → ${formatDay(period.endDate)}).`,
+    );
+
+    const sharedCodes = getTigerSharedCustomerCodes();
+
+    if (sharedCodes.length === 0) {
+      console.warn(
+        'WARNING: TIGER_SHARED_CUSTOMER_CODES is empty, so customer KPIs count shared cash accounts as customers (business decision 17).',
+      );
+    } else {
+      console.log(`Shared cash accounts left out of customer KPIs: ${sharedCodes.join(', ')}.`);
+      const unknown = await findUnknownCustomerCodes(tiger, tables, sharedCodes);
+
+      if (unknown.length > 0) {
+        console.warn(
+          `WARNING: TIGER_SHARED_CUSTOMER_CODES lists codes that are not customers of firm ${tables.firm}: ${unknown.join(', ')}.`,
+        );
+      }
+    }
+
+    const writeRights = await findTigerWriteRights(tiger);
+
+    if (writeRights.length > 0) {
+      console.warn(
+        `WARNING: the Tiger account (TIGER_DB_USER) can write to ${tigerDatabase} (${writeRights.join(', ')}). Use a db_datareader-only login; see docs/TIGER_DATA.md.`,
+      );
+    }
+  } finally {
+    await tiger.destroy();
+  }
+
+  const stale = await findStaleReferences(dataSource, tables.firm);
+
+  if (stale.templateStores.length > 0) {
+    const byTemplate = new Map<string, Set<string>>();
+
+    for (const row of stale.templateStores) {
+      byTemplate.set(row.template, (byTemplate.get(row.template) ?? new Set()).add(row.storeId));
+    }
+
+    console.warn(
+      `WARNING: ${stale.templateStores.length} KPI template row(s) select stores that are not workplaces of firm ${tables.firm}: ${[
+        ...byTemplate,
+      ]
+        .map(([template, storeIds]) => `${template} (store ${[...storeIds].join(', ')})`)
+        .join('; ')}. Re-select the stores in the template form.`,
+    );
+  }
+
+  if (stale.employees.length > 0) {
+    console.warn(
+      `WARNING: ${stale.employees.length} employee(s) are linked to salespeople outside firm ${tables.firm}: ${stale.employees
+        .map((row) => `${row.username} → ${row.erpEmployeeId}`)
+        .join('; ')}. Re-select the ERP salesperson in the employee form.`,
+    );
+  }
+}
+
+function formatDay(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
 async function checkSchema(): Promise<void> {
   getFirmNumber();
   await dataSource.initialize();
@@ -112,6 +210,9 @@ async function checkSchema(): Promise<void> {
     }
 
     console.log('KPI_DB migration, required table/view and audit column checks passed.');
+
+    await checkTigerSource();
+    console.log('Tiger source checks passed.');
   } finally {
     await dataSource.destroy();
   }
