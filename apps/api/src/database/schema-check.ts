@@ -9,6 +9,11 @@ import {
   getTigerSharedCustomerCodes,
 } from '../config/environment.js';
 import {
+  compareReportSource,
+  KPI_REPORT_OBJECTS,
+  readReportSource,
+} from '../reports/kpi-report-checks.js';
+import {
   findStaleReferences,
   findTigerWriteRights,
   findUnknownCustomerCodes,
@@ -29,6 +34,8 @@ const REQUIRED_OBJECTS = [
   { name: 'dbo.audit_logs', type: 'U' },
   { name: 'dbo.stores', type: 'V' },
   { name: 'dbo.erp_employees', type: 'V' },
+  // KPI report views with their Tiger synonyms and helpers (ADR-038).
+  ...KPI_REPORT_OBJECTS,
 ] as const;
 
 async function objectExists(name: string, type: string): Promise<boolean> {
@@ -106,6 +113,23 @@ async function checkTigerSource(): Promise<void> {
     throw new Error(
       `${mismatches.join('; ')}, but TIGER_DB_NAME is ${tigerDatabase}. Fix TIGER_DB_NAME, or recreate the views for the new database with a migration.`,
     );
+  }
+
+  // The KPI report views were built for one database, firm and period (ADR-038).
+  const reportSource = compareReportSource(await readReportSource(dataSource), {
+    database: tigerDatabase,
+    tables,
+    sharedCustomerCodes: getTigerSharedCustomerCodes(),
+  });
+
+  if (reportSource.errors.length > 0) {
+    throw new Error(
+      `KPI report views read another Tiger source: ${reportSource.errors.join('; ')}. Recreate the report synonyms and settings for the configured source with a migration (docs/REPORTS.md).`,
+    );
+  }
+
+  for (const warning of reportSource.warnings) {
+    console.warn(`WARNING: ${warning}.`);
   }
 
   const tiger = new DataSource(getTigerDataSourceOptions());

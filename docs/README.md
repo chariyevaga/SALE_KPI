@@ -22,7 +22,9 @@ Son toplu doğrulama: **2026-09-16** (tüm repository kaynak taraması).
 | [WEB.md](WEB.md)                           | `apps/web` içinde herhangi bir değişiklik                    |
 | [UI_GUIDELINES.md](UI_GUIDELINES.md)       | Yeni ekran/bileşen, mobil öncelik ve yerelleştirme kuralları |
 | [DOCKER.md](DOCKER.md)                     | Compose, image, port, ortam değişkeni, n8n runtime           |
-| [DECISIONS.md](DECISIONS.md)               | Kalıcı mimari kararlar (ADR-001…ADR-030)                     |
+| [TIGER_DATA.md](TIGER_DATA.md)             | Tiger kaynağı, okunan tablo/alanlar, KPI ölçümlerinin hesabı |
+| [REPORTS.md](REPORTS.md)                   | KPI hedef öneri raporları (`report_<KPI kodu>` view'ları)    |
+| [DECISIONS.md](DECISIONS.md)               | Kalıcı mimari kararlar (ADR-001…ADR-038)                     |
 | [AUDIT-2026-09-16.md](AUDIT-2026-09-16.md) | Bilinen kod/belge tutarsızlıkları ve açık teknik borç        |
 | [CHANGELOG.md](CHANGELOG.md)               | Tarih bazlı değişiklik günlüğü                               |
 | [AI_GUIDE.md](AI_GUIDE.md)                 | Görev yöntemi ve kontrol listesi                             |

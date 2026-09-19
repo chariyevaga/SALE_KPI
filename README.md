@@ -61,6 +61,7 @@ flowchart LR
 - Kullanıcının kendi profil fotoğrafını kırpıp güncellemesi (`PATCH /employees/me`)
 - Logo Tiger satış personeliyle opsiyonel çalışan eşlemesi ve ERP koduna dayalı QR'lı çalışan kartı
 - KPI kataloğu: 14 mağaza/personel bazlı KPI tanımı ve hedef formu tarifleri (`GET /kpi-definitions`), Tiger mağaza listesi (`GET /stores`)
+- KPI hedef öneri raporları: her hesaplanan KPI için mağaza/personel bazında son 12 ay, ortalama, ulaşılabilir max ve önerilen hedef veren `dbo.report_<KPI kodu>` SQL view'ları; `EXEC dbo.show_report N'STORE_SALES'` ay sütunlarını gerçek ay adıyla verir
 - JPEG, PNG ve WEBP avatar yükleme; imza doğrulaması, WEBP dönüşümü, boyut varyantları ve BlurHash
 - Sahipsiz dosyalar için zamanlanmış gece temizliği
 - Mobil öncelikli arayüz: tr/en/ru/tk yerelleştirme, açık/koyu/sistem teması
@@ -170,7 +171,7 @@ pnpm migration:show
 pnpm migration:run
 ```
 
-Migration yalnızca `KPI_DB` üzerinde şema değişikliği yapar. ERP view'ları `TIGERDB` verisini cross-database ve salt okunur biçimde sunar; Tiger iş tablolarına yazılmaz.
+Migration yalnızca `KPI_DB` üzerinde şema değişikliği yapar. ERP ve KPI rapor view'ları `TIGERDB` verisini cross-database ve salt okunur biçimde sunar; Tiger iş tablolarına yazılmaz.
 
 ### 5. Uygulamayı başlatın
 
