@@ -1,16 +1,41 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { listEmployees, type EmployeeListQuery, type EmployeeSortField } from '../api/employees';
+import {
+  bulkSetEmployeesActive,
+  listEmployees,
+  type EmployeeListQuery,
+  type EmployeeSortField,
+} from '../api/employees';
 import { AppShell } from '../components/AppShell';
 import { AuthenticatedImage } from '../components/AuthenticatedImage';
+import { BulkActionBar, type BulkAction } from '../components/BulkActionBar';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
+import {
+  RecordInfoIconButton,
+  RecordInfoPanel,
+  type RecordInfoTarget,
+} from '../components/RecordInfo';
 import { Drawer } from '../components/Drawer';
+import { SelectCheckbox } from '../components/SelectCheckbox';
+import { StatusBadge } from '../components/StatusBadge';
+import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type TranslationKey } from '../i18n/locale-store';
+import { isBulkBarVisible, type BulkNotice } from '../lib/bulk';
+import { useSelection } from '../lib/use-selection';
 import { useAuthStore } from '../store/auth-store';
 import type { EmployeeResponse } from '../types/api';
+
+/** Checkbox state for one row; `disabledReason` locks the box (the signed-in user's row). */
+interface RowSelection {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabledReason?: string | undefined;
+}
+
+type BulkStatusAction = 'activate' | 'deactivate';
 
 function initials(employee: EmployeeResponse): string {
   return `${employee.firstname[0] ?? ''}${employee.lastname[0] ?? ''}`.toUpperCase();
@@ -69,18 +94,14 @@ function StatusBadges({ employee }: { employee: EmployeeResponse }) {
 
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      {!employee.isActive ? (
-        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-          {t('employees.inactiveBadge')}
-        </span>
-      ) : null}
+      <StatusBadge
+        isActive={employee.isActive}
+        label={t(employee.isActive ? 'employees.activeBadge' : 'employees.inactiveBadge')}
+      />
       {employee.fullAccess ? (
         <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
           {t('employees.managerBadge')}
         </span>
-      ) : null}
-      {employee.isActive && !employee.fullAccess ? (
-        <span className="text-xs text-slate-400 dark:text-slate-600">—</span>
       ) : null}
     </span>
   );
@@ -90,13 +111,18 @@ function EmployeeCard({
   employee,
   onShowCard,
   canManage,
+  selection,
 }: {
   employee: EmployeeResponse;
   onShowCard: (employee: EmployeeResponse) => void;
   canManage: boolean;
+  selection: RowSelection | null;
 }) {
-  const className =
-    'flex min-h-[64px] items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition active:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:active:bg-slate-800';
+  const { t } = useTranslation();
+  const employeeName = `${employee.firstname} ${employee.lastname}`;
+  const bodyClassName = `flex min-w-0 flex-1 items-center gap-3 self-stretch py-2.5 pr-3 ${
+    selection ? '' : 'pl-3'
+  }`;
 
   const content = (
     <>
@@ -127,32 +153,73 @@ function EmployeeCard({
     </>
   );
 
-  // Only admins can open the edit screen, so the row is a plain container otherwise.
-  if (!canManage) {
-    return <div className={className}>{content}</div>;
-  }
-
   return (
-    <Link to={`/employees/${employee.id}`} className={className}>
-      {content}
-    </Link>
+    <div
+      className={`flex min-h-[64px] items-center overflow-hidden rounded-xl border transition ${
+        selection?.checked
+          ? 'border-emerald-400/60 bg-emerald-50 dark:bg-emerald-400/10'
+          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+      }`}
+    >
+      {selection ? (
+        <SelectCheckbox
+          checked={selection.checked}
+          onChange={selection.onChange}
+          disabledReason={selection.disabledReason}
+          label={t('common.selectItem', { name: employeeName })}
+        />
+      ) : null}
+      {/* Only admins can open the edit screen, so the body is a plain container otherwise. */}
+      {canManage ? (
+        <Link
+          to={`/employees/${employee.id}`}
+          className={`${bodyClassName} transition active:bg-slate-100 dark:active:bg-slate-800`}
+        >
+          {content}
+        </Link>
+      ) : (
+        <div className={bodyClassName}>{content}</div>
+      )}
+    </div>
   );
 }
 
 function EmployeeRow({
   employee,
   onShowCard,
+  onShowRecordInfo,
   canManage,
+  selection,
 }: {
   employee: EmployeeResponse;
   onShowCard: (employee: EmployeeResponse) => void;
+  onShowRecordInfo: (employee: EmployeeResponse) => void;
   canManage: boolean;
+  selection: RowSelection | null;
 }) {
   const { t } = useTranslation();
 
   return (
-    <tr className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900">
-      <td className="py-2 pl-4 pr-3">
+    <tr
+      className={`border-b border-slate-100 transition last:border-0 dark:border-slate-800/70 ${
+        selection?.checked
+          ? 'bg-emerald-50 dark:bg-emerald-400/10'
+          : 'hover:bg-slate-50 dark:hover:bg-slate-900'
+      }`}
+    >
+      {selection ? (
+        <td className="w-12 py-0 pl-2">
+          <SelectCheckbox
+            checked={selection.checked}
+            onChange={selection.onChange}
+            disabledReason={selection.disabledReason}
+            label={t('common.selectItem', {
+              name: `${employee.firstname} ${employee.lastname}`,
+            })}
+          />
+        </td>
+      ) : null}
+      <td className={`py-2 pr-3 ${selection ? '' : 'pl-4'}`}>
         <div className="flex items-center gap-2.5">
           <AvatarButton employee={employee} onShowCard={onShowCard} />
           {canManage ? (
@@ -186,23 +253,31 @@ function EmployeeRow({
       </td>
       {canManage ? (
         <td className="py-2 pr-4 text-right">
-          <Link
-            to={`/employees/${employee.id}`}
-            aria-label={t('employees.editEmployee', {
-              name: `${employee.firstname} ${employee.lastname}`,
-            })}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-400/10 dark:text-emerald-400"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-4 w-4"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div className="flex items-center justify-end gap-1">
+            <RecordInfoIconButton
+              label={t('recordInfo.buttonFor', {
+                name: `${employee.firstname} ${employee.lastname}`,
+              })}
+              onClick={() => onShowRecordInfo(employee)}
+            />
+            <Link
+              to={`/employees/${employee.id}`}
+              aria-label={t('employees.editEmployee', {
+                name: `${employee.firstname} ${employee.lastname}`,
+              })}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-400/10 dark:text-emerald-400"
             >
-              <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </div>
         </td>
       ) : null}
     </tr>
@@ -279,7 +354,12 @@ export function EmployeesPage() {
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [sortValue, setSortValue] = useState('firstname-asc');
   const [cardEmployee, setCardEmployee] = useState<EmployeeResponse | null>(null);
+  const [notice, setNotice] = useState<BulkNotice | null>(null);
+  const [recordInfo, setRecordInfo] = useState<RecordInfoTarget | null>(null);
+  const closeRecordInfo = useCallback(() => setRecordInfo(null), []);
   const canManage = useAuthStore((state) => state.employee?.fullAccess ?? false);
+  const currentEmployeeId = useAuthStore((state) => state.employee?.id.toLowerCase() ?? null);
+  const queryClient = useQueryClient();
 
   // Debounce so typing doesn't fire a request per keystroke.
   useEffect(() => {
@@ -315,6 +395,120 @@ export function EmployeesPage() {
     [employeesQuery.data],
   );
   const total = employeesQuery.data?.pages[0]?.total ?? 0;
+
+  // Bulk selection (ADR-035): scoped to the query and limited to loaded rows. The signed-in
+  // user's own row is never selectable, so a bulk deactivation cannot lock them out.
+  const selection = useSelection(JSON.stringify(query));
+  const isSelf = (employee: EmployeeResponse) => employee.id.toLowerCase() === currentEmployeeId;
+  const selectableEmployees = employees.filter((employee) => !isSelf(employee));
+  const selectedEmployees = selectableEmployees.filter((employee) =>
+    selection.selected.has(employee.id),
+  );
+  const allSelected =
+    selectableEmployees.length > 0 && selectedEmployees.length === selectableEmployees.length;
+  const dismissNotice = useCallback(() => setNotice(null), []);
+
+  const bulkMutation = useMutation({
+    mutationFn: ({ ids, action }: { ids: string[]; action: BulkStatusAction }) =>
+      bulkSetEmployeesActive(ids, action === 'activate'),
+    onMutate: () => setNotice(null),
+    onSuccess: (result, { action }) => {
+      selection.clear();
+      setNotice({
+        tone: 'success',
+        text: t(action === 'activate' ? 'employees.bulkActivated' : 'employees.bulkDeactivated', {
+          count: formatNumber(result.updated, locale),
+        }),
+      });
+    },
+    onError: (error) =>
+      setNotice({
+        tone: 'error',
+        text: localizeApiError(error, t, 'employees.bulkError', {
+          409: 'employees.selfSelectHint',
+        }),
+      }),
+    // Partial chunks may have been applied even on error, so always refetch.
+    onSettled: async (_result, _error, { action }) => {
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
+
+      if (action === 'deactivate') {
+        await queryClient.invalidateQueries({ queryKey: ['employee-sessions'] });
+      }
+    },
+  });
+
+  function runBulkStatus(action: BulkStatusAction, targets: EmployeeResponse[]) {
+    if (
+      action === 'deactivate' &&
+      !window.confirm(
+        t('employees.bulkDeactivateConfirm', { count: formatNumber(targets.length, locale) }),
+      )
+    ) {
+      return;
+    }
+
+    bulkMutation.mutate({ action, ids: targets.map((employee) => employee.id) });
+  }
+
+  // Only actions that change something are offered; a mixed selection shows per-action counts.
+  const toActivate = selectedEmployees.filter((employee) => !employee.isActive);
+  const toDeactivate = selectedEmployees.filter((employee) => employee.isActive);
+  const withCount = (label: string, count: number) =>
+    count === selectedEmployees.length ? label : `${label} (${formatNumber(count, locale)})`;
+  const bulkActions: BulkAction[] = [
+    ...(toActivate.length > 0
+      ? [
+          {
+            key: 'activate',
+            label: withCount(t('employees.bulkActivate'), toActivate.length),
+            tone: 'primary' as const,
+            onClick: () => runBulkStatus('activate', toActivate),
+          },
+        ]
+      : []),
+    ...(toDeactivate.length > 0
+      ? [
+          {
+            key: 'deactivate',
+            label: withCount(t('employees.bulkDeactivate'), toDeactivate.length),
+            tone: 'danger' as const,
+            onClick: () => runBulkStatus('deactivate', toDeactivate),
+          },
+        ]
+      : []),
+  ];
+  const bulkBarVisible = isBulkBarVisible(selectedEmployees.length, notice);
+
+  function rowSelection(employee: EmployeeResponse): RowSelection | null {
+    if (!canManage) {
+      return null;
+    }
+
+    if (isSelf(employee)) {
+      return {
+        checked: false,
+        onChange: () => undefined,
+        disabledReason: t('employees.selfSelectHint'),
+      };
+    }
+
+    return {
+      checked: selection.selected.has(employee.id),
+      onChange: (checked) => selection.toggle(employee.id, checked),
+    };
+  }
+
+  const selectAllProps = {
+    checked: allSelected,
+    indeterminate: selectedEmployees.length > 0 && !allSelected,
+    label: t('common.selectAll'),
+    onChange: (checked: boolean) =>
+      selection.setMany(
+        selectableEmployees.map((employee) => employee.id),
+        checked,
+      ),
+  };
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -598,6 +792,12 @@ export function EmployeesPage() {
 
       {employees.length > 0 ? (
         <>
+          {canManage && selectableEmployees.length > 0 ? (
+            <div className="px-2 pb-1 lg:hidden">
+              <SelectCheckbox {...selectAllProps} showLabel />
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-2 px-4 lg:hidden">
             {employees.map((employee) => (
               <EmployeeCard
@@ -605,6 +805,7 @@ export function EmployeesPage() {
                 employee={employee}
                 onShowCard={setCardEmployee}
                 canManage={canManage}
+                selection={rowSelection(employee)}
               />
             ))}
           </div>
@@ -613,7 +814,21 @@ export function EmployeesPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-y border-slate-200 bg-slate-50/60 text-left text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/40">
-                  <th className="py-2 pl-4 pr-3 font-medium">{t('employeeForm.firstnameLabel')}</th>
+                  {canManage ? (
+                    <th className="w-12 py-0 pl-2 font-medium">
+                      <SelectCheckbox
+                        {...selectAllProps}
+                        disabledReason={
+                          selectableEmployees.length === 0
+                            ? t('employees.selfSelectHint')
+                            : undefined
+                        }
+                      />
+                    </th>
+                  ) : null}
+                  <th className={`py-2 pr-3 font-medium ${canManage ? '' : 'pl-4'}`}>
+                    {t('employeeForm.firstnameLabel')}
+                  </th>
                   <th className="py-2 pr-3 font-medium">{t('employees.columnLastname')}</th>
                   <th className="py-2 pr-3 font-medium">{t('employees.columnUsername')}</th>
                   {canManage ? (
@@ -636,7 +851,15 @@ export function EmployeesPage() {
                     key={employee.id}
                     employee={employee}
                     onShowCard={setCardEmployee}
+                    onShowRecordInfo={(row) =>
+                      setRecordInfo({
+                        tableName: 'employees',
+                        recordId: row.id,
+                        title: `${row.firstname} ${row.lastname}`,
+                      })
+                    }
                     canManage={canManage}
+                    selection={rowSelection(employee)}
                   />
                 ))}
               </tbody>
@@ -651,13 +874,29 @@ export function EmployeesPage() {
         <p className="py-4 text-center text-xs text-slate-500">{t('employees.loading')}</p>
       ) : null}
 
+      {/* Keeps the last rows scrollable above the fixed bulk bar. */}
+      {bulkBarVisible ? <div aria-hidden="true" className="h-44 sm:h-32" /> : null}
+
       <EmployeeCardModal
         open={cardEmployee !== null}
         onClose={() => setCardEmployee(null)}
         employee={cardEmployee}
       />
 
+      <RecordInfoPanel target={recordInfo} onClose={closeRecordInfo} />
+
       {canManage ? (
+        <BulkActionBar
+          count={selectedEmployees.length}
+          actions={bulkActions}
+          onClear={selection.clear}
+          pendingKey={bulkMutation.isPending ? bulkMutation.variables.action : null}
+          notice={notice}
+          onDismissNotice={dismissNotice}
+        />
+      ) : null}
+
+      {canManage && !bulkBarVisible ? (
         <Link
           to="/employees/new"
           aria-label={t('employees.addEmployee')}

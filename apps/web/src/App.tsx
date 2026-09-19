@@ -4,9 +4,12 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { fetchCurrentEmployee } from './api/auth';
 import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute';
+import { useSessionWatchdog } from './lib/session-watchdog';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeesPage } from './pages/EmployeesPage';
+import { KpiTemplateFormPage } from './pages/KpiTemplateFormPage';
+import { KpiTemplatesPage } from './pages/KpiTemplatesPage';
 import { LoginPage } from './pages/LoginPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -17,6 +20,8 @@ function SessionBootstrap() {
   const employee = useAuthStore((state) => state.employee);
   const setEmployee = useAuthStore((state) => state.setEmployee);
   const clearSession = useAuthStore((state) => state.clearSession);
+
+  useSessionWatchdog();
 
   const meQuery = useQuery({
     queryKey: ['me'],
@@ -33,7 +38,8 @@ function SessionBootstrap() {
 
   useEffect(() => {
     if (meQuery.isError) {
-      clearSession();
+      // The stored tokens no longer buy access, so treat it as an ended session.
+      clearSession('expired');
     }
   }, [meQuery.isError, clearSession]);
 
@@ -67,6 +73,30 @@ export function App() {
           element={
             <AdminRoute>
               <EmployeeFormPage mode="edit" />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-templates"
+          element={
+            <AdminRoute>
+              <KpiTemplatesPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-templates/new"
+          element={
+            <AdminRoute>
+              <KpiTemplateFormPage mode="create" />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-templates/:id"
+          element={
+            <AdminRoute>
+              <KpiTemplateFormPage mode="edit" />
             </AdminRoute>
           }
         />

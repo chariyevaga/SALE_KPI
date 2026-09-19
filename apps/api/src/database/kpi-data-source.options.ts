@@ -2,11 +2,17 @@ import { join } from 'node:path';
 
 import type { DataSourceOptions } from 'typeorm';
 
+import { AuditGuardSubscriber } from '../audit/audit-guard.subscriber.js';
+import { AuditLogEntity } from '../audit/entities/audit-log.entity.js';
 import { getKpiDatabaseConfig } from '../config/environment.js';
 import { DeviceSessionEntity } from '../device-sessions/entities/device-session.entity.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { FileEntity } from '../files/entities/file.entity.js';
+import { KpiDefinitionEntity } from '../kpi-definitions/entities/kpi-definition.entity.js';
+import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
+import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
+import { StoreEntity } from '../stores/entities/store.entity.js';
 
 export function getKpiDataSourceOptions(): DataSourceOptions {
   const config = getKpiDatabaseConfig();
@@ -18,7 +24,19 @@ export function getKpiDataSourceOptions(): DataSourceOptions {
     username: config.username,
     password: config.password,
     database: config.database,
-    entities: [FileEntity, EmployeeEntity, DeviceSessionEntity, ErpEmployeeEntity],
+    entities: [
+      FileEntity,
+      EmployeeEntity,
+      DeviceSessionEntity,
+      ErpEmployeeEntity,
+      StoreEntity,
+      KpiDefinitionEntity,
+      KpiTemplateEntity,
+      KpiTemplateItemEntity,
+      AuditLogEntity,
+    ],
+    // Rejects writes to audited tables that bypass AuditService (ADR-036).
+    subscribers: [AuditGuardSubscriber],
     migrations: [join(__dirname, 'migrations', '*.{js,ts}')],
     migrationsRun: false,
     migrationsTableName: 'typeorm_migrations',

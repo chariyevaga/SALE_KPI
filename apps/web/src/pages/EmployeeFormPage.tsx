@@ -1,11 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { createEmployee, deactivateEmployee, getEmployee, updateEmployee } from '../api/employees';
 import { listErpEmployees } from '../api/erp-employees';
 import { AppShell } from '../components/AppShell';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
+import { FormField, formInputClassName } from '../components/FormField';
+import { RecordInfoBar } from '../components/RecordInfo';
+import { SearchableSelect } from '../components/SearchableSelect';
 import { Spinner } from '../components/Spinner';
 import { PasswordInput } from '../components/PasswordInput';
 import { localizeApiError } from '../i18n/api-errors';
@@ -64,6 +67,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [formErrorKey, setFormErrorKey] = useState<TranslationKey | null>(null);
+  const [erpSearch, setErpSearch] = useState('');
 
   const employeeQuery = useQuery({
     queryKey: ['employees', id],
@@ -72,9 +76,27 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
   });
 
   const erpEmployeesQuery = useQuery({
-    queryKey: ['erp-employees'],
-    queryFn: listErpEmployees,
+    queryKey: ['erp-employees', erpSearch],
+    queryFn: () => listErpEmployees(erpSearch),
+    // Keep the previous results on screen while the next search loads.
+    placeholderData: keepPreviousData,
   });
+
+  const erpEmployeeOptions = useMemo(
+    () =>
+      (erpEmployeesQuery.data ?? []).map((option) => ({
+        value: String(option.id),
+        label: [option.code, option.name].filter(Boolean).join(' — ') || String(option.id),
+      })),
+    [erpEmployeesQuery.data],
+  );
+
+  // A linked rep that is inactive in Tiger is not listed; fall back to its code.
+  const erpFallbackLabel =
+    employeeQuery.data?.erpEmployeeId !== null &&
+    String(employeeQuery.data?.erpEmployeeId) === form.erpEmployeeId
+      ? employeeQuery.data?.erpEmployeeCode
+      : null;
 
   useEffect(() => {
     if (employeeQuery.data) {
@@ -218,7 +240,16 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8" noValidate>
-          <Field label={t('employeeForm.usernameLabel')} htmlFor="username">
+          {mode === 'edit' && employeeQuery.data ? (
+            <RecordInfoBar
+              tableName="employees"
+              recordId={employeeQuery.data.id}
+              title={`${employeeQuery.data.firstname} ${employeeQuery.data.lastname}`}
+              version={employeeQuery.data.updatedAt}
+            />
+          ) : null}
+
+          <FormField label={t('employeeForm.usernameLabel')} htmlFor="username" required>
             <input
               id="username"
               required
@@ -228,17 +259,18 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               maxLength={100}
               value={form.username}
               onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
-              className={inputClassName}
+              className={formInputClassName}
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             label={
               mode === 'create'
                 ? t('employeeForm.passwordLabelCreate')
                 : t('employeeForm.passwordLabelEdit')
             }
             htmlFor="password"
+            required={mode === 'create'}
             hint={mode === 'edit' ? t('employeeForm.passwordHintEdit') : undefined}
           >
             <PasswordInput
@@ -249,12 +281,12 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               maxLength={128}
               value={form.password}
               onChange={(value) => setForm((prev) => ({ ...prev, password: value }))}
-              className={inputClassName}
+              className={formInputClassName}
             />
-          </Field>
+          </FormField>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={t('employeeForm.firstnameLabel')} htmlFor="firstname">
+            <FormField label={t('employeeForm.firstnameLabel')} htmlFor="firstname" required>
               <input
                 id="firstname"
                 required
@@ -263,22 +295,22 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, firstname: event.target.value }))
                 }
-                className={inputClassName}
+                className={formInputClassName}
               />
-            </Field>
-            <Field label={t('employeeForm.lastnameLabel')} htmlFor="lastname">
+            </FormField>
+            <FormField label={t('employeeForm.lastnameLabel')} htmlFor="lastname" required>
               <input
                 id="lastname"
                 required
                 maxLength={100}
                 value={form.lastname}
                 onChange={(event) => setForm((prev) => ({ ...prev, lastname: event.target.value }))}
-                className={inputClassName}
+                className={formInputClassName}
               />
-            </Field>
+            </FormField>
           </div>
 
-          <Field label={t('employeeForm.emailLabel')} htmlFor="email">
+          <FormField label={t('employeeForm.emailLabel')} htmlFor="email">
             <input
               id="email"
               type="email"
@@ -287,11 +319,11 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               maxLength={320}
               value={form.email}
               onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-              className={inputClassName}
+              className={formInputClassName}
             />
-          </Field>
+          </FormField>
 
-          <Field label={t('employeeForm.phoneLabel')} htmlFor="phoneNumber">
+          <FormField label={t('employeeForm.phoneLabel')} htmlFor="phoneNumber">
             <input
               id="phoneNumber"
               type="tel"
@@ -301,33 +333,33 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, phoneNumber: event.target.value }))
               }
-              className={inputClassName}
+              className={formInputClassName}
             />
-          </Field>
+          </FormField>
 
-          <Field label={t('employeeForm.erpEmployeeLabel')} htmlFor="erpEmployeeId">
-            <select
+          <FormField label={t('employeeForm.erpEmployeeLabel')} htmlFor="erpEmployeeId">
+            <SearchableSelect
               id="erpEmployeeId"
               value={form.erpEmployeeId}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, erpEmployeeId: event.target.value }))
-              }
-              disabled={erpEmployeesQuery.isLoading}
-              className={inputClassName}
-            >
-              <option value="">{t('employeeForm.erpEmployeeNone')}</option>
-              {erpEmployeesQuery.data?.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {[option.code, option.name].filter(Boolean).join(' — ') || option.id}
-                </option>
-              ))}
-            </select>
+              options={erpEmployeeOptions}
+              onChange={(value) => setForm((prev) => ({ ...prev, erpEmployeeId: value }))}
+              onSearchChange={setErpSearch}
+              fallbackLabel={erpFallbackLabel}
+              noneLabel={t('employeeForm.erpEmployeeNone')}
+              placeholder={t('employeeForm.erpEmployeeSearchPlaceholder')}
+              noResultsLabel={t('employeeForm.erpEmployeeNoResults')}
+              loadingLabel={t('employeeForm.loading')}
+              errorLabel={t('employeeForm.erpEmployeesError')}
+              isLoading={erpEmployeesQuery.isFetching}
+              isError={erpEmployeesQuery.isError}
+              className={formInputClassName}
+            />
             {erpEmployeesQuery.isError ? (
               <p role="alert" className="mt-1 text-xs text-red-500 dark:text-red-400">
                 {t('employeeForm.erpEmployeesError')}
               </p>
             ) : null}
-          </Field>
+          </FormField>
 
           <label className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
             <span>
@@ -411,33 +443,5 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </form>
       )}
     </AppShell>
-  );
-}
-
-const inputClassName =
-  'h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string | undefined;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-      >
-        {label}
-      </label>
-      {children}
-      {hint ? <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">{hint}</p> : null}
-    </div>
   );
 }

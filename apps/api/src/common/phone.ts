@@ -34,5 +34,7 @@ function extractSubscriber(compact: string): string | null {
     compact,
   ];
 
-  return candidates.find((candidate) => candidate !== null && SUBSCRIBER_PATTERN.test(candidate)) ?? null;
+  return (
+    candidates.find((candidate) => candidate !== null && SUBSCRIBER_PATTERN.test(candidate)) ?? null
+  );
 }

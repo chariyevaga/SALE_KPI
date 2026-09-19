@@ -3,23 +3,26 @@ import { test } from 'node:test';
 
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
+import type { AuditService } from '../audit/audit.service.js';
 import { FileEntity } from './entities/file.entity.js';
 import type { FileSourceReferenceRegistry } from './file-source-reference.registry.js';
 import type { FileStorageService } from './file-storage.service.js';
 import { FilesService } from './files.service.js';
 
-void test('creates an upload as an unowned file', async () => {
+void test('creates an upload as an unowned file through the audit trail', async () => {
   let createdFile: FileEntity | undefined;
   const repository = {
-    create: (input: Partial<FileEntity>) => {
-      createdFile = Object.assign(new FileEntity(), input, {
+    create: (input: Partial<FileEntity>) => Object.assign(new FileEntity(), input),
+  } as unknown as Repository<FileEntity>;
+  const audit = {
+    insert: (_manager: EntityManager, _target: unknown, values: Partial<FileEntity>) => {
+      createdFile = Object.assign(new FileEntity(), values, {
         id: '15ff673d-8d61-4aa7-817a-cd41e7a71c31',
         createdAt: new Date('2026-09-11T08:00:00.000Z'),
       });
-      return createdFile;
+      return Promise.resolve(createdFile);
     },
-    save: (file: FileEntity) => Promise.resolve(file),
-  } as unknown as Repository<FileEntity>;
+  } as unknown as AuditService;
   const storage = {
     storeImage: () =>
       Promise.resolve({
@@ -33,9 +36,10 @@ void test('creates an upload as an unowned file', async () => {
   } as unknown as FileStorageService;
   const service = new FilesService(
     repository,
-    {} as DataSource,
+    { manager: {} } as DataSource,
     storage,
     {} as FileSourceReferenceRegistry,
+    audit,
   );
 
   const response = await service.create({
@@ -65,15 +69,15 @@ void test('clears the owner reference before orphaning a file', async () => {
     getOne: () => Promise.resolve(file),
   };
   const manager = {
-    getRepository: () => ({
-      createQueryBuilder: () => queryBuilder,
-      save: () => {
-        events.push('file-orphaned');
-        assert.equal(file.sourceTableId, null);
-        return Promise.resolve();
-      },
-    }),
+    getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
   } as unknown as EntityManager;
+  const audit = {
+    update: (_manager: EntityManager, _target: unknown, _where: unknown, patch: object) => {
+      events.push('file-orphaned');
+      assert.deepEqual(patch, { sourceTable: null, sourceField: null, sourceTableId: null });
+      return Promise.resolve({ matched: 1, changedIds: [file.id] });
+    },
+  } as unknown as AuditService;
   const dataSource = {
     transaction: async (operation: (entityManager: EntityManager) => Promise<void>) =>
       operation(manager),
@@ -89,6 +93,7 @@ void test('clears the owner reference before orphaning a file', async () => {
     dataSource,
     { move: () => Promise.resolve() } as unknown as FileStorageService,
     sourceReferences,
+    audit,
   );
 
   await service.requestDeletion(file.id);
@@ -116,14 +121,14 @@ void test('physically deletes an orphan before removing its database row', async
     getOne: () => Promise.resolve(file),
   };
   const manager = {
-    getRepository: () => ({
-      createQueryBuilder: () => queryBuilder,
-      remove: () => {
-        events.push('row-deleted');
-        return Promise.resolve();
-      },
-    }),
+    getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
   } as unknown as EntityManager;
+  const audit = {
+    delete: () => {
+      events.push('row-deleted');
+      return Promise.resolve(1);
+    },
+  } as unknown as AuditService;
   const dataSource = {
     transaction: async (operation: (entityManager: EntityManager) => Promise<boolean>) =>
       operation(manager),
@@ -139,6 +144,7 @@ void test('physically deletes an orphan before removing its database row', async
     dataSource,
     storage,
     {} as FileSourceReferenceRegistry,
+    audit,
   );
 
   assert.equal(await service.purgeOrphan(file.id), true);

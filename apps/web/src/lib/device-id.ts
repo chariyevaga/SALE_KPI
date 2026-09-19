@@ -1,5 +1,26 @@
 const DEVICE_ID_STORAGE_KEY = 'rkpi.deviceId';
 
+function createDeviceId(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  // randomUUID is restricted to secure contexts, while getRandomValues remains available on HTTP.
+  const bytes = Array.from(crypto.getRandomValues(new Uint8Array(16)));
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
+
+  const hex = bytes.map((byte) => byte.toString(16).padStart(2, '0'));
+
+  return [
+    hex.slice(0, 4).join(''),
+    hex.slice(4, 6).join(''),
+    hex.slice(6, 8).join(''),
+    hex.slice(8, 10).join(''),
+    hex.slice(10, 16).join(''),
+  ].join('-');
+}
+
 export function getDeviceId(): string {
   try {
     const existing = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
@@ -7,12 +28,17 @@ export function getDeviceId(): string {
     if (existing) {
       return existing;
     }
-
-    const deviceId = crypto.randomUUID();
-    localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
-
-    return deviceId;
   } catch {
-    return crypto.randomUUID();
+    // Storage can be unavailable in private/restricted browser contexts; login must still work.
   }
+
+  const deviceId = createDeviceId();
+
+  try {
+    localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
+  } catch {
+    // Without storage the id is intentionally ephemeral, matching the documented behavior.
+  }
+
+  return deviceId;
 }

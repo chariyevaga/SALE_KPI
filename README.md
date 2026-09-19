@@ -53,13 +53,17 @@ flowchart LR
 
 ## Hazır özellikler
 
-- Access ve refresh token tabanlı kimlik doğrulama
-- Refresh token rotation ve cihaz bazlı oturum yönetimi
-- Mevcut cihazdan veya bütün cihazlardan çıkış
-- `full_access` yetkisiyle çalışan yönetimi
-- Logo Tiger satış personeliyle opsiyonel çalışan eşlemesi
-- JPEG, PNG ve WEBP avatar yükleme; WEBP dönüşümü ve boyut varyantları
-- Sahipsiz dosyalar için zamanlanmış temizlik
+- Access ve refresh token tabanlı kimlik doğrulama (reuse tespitiyle refresh rotation)
+- Cihaz bazlı oturum yönetimi; mevcut cihazdan veya bütün cihazlardan çıkış
+- Kullanıcının kendi parolasını değiştirmesi; yöneticinin parola sıfırlaması
+- Yöneticinin bir çalışanın cihaz oturumlarını görüntüleyip iptal etmesi
+- `full_access` yetkisiyle çalışan yönetimi: aksan duyarsız arama, filtreler, sıralama, sonsuz kaydırma, soft delete ve yeniden etkinleştirme
+- Kullanıcının kendi profil fotoğrafını kırpıp güncellemesi (`PATCH /employees/me`)
+- Logo Tiger satış personeliyle opsiyonel çalışan eşlemesi ve ERP koduna dayalı QR'lı çalışan kartı
+- KPI kataloğu: 14 mağaza/personel bazlı KPI tanımı ve hedef formu tarifleri (`GET /kpi-definitions`), Tiger mağaza listesi (`GET /stores`)
+- JPEG, PNG ve WEBP avatar yükleme; imza doğrulaması, WEBP dönüşümü, boyut varyantları ve BlurHash
+- Sahipsiz dosyalar için zamanlanmış gece temizliği
+- Mobil öncelikli arayüz: tr/en/ru/tk yerelleştirme, açık/koyu/sistem teması
 - Swagger / OpenAPI dokümantasyonu
 - n8n external JavaScript task runner
 - Playwright ve QuickChart entegrasyon altyapısı
@@ -198,7 +202,7 @@ Kullanıcı adı: admin
 Parola: admin
 ```
 
-İlk girişten hemen sonra parolayı uygulamanın Ayarlar ekranından değiştirin. Yeni parola en az 8 karakter olmalıdır. Bu başlangıç parolasıyla üretim kullanımı yapmayın.
+İlk girişten hemen sonra parolayı uygulamanın Ayarlar ekranından değiştirin (`PATCH /auth/password`). Yeni parola en az 6 karakter olmalıdır. Bu başlangıç parolasıyla üretim kullanımı yapmayın.
 
 ## n8n çalışma ortamı
 
@@ -318,6 +322,16 @@ docker compose up -d --build web
 
 Yerel Vite geliştirme sunucusu çalışıyorsa yeni `.env` değerlerini okuması için onu da yeniden başlatın.
 
+### `pnpm` komutu `Cannot find module .../corepack/v1/pnpm/...` hatası veriyor
+
+Corepack, `package.json` içindeki `packageManager` sürümünü kendi önbelleğinden çalıştırır. Önbellek temizlendiyse sürümü yeniden indirin:
+
+```bash
+corepack prepare pnpm@12.3.4 --activate
+```
+
+Ağ erişimi yoksa geçici olarak `npm --prefix apps/api run <script>` biçiminde çalışabilirsiniz; `pnpm -r` komutları (`pnpm lint`, `pnpm test`) corepack olmadan çalışmaz.
+
 ### n8n logunda Confluence credential uyarısı görünüyor
 
 n8n `2.35.7` sürümünde yerleşik Confluence node metadata'sına ilişkin non-fatal bir uyarı görülebilir. n8n readiness kontrolü başarılıysa ve runner kayıt olduysa bu uyarı servisin çalışmasını engellemez.
@@ -329,12 +343,12 @@ apps/
   api/                  NestJS API
   web/                  React/Vite web uygulaması
 packages/
-  shared-types/         Paylaşılan TypeScript tipleri
+  shared-types/         Boş yer tutucu workspace (henüz tip içermiyor)
 docker/
   api/                  API image tanımı
   web/                  Web image ve Nginx yapılandırması
   n8n/                  n8n, runner ve Playwright image'ları
-docs/                   Yerel/iç proje belgeleri (remote'a yayımlanmaz)
+docs/                   Yerel/iç proje belgeleri (`.gitignore` gereği remote'a yayımlanmaz)
 docker-compose.yml      Yerel/production-benzeri çalışma ortamı
 .env.example            Secret içermeyen ortam şablonu
 ```

@@ -22,6 +22,11 @@ interface TranslationShape {
     home: string;
     comingSoon: string;
     comingSoonHint: string;
+    bulkActions: string;
+    selectedCount: string;
+    clearSelection: string;
+    selectAll: string;
+    selectItem: string;
   };
   login: {
     brand: string;
@@ -34,6 +39,7 @@ interface TranslationShape {
     submitting: string;
     errorInvalidCredentials: string;
     errorGeneric: string;
+    sessionExpired: string;
     rememberMe: string;
     forgotPassword: string;
     forgotPasswordHelp: string;
@@ -47,6 +53,7 @@ interface TranslationShape {
     navLeaderboard: string;
     navMyKpi: string;
     navKpiPlans: string;
+    navKpiTemplates: string;
     navSettings: string;
     navSessions: string;
   };
@@ -83,6 +90,14 @@ interface TranslationShape {
     columnActions: string;
     openCard: string;
     editEmployee: string;
+    activeBadge: string;
+    bulkActivate: string;
+    bulkDeactivate: string;
+    bulkDeactivateConfirm: string;
+    bulkActivated: string;
+    bulkDeactivated: string;
+    bulkError: string;
+    selfSelectHint: string;
   };
   settings: {
     profilePhoto: string;
@@ -164,6 +179,8 @@ interface TranslationShape {
     fullAccessHint: string;
     erpEmployeeLabel: string;
     erpEmployeeNone: string;
+    erpEmployeeSearchPlaceholder: string;
+    erpEmployeeNoResults: string;
     save: string;
     saving: string;
     deactivate: string;
@@ -181,6 +198,151 @@ interface TranslationShape {
     deactivateError: string;
     reactivateError: string;
     genericSaveError: string;
+  };
+  kpiTemplates: {
+    title: string;
+    searchPlaceholder: string;
+    statusLabel: string;
+    statusAll: string;
+    statusActive: string;
+    statusInactive: string;
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    noSearchResults: string;
+    resultCount: string;
+    add: string;
+    inactiveBadge: string;
+    kpiCount: string;
+    weightSummary: string;
+    columnName: string;
+    columnDescription: string;
+    columnKpis: string;
+    columnWeight: string;
+    columnStatus: string;
+    columnActions: string;
+    editTemplate: string;
+    activeBadge: string;
+    bulkCopy: string;
+    bulkActivate: string;
+    bulkDeactivate: string;
+    bulkDeactivateConfirm: string;
+    bulkCopied: string;
+    bulkActivated: string;
+    bulkDeactivated: string;
+    bulkError: string;
+  };
+  kpiTemplateForm: {
+    titleCreate: string;
+    titleEdit: string;
+    loading: string;
+    errorLoading: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    descriptionLabel: string;
+    itemsTitle: string;
+    itemsHint: string;
+    addItem: string;
+    itemTitle: string;
+    removeItem: string;
+    definitionLabel: string;
+    definitionPlaceholder: string;
+    definitionNoResults: string;
+    definitionsError: string;
+    weightLabel: string;
+    targetLabel: string;
+    unitMoney: string;
+    unitCount: string;
+    unitScore: string;
+    storesPlaceholder: string;
+    storesNoResults: string;
+    storesError: string;
+    removeStore: string;
+    selectPlaceholder: string;
+    noInputs: string;
+    totalWeight: string;
+    totalWeightUnder: string;
+    totalWeightOver: string;
+    weightOver: string;
+    weightUnder: string;
+    save: string;
+    saving: string;
+    inactiveNotice: string;
+    deactivate: string;
+    deactivating: string;
+    reactivate: string;
+    reactivating: string;
+    deactivateError: string;
+    copy: string;
+    copying: string;
+    copyHint: string;
+    copyError: string;
+    copiedNotice: string;
+    nameRequired: string;
+    itemsRequired: string;
+    definitionRequired: string;
+    weightInvalid: string;
+    targetInvalid: string;
+    inputRequired: string;
+    duplicateItem: string;
+    unknownDefinition: string;
+    invalidInput: string;
+    unknownStore: string;
+    nameTaken: string;
+    genericSaveError: string;
+  };
+  recordInfo: {
+    button: string;
+    buttonFor: string;
+    title: string;
+    createdBy: string;
+    updatedBy: string;
+    lastChange: string;
+    system: string;
+    history: string;
+    historyEmpty: string;
+    historyHint: string;
+    loading: string;
+    error: string;
+    loadMore: string;
+    actionCreate: string;
+    actionUpdate: string;
+    actionDelete: string;
+    actionActivate: string;
+    actionDeactivate: string;
+    viaBulkStatus: string;
+    viaBulkCopy: string;
+    copiedFrom: string;
+    valueAdded: string;
+    valueRemoved: string;
+    valueChanged: string;
+    valueYes: string;
+    valueNo: string;
+    valueActive: string;
+    valueInactive: string;
+    itemsBefore: string;
+    itemsAfter: string;
+    target: string;
+    fields: {
+      employees: {
+        username: string;
+        firstname: string;
+        lastname: string;
+        email: string;
+        phoneNumber: string;
+        erpEmployeeId: string;
+        avatarId: string;
+        fullAccess: string;
+        isActive: string;
+        passwordHash: string;
+      };
+      kpi_templates: {
+        name: string;
+        description: string;
+        isActive: string;
+        items: string;
+      };
+    };
   };
   errors: {
     generic: string;
@@ -210,6 +372,11 @@ export const translations: Record<Locale, TranslationShape> = {
       home: 'Ana sayfa',
       comingSoon: 'Yakında',
       comingSoonHint: 'Bu ekran üzerinde çalışıyoruz, yakında kullanıma açılacak.',
+      bulkActions: 'Toplu işlemler',
+      selectedCount: '{count} seçili',
+      clearSelection: 'Seçimi temizle',
+      selectAll: 'Listelenenlerin tümünü seç',
+      selectItem: '{name} seç',
     },
     login: {
       brand: 'Retail KPI Platform',
@@ -222,6 +389,7 @@ export const translations: Record<Locale, TranslationShape> = {
       submitting: 'Giriş yapılıyor…',
       errorInvalidCredentials: 'Kullanıcı adı veya parola hatalı.',
       errorGeneric: 'Giriş yapılamadı. Bağlantınızı kontrol edin.',
+      sessionExpired: 'Oturumunuz sona erdi. Lütfen yeniden giriş yapın.',
       rememberMe: 'Beni hatırla',
       forgotPassword: 'Şifremi unuttum',
       forgotPasswordHelp:
@@ -236,6 +404,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Sıralama tablosu',
       navMyKpi: 'KPI’larım',
       navKpiPlans: 'KPI planları',
+      navKpiTemplates: 'KPI şablonları',
       navSettings: 'Ayarlar',
       navSessions: 'Oturumlarım',
     },
@@ -272,6 +441,15 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'İşlem',
       openCard: '{name} çalışan kartını aç',
       editEmployee: '{name} çalışanını düzenle',
+      activeBadge: 'Aktif',
+      bulkActivate: 'Aktifleştir',
+      bulkDeactivate: 'Pasifleştir',
+      bulkDeactivateConfirm:
+        '{count} çalışan pasifleştirilsin mi? Açık oturumları kapatılır ve yeniden aktifleştirilene kadar giriş yapamazlar.',
+      bulkActivated: '{count} çalışan aktifleştirildi.',
+      bulkDeactivated: '{count} çalışan pasifleştirildi, oturumları kapatıldı.',
+      bulkError: 'Toplu işlem tamamlanamadı. Lütfen tekrar deneyin.',
+      selfSelectHint: 'Kendi hesabınızı toplu işlemle değiştiremezsiniz.',
     },
     settings: {
       profilePhoto: 'Profil fotoğrafı',
@@ -354,6 +532,8 @@ export const translations: Record<Locale, TranslationShape> = {
       fullAccessHint: 'Çalışanlar ve dosya yönetimi gibi ekranlara erişebilir.',
       erpEmployeeLabel: 'ERP satış personeli (opsiyonel)',
       erpEmployeeNone: 'Bağlı değil',
+      erpEmployeeSearchPlaceholder: 'Kod veya ad ile arayın',
+      erpEmployeeNoResults: 'Eşleşen satış personeli bulunamadı.',
       save: 'Kaydet',
       saving: 'Kaydediliyor…',
       deactivate: 'Çalışanı devre dışı bırak',
@@ -371,6 +551,157 @@ export const translations: Record<Locale, TranslationShape> = {
       deactivateError: 'Çalışan devre dışı bırakılamadı.',
       reactivateError: 'Çalışan yeniden etkinleştirilemedi.',
       genericSaveError: 'Kaydedilemedi. Lütfen tekrar deneyin.',
+    },
+    kpiTemplates: {
+      title: 'KPI şablonları',
+      searchPlaceholder: 'Ad veya açıklama ara',
+      statusLabel: 'Durum',
+      statusAll: 'Tümü',
+      statusActive: 'Aktif',
+      statusInactive: 'Pasif',
+      loading: 'Yükleniyor…',
+      errorLoading: 'KPI şablonları yüklenemedi.',
+      empty: 'Henüz KPI şablonu yok.',
+      noSearchResults: 'Aramaya uygun şablon bulunamadı.',
+      resultCount: '{count} şablon',
+      add: 'Yeni KPI şablonu',
+      inactiveBadge: 'Pasif',
+      kpiCount: '{count} KPI',
+      weightSummary: 'Ağırlık %{total}',
+      columnName: 'Ad',
+      columnDescription: 'Açıklama',
+      columnKpis: 'KPI sayısı',
+      columnWeight: 'Toplam ağırlık',
+      columnStatus: 'Durum',
+      columnActions: 'İşlem',
+      editTemplate: '{name} şablonunu düzenle',
+      activeBadge: 'Aktif',
+      bulkCopy: 'Kopyala',
+      bulkActivate: 'Aktifleştir',
+      bulkDeactivate: 'Pasifleştir',
+      bulkDeactivateConfirm:
+        '{count} şablon pasifleştirilsin mi? İstediğiniz zaman yeniden aktifleştirebilirsiniz.',
+      bulkCopied: '{count} şablon kopyalandı; kopyaların adına “(2)” gibi bir numara eklendi.',
+      bulkActivated: '{count} şablon aktifleştirildi.',
+      bulkDeactivated: '{count} şablon pasifleştirildi.',
+      bulkError: 'Toplu işlem tamamlanamadı. Lütfen tekrar deneyin.',
+    },
+    kpiTemplateForm: {
+      titleCreate: 'Yeni KPI şablonu',
+      titleEdit: 'KPI şablonunu düzenle',
+      loading: 'Yükleniyor…',
+      errorLoading: 'Şablon yüklenemedi.',
+      nameLabel: 'Şablon adı',
+      namePlaceholder: 'ör. MÜDÜR KPI 01',
+      descriptionLabel: 'Açıklama (opsiyonel)',
+      itemsTitle: 'KPI’lar',
+      itemsHint:
+        'Ağırlıkların toplamı tam %100 olmalı. Hedef isteğe bağlıdır; şablon döneme atanırken değiştirilebilir.',
+      addItem: 'KPI ekle',
+      itemTitle: '{number}. KPI',
+      removeItem: '{number}. KPI satırını kaldır',
+      definitionLabel: 'KPI',
+      definitionPlaceholder: 'KPI ara ve seç',
+      definitionNoResults: 'Eşleşen KPI bulunamadı.',
+      definitionsError: 'KPI listesi yüklenemedi.',
+      weightLabel: 'Ağırlık (%)',
+      targetLabel: 'Hedef ({unit})',
+      unitMoney: 'tutar',
+      unitCount: 'adet',
+      unitScore: 'puan',
+      storesPlaceholder: 'Mağaza ara ve ekle',
+      storesNoResults: 'Eşleşen mağaza bulunamadı.',
+      storesError: 'Mağaza listesi yüklenemedi.',
+      removeStore: '{name} mağazasını kaldır',
+      selectPlaceholder: 'Seçin',
+      noInputs: 'Bu KPI için hedef dışında ek bilgi gerekmez.',
+      totalWeight: 'Toplam ağırlık: %{total} / %100',
+      totalWeightUnder: 'Toplam ağırlık: %{total} / %100 · %{difference} eksik',
+      totalWeightOver: 'Toplam ağırlık: %{total} / %100 · %{difference} fazla, kaydedilemez',
+      weightOver: 'Ağırlıkların toplamı %100’ü aşıyor (şu an %{total}). Bu şekilde kaydedilemez.',
+      weightUnder: 'Ağırlıkların toplamı tam %100 olmalı (şu an %{total}).',
+      save: 'Kaydet',
+      saving: 'Kaydediliyor…',
+      inactiveNotice: 'Bu şablon pasif.',
+      deactivate: 'Şablonu pasifleştir',
+      deactivating: 'Pasifleştiriliyor…',
+      reactivate: 'Tekrar etkinleştir',
+      reactivating: 'Etkinleştiriliyor…',
+      deactivateError: 'Şablon pasifleştirilemedi.',
+      copy: 'Kopyasını oluştur',
+      copying: 'Kopyalanıyor…',
+      copyHint: 'Kaydedilmiş son hâli bütün KPI’larıyla kopyalanır.',
+      copyError: 'Şablon kopyalanamadı.',
+      copiedNotice:
+        '“{name}” şablonundan kopyalandı. Adını ve bilgilerini düzenleyip kaydedebilirsiniz.',
+      nameRequired: 'Şablon adı zorunludur.',
+      itemsRequired: 'En az bir KPI ekleyin.',
+      definitionRequired: '{number}. satır için bir KPI seçin.',
+      weightInvalid:
+        '{number}. KPI için 0,01 ile 100 arasında, en fazla 2 ondalıklı bir ağırlık girin.',
+      targetInvalid:
+        '{number}. KPI için hedef 0 veya daha büyük, en fazla 4 ondalıklı bir sayı olmalı.',
+      inputRequired: '{number}. KPI için “{field}” alanı zorunludur.',
+      duplicateItem: '{number}. KPI, {other}. KPI ile aynı (aynı KPI ve aynı bilgiler).',
+      unknownDefinition: '{number}. KPI artık aktif değil veya bulunamadı.',
+      invalidInput: '{number}. KPI’nin bilgileri geçersiz.',
+      unknownStore: '{number}. KPI artık bulunmayan bir mağaza içeriyor.',
+      nameTaken: 'Bu adla bir KPI şablonu zaten var.',
+      genericSaveError: 'Şablon kaydedilemedi. Lütfen tekrar deneyin.',
+    },
+    recordInfo: {
+      button: 'Kayıt bilgisi',
+      buttonFor: '{name} kayıt bilgisi',
+      title: 'Kayıt bilgisi',
+      createdBy: 'Oluşturan',
+      updatedBy: 'Son değiştiren',
+      lastChange: 'Son değişiklik: {name} · {date}',
+      system: 'Sistem',
+      history: 'Değişiklik geçmişi',
+      historyEmpty: 'Bu kayıt için henüz değişiklik kaydı yok.',
+      historyHint:
+        'Değişiklik geçmişi bu özellik açıldığından beri tutuluyor; daha eski değişiklikler listede görünmez.',
+      loading: 'Yükleniyor…',
+      error: 'Kayıt bilgisi yüklenemedi.',
+      loadMore: 'Daha fazla göster',
+      actionCreate: 'Oluşturuldu',
+      actionUpdate: 'Güncellendi',
+      actionDelete: 'Silindi',
+      actionActivate: 'Aktifleştirildi',
+      actionDeactivate: 'Pasifleştirildi',
+      viaBulkStatus: 'toplu işlemle',
+      viaBulkCopy: 'toplu kopyalamayla',
+      copiedFrom: '“{name}” şablonundan kopyalandı',
+      valueAdded: 'eklendi',
+      valueRemoved: 'kaldırıldı',
+      valueChanged: 'değiştirildi',
+      valueYes: 'Evet',
+      valueNo: 'Hayır',
+      valueActive: 'Aktif',
+      valueInactive: 'Pasif',
+      itemsBefore: 'Önce',
+      itemsAfter: 'Sonra',
+      target: 'hedef {value}',
+      fields: {
+        employees: {
+          username: 'Kullanıcı adı',
+          firstname: 'Ad',
+          lastname: 'Soyad',
+          email: 'E-posta',
+          phoneNumber: 'Telefon',
+          erpEmployeeId: 'ERP satış personeli',
+          avatarId: 'Profil fotoğrafı',
+          fullAccess: 'Yönetici erişimi',
+          isActive: 'Durum',
+          passwordHash: 'Parola',
+        },
+        kpi_templates: {
+          name: 'Şablon adı',
+          description: 'Açıklama',
+          isActive: 'Durum',
+          items: 'KPI’lar',
+        },
+      },
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -398,6 +729,11 @@ export const translations: Record<Locale, TranslationShape> = {
       home: 'Home',
       comingSoon: 'Coming soon',
       comingSoonHint: 'We are still building this screen; it will be available soon.',
+      bulkActions: 'Bulk actions',
+      selectedCount: '{count} selected',
+      clearSelection: 'Clear selection',
+      selectAll: 'Select all listed',
+      selectItem: 'Select {name}',
     },
     login: {
       brand: 'Retail KPI Platform',
@@ -410,6 +746,7 @@ export const translations: Record<Locale, TranslationShape> = {
       submitting: 'Signing in…',
       errorInvalidCredentials: 'Incorrect username or password.',
       errorGeneric: 'Could not sign in. Check your connection.',
+      sessionExpired: 'Your session has ended. Please sign in again.',
       rememberMe: 'Remember me',
       forgotPassword: 'Forgot password?',
       forgotPasswordHelp:
@@ -424,6 +761,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Leaderboard',
       navMyKpi: 'My KPI',
       navKpiPlans: 'KPI plans',
+      navKpiTemplates: 'KPI templates',
       navSessions: 'My sessions',
       navSettings: 'Settings',
     },
@@ -460,6 +798,15 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Actions',
       openCard: 'Open employee card for {name}',
       editEmployee: 'Edit {name}',
+      activeBadge: 'Active',
+      bulkActivate: 'Activate',
+      bulkDeactivate: 'Deactivate',
+      bulkDeactivateConfirm:
+        'Deactivate the selected employees ({count})? Their open sessions will be closed and they cannot sign in until reactivated.',
+      bulkActivated: 'Employees activated: {count}.',
+      bulkDeactivated: 'Employees deactivated and signed out: {count}.',
+      bulkError: 'The bulk action could not be completed. Please try again.',
+      selfSelectHint: 'You cannot change your own account with a bulk action.',
     },
     settings: {
       profilePhoto: 'Profile photo',
@@ -542,6 +889,8 @@ export const translations: Record<Locale, TranslationShape> = {
       fullAccessHint: 'Can access screens like employees and file management.',
       erpEmployeeLabel: 'ERP sales rep (optional)',
       erpEmployeeNone: 'Not linked',
+      erpEmployeeSearchPlaceholder: 'Search by code or name',
+      erpEmployeeNoResults: 'No matching sales rep found.',
       save: 'Save',
       saving: 'Saving…',
       deactivate: 'Deactivate employee',
@@ -559,6 +908,156 @@ export const translations: Record<Locale, TranslationShape> = {
       deactivateError: 'Could not deactivate the employee.',
       reactivateError: 'Could not reactivate the employee.',
       genericSaveError: 'Could not save. Please try again.',
+    },
+    kpiTemplates: {
+      title: 'KPI templates',
+      searchPlaceholder: 'Search name or description',
+      statusLabel: 'Status',
+      statusAll: 'All',
+      statusActive: 'Active',
+      statusInactive: 'Inactive',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the KPI templates.',
+      empty: 'No KPI templates yet.',
+      noSearchResults: 'No templates match your search.',
+      resultCount: '{count} templates',
+      add: 'New KPI template',
+      inactiveBadge: 'Inactive',
+      kpiCount: '{count} KPIs',
+      weightSummary: 'Weight {total}%',
+      columnName: 'Name',
+      columnDescription: 'Description',
+      columnKpis: 'KPIs',
+      columnWeight: 'Total weight',
+      columnStatus: 'Status',
+      columnActions: 'Actions',
+      editTemplate: 'Edit {name}',
+      activeBadge: 'Active',
+      bulkCopy: 'Copy',
+      bulkActivate: 'Activate',
+      bulkDeactivate: 'Deactivate',
+      bulkDeactivateConfirm:
+        'Deactivate the selected templates ({count})? You can reactivate them at any time.',
+      bulkCopied: 'Templates copied: {count}. Each copy got a number such as “(2)” in its name.',
+      bulkActivated: 'Templates activated: {count}.',
+      bulkDeactivated: 'Templates deactivated: {count}.',
+      bulkError: 'The bulk action could not be completed. Please try again.',
+    },
+    kpiTemplateForm: {
+      titleCreate: 'New KPI template',
+      titleEdit: 'Edit KPI template',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the template.',
+      nameLabel: 'Template name',
+      namePlaceholder: 'e.g. STORE MANAGER KPI 01',
+      descriptionLabel: 'Description (optional)',
+      itemsTitle: 'KPIs',
+      itemsHint:
+        'Weights must add up to exactly 100%. The target is optional and can be changed when the template is assigned to a period.',
+      addItem: 'Add KPI',
+      itemTitle: 'KPI {number}',
+      removeItem: 'Remove KPI {number}',
+      definitionLabel: 'KPI',
+      definitionPlaceholder: 'Search and pick a KPI',
+      definitionNoResults: 'No matching KPI found.',
+      definitionsError: 'Could not load the KPI list.',
+      weightLabel: 'Weight (%)',
+      targetLabel: 'Target ({unit})',
+      unitMoney: 'amount',
+      unitCount: 'count',
+      unitScore: 'points',
+      storesPlaceholder: 'Search and add a store',
+      storesNoResults: 'No matching store found.',
+      storesError: 'Could not load the store list.',
+      removeStore: 'Remove {name}',
+      selectPlaceholder: 'Select',
+      noInputs: 'This KPI needs nothing besides the target.',
+      totalWeight: 'Total weight: {total}% / 100%',
+      totalWeightUnder: 'Total weight: {total}% / 100% · {difference}% missing',
+      totalWeightOver: 'Total weight: {total}% / 100% · {difference}% over, cannot be saved',
+      weightOver:
+        'Weights exceed 100% (currently {total}%). The template cannot be saved like this.',
+      weightUnder: 'Weights must add up to exactly 100% (currently {total}%).',
+      save: 'Save',
+      saving: 'Saving…',
+      inactiveNotice: 'This template is inactive.',
+      deactivate: 'Deactivate template',
+      deactivating: 'Deactivating…',
+      reactivate: 'Reactivate',
+      reactivating: 'Reactivating…',
+      deactivateError: 'Could not deactivate the template.',
+      copy: 'Create a copy',
+      copying: 'Copying…',
+      copyHint: 'The last saved version is copied with all of its KPIs.',
+      copyError: 'Could not copy the template.',
+      copiedNotice: 'Copied from “{name}”. You can edit its name and details and save.',
+      nameRequired: 'Template name is required.',
+      itemsRequired: 'Add at least one KPI.',
+      definitionRequired: 'Pick a KPI for row {number}.',
+      weightInvalid:
+        'Enter a weight between 0.01 and 100 with at most 2 decimals for KPI {number}.',
+      targetInvalid: 'The target of KPI {number} must be 0 or more with at most 4 decimals.',
+      inputRequired: '“{field}” is required for KPI {number}.',
+      duplicateItem: 'KPI {number} repeats KPI {other} (same KPI and same details).',
+      unknownDefinition: 'KPI {number} is no longer active or was not found.',
+      invalidInput: 'The details of KPI {number} are invalid.',
+      unknownStore: 'KPI {number} contains a store that no longer exists.',
+      nameTaken: 'A KPI template with this name already exists.',
+      genericSaveError: 'Could not save the template. Please try again.',
+    },
+    recordInfo: {
+      button: 'Record info',
+      buttonFor: 'Record info for {name}',
+      title: 'Record info',
+      createdBy: 'Created by',
+      updatedBy: 'Last changed by',
+      lastChange: 'Last change: {name} · {date}',
+      system: 'System',
+      history: 'Change history',
+      historyEmpty: 'No changes have been recorded for this record yet.',
+      historyHint:
+        'Changes are recorded since this feature was turned on; older changes do not appear here.',
+      loading: 'Loading…',
+      error: 'Could not load the record info.',
+      loadMore: 'Show more',
+      actionCreate: 'Created',
+      actionUpdate: 'Updated',
+      actionDelete: 'Deleted',
+      actionActivate: 'Activated',
+      actionDeactivate: 'Deactivated',
+      viaBulkStatus: 'via bulk action',
+      viaBulkCopy: 'via bulk copy',
+      copiedFrom: 'Copied from “{name}”',
+      valueAdded: 'added',
+      valueRemoved: 'removed',
+      valueChanged: 'changed',
+      valueYes: 'Yes',
+      valueNo: 'No',
+      valueActive: 'Active',
+      valueInactive: 'Inactive',
+      itemsBefore: 'Before',
+      itemsAfter: 'After',
+      target: 'target {value}',
+      fields: {
+        employees: {
+          username: 'Username',
+          firstname: 'First name',
+          lastname: 'Last name',
+          email: 'Email',
+          phoneNumber: 'Phone',
+          erpEmployeeId: 'ERP sales rep',
+          avatarId: 'Profile photo',
+          fullAccess: 'Admin access',
+          isActive: 'Status',
+          passwordHash: 'Password',
+        },
+        kpi_templates: {
+          name: 'Template name',
+          description: 'Description',
+          isActive: 'Status',
+          items: 'KPIs',
+        },
+      },
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -586,6 +1085,11 @@ export const translations: Record<Locale, TranslationShape> = {
       home: 'Главная',
       comingSoon: 'Скоро',
       comingSoonHint: 'Мы ещё работаем над этим разделом, он появится в ближайшее время.',
+      bulkActions: 'Массовые действия',
+      selectedCount: 'Выбрано: {count}',
+      clearSelection: 'Снять выделение',
+      selectAll: 'Выбрать все в списке',
+      selectItem: 'Выбрать: {name}',
     },
     login: {
       brand: 'Retail KPI Platform',
@@ -598,6 +1102,7 @@ export const translations: Record<Locale, TranslationShape> = {
       submitting: 'Выполняется вход…',
       errorInvalidCredentials: 'Неверное имя пользователя или пароль.',
       errorGeneric: 'Не удалось войти. Проверьте подключение.',
+      sessionExpired: 'Сессия завершена. Пожалуйста, войдите снова.',
       rememberMe: 'Запомнить меня',
       forgotPassword: 'Забыли пароль?',
       forgotPasswordHelp:
@@ -612,6 +1117,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Рейтинг',
       navMyKpi: 'Мои KPI',
       navKpiPlans: 'Планы KPI',
+      navKpiTemplates: 'Шаблоны KPI',
       navSessions: 'Мои сессии',
       navSettings: 'Настройки',
     },
@@ -648,6 +1154,15 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Действия',
       openCard: 'Открыть карточку сотрудника {name}',
       editEmployee: 'Редактировать сотрудника {name}',
+      activeBadge: 'Активен',
+      bulkActivate: 'Активировать',
+      bulkDeactivate: 'Деактивировать',
+      bulkDeactivateConfirm:
+        'Деактивировать выбранных сотрудников ({count})? Их сессии будут завершены, и они не смогут войти, пока их снова не активируют.',
+      bulkActivated: 'Активировано сотрудников: {count}.',
+      bulkDeactivated: 'Деактивировано сотрудников: {count}, их сессии завершены.',
+      bulkError: 'Не удалось выполнить массовое действие. Попробуйте ещё раз.',
+      selfSelectHint: 'Собственную учётную запись нельзя изменить массовым действием.',
     },
     settings: {
       profilePhoto: 'Фото профиля',
@@ -731,6 +1246,8 @@ export const translations: Record<Locale, TranslationShape> = {
       fullAccessHint: 'Доступ к разделам «Сотрудники» и управлению файлами.',
       erpEmployeeLabel: 'Продавец ERP (необязательно)',
       erpEmployeeNone: 'Не привязан',
+      erpEmployeeSearchPlaceholder: 'Поиск по коду или имени',
+      erpEmployeeNoResults: 'Подходящие продавцы не найдены.',
       save: 'Сохранить',
       saving: 'Сохранение…',
       deactivate: 'Деактивировать сотрудника',
@@ -748,6 +1265,157 @@ export const translations: Record<Locale, TranslationShape> = {
       deactivateError: 'Не удалось деактивировать сотрудника.',
       reactivateError: 'Не удалось восстановить сотрудника.',
       genericSaveError: 'Не удалось сохранить. Попробуйте ещё раз.',
+    },
+    kpiTemplates: {
+      title: 'Шаблоны KPI',
+      searchPlaceholder: 'Поиск по названию или описанию',
+      statusLabel: 'Статус',
+      statusAll: 'Все',
+      statusActive: 'Активные',
+      statusInactive: 'Неактивные',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить шаблоны KPI.',
+      empty: 'Шаблонов KPI пока нет.',
+      noSearchResults: 'Нет шаблонов, соответствующих запросу.',
+      resultCount: 'Шаблонов: {count}',
+      add: 'Новый шаблон KPI',
+      inactiveBadge: 'Неактивен',
+      kpiCount: 'KPI: {count}',
+      weightSummary: 'Вес {total} %',
+      columnName: 'Название',
+      columnDescription: 'Описание',
+      columnKpis: 'KPI',
+      columnWeight: 'Общий вес',
+      columnStatus: 'Статус',
+      columnActions: 'Действия',
+      editTemplate: 'Редактировать {name}',
+      activeBadge: 'Активен',
+      bulkCopy: 'Копировать',
+      bulkActivate: 'Активировать',
+      bulkDeactivate: 'Деактивировать',
+      bulkDeactivateConfirm:
+        'Деактивировать выбранные шаблоны ({count})? Их можно снова активировать в любой момент.',
+      bulkCopied:
+        'Скопировано шаблонов: {count}. К названиям копий добавлен номер, например «(2)».',
+      bulkActivated: 'Активировано шаблонов: {count}.',
+      bulkDeactivated: 'Деактивировано шаблонов: {count}.',
+      bulkError: 'Не удалось выполнить массовое действие. Попробуйте ещё раз.',
+    },
+    kpiTemplateForm: {
+      titleCreate: 'Новый шаблон KPI',
+      titleEdit: 'Редактирование шаблона KPI',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить шаблон.',
+      nameLabel: 'Название шаблона',
+      namePlaceholder: 'напр. KPI ДИРЕКТОРА 01',
+      descriptionLabel: 'Описание (необязательно)',
+      itemsTitle: 'KPI',
+      itemsHint:
+        'Сумма весов должна быть ровно 100 %. Цель необязательна, её можно изменить при назначении шаблона на период.',
+      addItem: 'Добавить KPI',
+      itemTitle: 'KPI {number}',
+      removeItem: 'Удалить KPI {number}',
+      definitionLabel: 'KPI',
+      definitionPlaceholder: 'Найдите и выберите KPI',
+      definitionNoResults: 'Подходящие KPI не найдены.',
+      definitionsError: 'Не удалось загрузить список KPI.',
+      weightLabel: 'Вес (%)',
+      targetLabel: 'Цель ({unit})',
+      unitMoney: 'сумма',
+      unitCount: 'количество',
+      unitScore: 'баллы',
+      storesPlaceholder: 'Найдите и добавьте магазин',
+      storesNoResults: 'Подходящие магазины не найдены.',
+      storesError: 'Не удалось загрузить список магазинов.',
+      removeStore: 'Удалить {name}',
+      selectPlaceholder: 'Выберите',
+      noInputs: 'Для этого KPI нужна только цель.',
+      totalWeight: 'Общий вес: {total} % / 100 %',
+      totalWeightUnder: 'Общий вес: {total} % / 100 % · не хватает {difference} %',
+      totalWeightOver: 'Общий вес: {total} % / 100 % · превышение {difference} %, сохранить нельзя',
+      weightOver: 'Сумма весов превышает 100 % (сейчас {total} %). Сохранить в таком виде нельзя.',
+      weightUnder: 'Сумма весов должна быть ровно 100 % (сейчас {total} %).',
+      save: 'Сохранить',
+      saving: 'Сохранение…',
+      inactiveNotice: 'Этот шаблон неактивен.',
+      deactivate: 'Деактивировать шаблон',
+      deactivating: 'Деактивация…',
+      reactivate: 'Активировать снова',
+      reactivating: 'Активация…',
+      deactivateError: 'Не удалось деактивировать шаблон.',
+      copy: 'Создать копию',
+      copying: 'Копирование…',
+      copyHint: 'Копируется последняя сохранённая версия со всеми KPI.',
+      copyError: 'Не удалось скопировать шаблон.',
+      copiedNotice: 'Скопировано из «{name}». Можно изменить название и данные и сохранить.',
+      nameRequired: 'Название шаблона обязательно.',
+      itemsRequired: 'Добавьте хотя бы один KPI.',
+      definitionRequired: 'Выберите KPI для строки {number}.',
+      weightInvalid:
+        'Для KPI {number} укажите вес от 0,01 до 100, не более 2 знаков после запятой.',
+      targetInvalid:
+        'Цель KPI {number} должна быть не меньше 0 и иметь не более 4 знаков после запятой.',
+      inputRequired: 'Для KPI {number} поле «{field}» обязательно.',
+      duplicateItem: 'KPI {number} повторяет KPI {other} (тот же KPI и те же данные).',
+      unknownDefinition: 'KPI {number} больше не активен или не найден.',
+      invalidInput: 'Данные KPI {number} некорректны.',
+      unknownStore: 'KPI {number} содержит несуществующий магазин.',
+      nameTaken: 'Шаблон KPI с таким названием уже существует.',
+      genericSaveError: 'Не удалось сохранить шаблон. Попробуйте ещё раз.',
+    },
+    recordInfo: {
+      button: 'Сведения о записи',
+      buttonFor: 'Сведения о записи: {name}',
+      title: 'Сведения о записи',
+      createdBy: 'Создал(а)',
+      updatedBy: 'Последним изменил(а)',
+      lastChange: 'Последнее изменение: {name} · {date}',
+      system: 'Система',
+      history: 'История изменений',
+      historyEmpty: 'Для этой записи ещё нет сохранённых изменений.',
+      historyHint:
+        'Изменения сохраняются с момента включения этой функции; более ранние изменения здесь не отображаются.',
+      loading: 'Загрузка…',
+      error: 'Не удалось загрузить сведения о записи.',
+      loadMore: 'Показать ещё',
+      actionCreate: 'Создано',
+      actionUpdate: 'Изменено',
+      actionDelete: 'Удалено',
+      actionActivate: 'Активировано',
+      actionDeactivate: 'Деактивировано',
+      viaBulkStatus: 'массовым действием',
+      viaBulkCopy: 'массовым копированием',
+      copiedFrom: 'Скопировано из «{name}»',
+      valueAdded: 'добавлено',
+      valueRemoved: 'удалено',
+      valueChanged: 'изменено',
+      valueYes: 'Да',
+      valueNo: 'Нет',
+      valueActive: 'Активен',
+      valueInactive: 'Неактивен',
+      itemsBefore: 'Было',
+      itemsAfter: 'Стало',
+      target: 'цель {value}',
+      fields: {
+        employees: {
+          username: 'Имя пользователя',
+          firstname: 'Имя',
+          lastname: 'Фамилия',
+          email: 'Эл. почта',
+          phoneNumber: 'Телефон',
+          erpEmployeeId: 'Продавец ERP',
+          avatarId: 'Фото профиля',
+          fullAccess: 'Права администратора',
+          isActive: 'Статус',
+          passwordHash: 'Пароль',
+        },
+        kpi_templates: {
+          name: 'Название шаблона',
+          description: 'Описание',
+          isActive: 'Статус',
+          items: 'KPI',
+        },
+      },
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -775,6 +1443,11 @@ export const translations: Record<Locale, TranslationShape> = {
       home: 'Baş sahypa',
       comingSoon: 'Ýakynda',
       comingSoonHint: 'Bu ekran häzir taýýarlanýar, ýakynda elýeterli bolar.',
+      bulkActions: 'Köpçülikleýin amallar',
+      selectedCount: '{count} saýlandy',
+      clearSelection: 'Saýlawy aýyr',
+      selectAll: 'Sanawdakylaryň hemmesini saýla',
+      selectItem: '{name} saýla',
     },
     login: {
       brand: 'Retail KPI Platform',
@@ -787,6 +1460,7 @@ export const translations: Record<Locale, TranslationShape> = {
       submitting: 'Giriş edilýär…',
       errorInvalidCredentials: 'Ulanyjy ady ýa-da parol nädogry.',
       errorGeneric: 'Giriş edip bolmady. Internet baglanyşygyňyzy barlaň.',
+      sessionExpired: 'Sessiýaňyz tamamlandy. Täzeden giriň.',
       rememberMe: 'Meni ýatda sakla',
       forgotPassword: 'Paroly unutdyňyzmy?',
       forgotPasswordHelp:
@@ -801,6 +1475,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Reýting tablisasy',
       navMyKpi: 'Meniň KPI-larym',
       navKpiPlans: 'KPI meýilnamalary',
+      navKpiTemplates: 'KPI şablonlary',
       navSessions: 'Meniň sessiýalarym',
       navSettings: 'Sazlamalar',
     },
@@ -837,6 +1512,15 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Amal',
       openCard: '{name} işgär kartasyny aç',
       editEmployee: '{name} işgärini üýtget',
+      activeBadge: 'Aktiw',
+      bulkActivate: 'Aktiwleşdir',
+      bulkDeactivate: 'Passiwleşdir',
+      bulkDeactivateConfirm:
+        '{count} işgär passiwleşdirilsinmi? Açyk sessiýalary ýapylar we gaýtadan aktiwleşdirilýänçä ulgama girip bilmezler.',
+      bulkActivated: '{count} işgär aktiwleşdirildi.',
+      bulkDeactivated: '{count} işgär passiwleşdirildi, sessiýalary ýapyldy.',
+      bulkError: 'Köpçülikleýin amal tamamlanmady. Gaýtadan synanyşyň.',
+      selfSelectHint: 'Öz hasabyňyzy köpçülikleýin amal bilen üýtgedip bilmersiňiz.',
     },
     settings: {
       profilePhoto: 'Profil suraty',
@@ -919,6 +1603,8 @@ export const translations: Record<Locale, TranslationShape> = {
       fullAccessHint: 'Işgärler we faýl dolandyryşy ýaly ekranlara girip bilýär.',
       erpEmployeeLabel: 'ERP satyjysy (hökman däl)',
       erpEmployeeNone: 'Baglanmadyk',
+      erpEmployeeSearchPlaceholder: 'Kod ýa-da at boýunça gözläň',
+      erpEmployeeNoResults: 'Laýyk gelýän satyjy tapylmady.',
       save: 'Sakla',
       saving: 'Saklanýar…',
       deactivate: 'Işgäri passiwleşdir',
@@ -936,6 +1622,159 @@ export const translations: Record<Locale, TranslationShape> = {
       deactivateError: 'Işgäri passiwleşdirip bolmady.',
       reactivateError: 'Işgäri gaýtadan aktiwleşdirip bolmady.',
       genericSaveError: 'Saklanyp bilinmedi. Gaýtadan synanyşyň.',
+    },
+    kpiTemplates: {
+      title: 'KPI şablonlary',
+      searchPlaceholder: 'Ady ýa-da düşündirişi boýunça gözle',
+      statusLabel: 'Ýagdaýy',
+      statusAll: 'Ählisi',
+      statusActive: 'Aktiw',
+      statusInactive: 'Passiw',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'KPI şablonlary ýüklenip bilinmedi.',
+      empty: 'Heniz KPI şablony ýok.',
+      noSearchResults: 'Gözlegiňize laýyk şablon tapylmady.',
+      resultCount: '{count} şablon',
+      add: 'Täze KPI şablony',
+      inactiveBadge: 'Passiw',
+      kpiCount: '{count} KPI',
+      weightSummary: 'Agram {total}%',
+      columnName: 'Ady',
+      columnDescription: 'Düşündiriş',
+      columnKpis: 'KPI sany',
+      columnWeight: 'Jemi agram',
+      columnStatus: 'Ýagdaýy',
+      columnActions: 'Hereket',
+      editTemplate: '{name} şablonyny üýtget',
+      activeBadge: 'Aktiw',
+      bulkCopy: 'Nusgala',
+      bulkActivate: 'Aktiwleşdir',
+      bulkDeactivate: 'Passiwleşdir',
+      bulkDeactivateConfirm:
+        '{count} şablon passiwleşdirilsinmi? Islän wagtyňyz gaýtadan aktiwleşdirip bilersiňiz.',
+      bulkCopied: '{count} şablon nusgalandy; nusgalaryň adyna “(2)” ýaly san goşuldy.',
+      bulkActivated: '{count} şablon aktiwleşdirildi.',
+      bulkDeactivated: '{count} şablon passiwleşdirildi.',
+      bulkError: 'Köpçülikleýin amal tamamlanmady. Gaýtadan synanyşyň.',
+    },
+    kpiTemplateForm: {
+      titleCreate: 'Täze KPI şablony',
+      titleEdit: 'KPI şablonyny üýtget',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Şablon ýüklenip bilinmedi.',
+      nameLabel: 'Şablonyň ady',
+      namePlaceholder: 'mysal üçin MÜDÜR KPI 01',
+      descriptionLabel: 'Düşündiriş (hökman däl)',
+      itemsTitle: 'KPI-lar',
+      itemsHint:
+        'Agramlaryň jemi takyk 100% bolmaly. Maksat hökman däl; şablon döwre bellenende üýtgedip bolýar.',
+      addItem: 'KPI goş',
+      itemTitle: 'KPI {number}',
+      removeItem: 'KPI {number} setirini aýyr',
+      definitionLabel: 'KPI',
+      definitionPlaceholder: 'KPI gözle we saýla',
+      definitionNoResults: 'Laýyk KPI tapylmady.',
+      definitionsError: 'KPI sanawy ýüklenip bilinmedi.',
+      weightLabel: 'Agram (%)',
+      targetLabel: 'Maksat ({unit})',
+      unitMoney: 'möçber',
+      unitCount: 'sany',
+      unitScore: 'bal',
+      storesPlaceholder: 'Dükan gözle we goş',
+      storesNoResults: 'Laýyk dükan tapylmady.',
+      storesError: 'Dükanlaryň sanawy ýüklenip bilinmedi.',
+      removeStore: '{name} dükanyny aýyr',
+      selectPlaceholder: 'Saýlaň',
+      noInputs: 'Bu KPI üçin maksatdan başga maglumat gerek däl.',
+      totalWeight: 'Jemi agram: {total}% / 100%',
+      totalWeightUnder: 'Jemi agram: {total}% / 100% · {difference}% ýetmezçilik',
+      totalWeightOver: 'Jemi agram: {total}% / 100% · {difference}% artyk, saklap bolmaýar',
+      weightOver:
+        'Agramlaryň jemi 100%-den geçýär (häzir {total}%). Şeýle ýagdaýda saklap bolmaýar.',
+      weightUnder: 'Agramlaryň jemi takyk 100% bolmaly (häzir {total}%).',
+      save: 'Sakla',
+      saving: 'Saklanýar…',
+      inactiveNotice: 'Bu şablon passiw.',
+      deactivate: 'Şablony passiwleşdir',
+      deactivating: 'Passiwleşdirilýär…',
+      reactivate: 'Gaýtadan aktiwleşdir',
+      reactivating: 'Aktiwleşdirilýär…',
+      deactivateError: 'Şablony passiwleşdirip bolmady.',
+      copy: 'Nusgasyny döret',
+      copying: 'Nusgalanýar…',
+      copyHint: 'Iň soňky saklanan görnüşi ähli KPI-lary bilen nusgalanýar.',
+      copyError: 'Şablony nusgalap bolmady.',
+      copiedNotice:
+        '“{name}” şablonyndan nusgalandy. Adyny we maglumatlaryny üýtgedip saklap bilersiňiz.',
+      nameRequired: 'Şablonyň ady hökmany.',
+      itemsRequired: 'Iň bolmanda bir KPI goşuň.',
+      definitionRequired: 'Setir {number} üçin KPI saýlaň.',
+      weightInvalid:
+        'KPI {number} üçin 0,01 bilen 100 aralygynda, iň köp 2 onluk belgili agram giriziň.',
+      targetInvalid:
+        'KPI {number} üçin maksat 0-dan kiçi bolmaly däl we iň köp 4 onluk belgisi bolmaly.',
+      inputRequired: 'KPI {number} üçin “{field}” meýdany hökmany.',
+      duplicateItem:
+        'KPI {number} KPI {other} bilen gaýtalanýar (şol bir KPI we şol bir maglumatlar).',
+      unknownDefinition: 'KPI {number} indi aktiw däl ýa-da tapylmady.',
+      invalidInput: 'KPI {number} maglumatlary nädogry.',
+      unknownStore: 'KPI {number} indi ýok bolan dükany öz içine alýar.',
+      nameTaken: 'Bu atly KPI şablony eýýäm bar.',
+      genericSaveError: 'Şablony saklap bolmady. Gaýtadan synanyşyň.',
+    },
+    recordInfo: {
+      button: 'Ýazgy maglumaty',
+      buttonFor: '{name} ýazgy maglumaty',
+      title: 'Ýazgy maglumaty',
+      createdBy: 'Döreden',
+      updatedBy: 'Soňky üýtgeden',
+      lastChange: 'Soňky üýtgeşme: {name} · {date}',
+      system: 'Ulgam',
+      history: 'Üýtgeşmeler taryhy',
+      historyEmpty: 'Bu ýazgy üçin entek üýtgeşme ýazylmady.',
+      historyHint:
+        'Üýtgeşmeler bu aýratynlyk açylandan bäri ýazylýar; has öňki üýtgeşmeler bu ýerde görünmeýär.',
+      loading: 'Ýüklenýär…',
+      error: 'Ýazgy maglumatyny ýükläp bolmady.',
+      loadMore: 'Ýene görkez',
+      actionCreate: 'Döredildi',
+      actionUpdate: 'Üýtgedildi',
+      actionDelete: 'Pozuldy',
+      actionActivate: 'Aktiwleşdirildi',
+      actionDeactivate: 'Passiwleşdirildi',
+      viaBulkStatus: 'köpçülikleýin amal bilen',
+      viaBulkCopy: 'köpçülikleýin nusgalamak bilen',
+      copiedFrom: '“{name}” şablonyndan nusgalandy',
+      valueAdded: 'goşuldy',
+      valueRemoved: 'aýryldy',
+      valueChanged: 'üýtgedildi',
+      valueYes: 'Hawa',
+      valueNo: 'Ýok',
+      valueActive: 'Aktiw',
+      valueInactive: 'Passiw',
+      itemsBefore: 'Öň',
+      itemsAfter: 'Soň',
+      target: 'maksat {value}',
+      fields: {
+        employees: {
+          username: 'Ulanyjy ady',
+          firstname: 'Ady',
+          lastname: 'Familiýasy',
+          email: 'E-poçta',
+          phoneNumber: 'Telefon',
+          erpEmployeeId: 'ERP satyjysy',
+          avatarId: 'Profil suraty',
+          fullAccess: 'Admin hukugy',
+          isActive: 'Ýagdaýy',
+          passwordHash: 'Parol',
+        },
+        kpi_templates: {
+          name: 'Şablonyň ady',
+          description: 'Düşündiriş',
+          isActive: 'Ýagdaýy',
+          items: 'KPI-lar',
+        },
+      },
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

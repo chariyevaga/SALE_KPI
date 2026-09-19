@@ -35,24 +35,39 @@ async function refreshTokens(): Promise<boolean> {
     return false;
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: stored.refreshToken, deviceId: getDeviceId() }),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: stored.refreshToken, deviceId: getDeviceId() }),
+    });
+  } catch {
+    // A network blip is not an expired session; keep the tokens so a later attempt can succeed.
+    return false;
+  }
 
   if (!response.ok) {
+    // The refresh token is expired, rotated away or revoked: the session is over.
     tokenStore.clear();
     return false;
   }
 
   const auth = (await response.json()) as AuthResponse;
-  tokenStore.set({ accessToken: auth.accessToken, refreshToken: auth.refreshToken });
+  // Rotation renews the lifetime too, which is what slides a short session's window forward.
+  tokenStore.set({
+    accessToken: auth.accessToken,
+    expiresAt: Date.parse(auth.refreshTokenExpiresAt),
+    persistent: stored.persistent,
+    refreshToken: auth.refreshToken,
+  });
 
   return true;
 }
 
-function ensureSingleRefresh(): Promise<boolean> {
+/** Rotates the token pair, collapsing concurrent callers onto a single in-flight request. */
+export function ensureFreshSession(): Promise<boolean> {
   refreshPromise ??= refreshTokens().finally(() => {
     refreshPromise = null;
   });
@@ -83,7 +98,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   let response = await fetch(`${API_BASE_URL}${path}`, requestInit);
 
   if (response.status === 401 && stored && !options.skipAuth) {
-    const refreshed = await ensureSingleRefresh();
+    const refreshed = await ensureFreshSession();
 
     if (refreshed) {
       const retryStored = tokenStore.get();
@@ -116,7 +131,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   let response = await fetch(`${API_BASE_URL}${path}`, { headers });
 
   if (response.status === 401 && stored) {
-    const refreshed = await ensureSingleRefresh();
+    const refreshed = await ensureFreshSession();
 
     if (refreshed) {
       const retryStored = tokenStore.get();
@@ -151,7 +166,7 @@ export async function apiUpload<T>(path: string, file: Blob, fieldName = 'file')
   });
 
   if (response.status === 401 && stored) {
-    const refreshed = await ensureSingleRefresh();
+    const refreshed = await ensureFreshSession();
 
     if (refreshed) {
       const retryStored = tokenStore.get();

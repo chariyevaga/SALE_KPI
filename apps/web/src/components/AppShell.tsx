@@ -32,11 +32,14 @@ export function AppShell({ title, children, breadcrumbs, fullWidth = false }: Ap
   const [menuOpen, setMenuOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
 
-  // The employee directory is an admin-only screen, so it is hidden from everyone else.
+  // The employee directory and KPI templates are admin-only screens, hidden from everyone else.
   const navItems: NavItem[] = [
     { to: '/leaderboard', label: t('appShell.navLeaderboard') },
     { to: '/my-kpi', label: t('appShell.navMyKpi') },
     ...(employee?.fullAccess ? [{ to: '/employees', label: t('appShell.navEmployees') }] : []),
+    ...(employee?.fullAccess
+      ? [{ to: '/kpi-templates', label: t('appShell.navKpiTemplates') }]
+      : []),
     { to: '/kpi-plans', label: t('appShell.navKpiPlans') },
     { to: '/sessions', label: t('appShell.navSessions') },
   ];

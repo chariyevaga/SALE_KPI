@@ -61,7 +61,7 @@ services:
       NODE_ENV: production
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?REFRESH_TOKEN_SECRET is required}
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-30d}
-      SHORT_SESSION_TTL: ${SHORT_SESSION_TTL:-2h}
+      SHORT_SESSION_TTL: ${SHORT_SESSION_TTL:-20m}
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:

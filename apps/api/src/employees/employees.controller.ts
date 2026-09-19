@@ -14,12 +14,21 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConflictResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { AccessTokenGuard } from '../auth/access-token.guard.js';
 import { AuthService } from '../auth/auth.service.js';
 import { DeviceSessionResponse, type AuthenticatedRequest } from '../auth/auth.types.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
+import { BulkStatusDto, BulkUpdateResponse } from '../common/dto/bulk.dto.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
@@ -124,6 +133,25 @@ export class EmployeesController {
     @Body() dto: UpdateEmployeeDto,
   ): Promise<EmployeeResponse> {
     return this.employeesService.update(id, dto);
+  }
+
+  @Post('bulk-status')
+  @UseGuards(FullAccessGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Seçilen çalışanları toplu olarak aktifleştirir veya pasifleştirir (yalnız full_access).',
+    description:
+      'Tek transaction içinde çalışır. Pasifleştirmede, tekil `DELETE /employees/:id` gibi çalışanların açık cihaz oturumları `employee_deactivated` nedeniyle iptal edilir. Pasifleştirilecekler arasında kendi hesabınız varsa hiçbir kayıt değişmez ve 409 döner. Yalnız durumu gerçekten değişen kayıtlar sayılır.',
+  })
+  @ApiBody({ type: BulkStatusDto })
+  @ApiOkResponse({ type: BulkUpdateResponse })
+  @ApiConflictResponse({ description: 'Pasifleştirilecekler arasında kendi hesabınız var.' })
+  setActiveMany(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: BulkStatusDto,
+  ): Promise<BulkUpdateResponse> {
+    return this.employeesService.setActiveMany(dto.ids, dto.isActive, request.employee.id);
   }
 
   @Delete(':id')

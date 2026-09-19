@@ -6,7 +6,7 @@ const DEFAULT_FILE_STORAGE_ROOT = './var/uploads';
 const DEFAULT_FILE_CLEANUP_TIME_ZONE = 'Asia/Ashgabat';
 const DEFAULT_ACCESS_TOKEN_TTL = '15m';
 const DEFAULT_REFRESH_TOKEN_TTL = '30d';
-const DEFAULT_SHORT_SESSION_TTL = '2h';
+const DEFAULT_SHORT_SESSION_TTL = '20m';
 
 function getRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();

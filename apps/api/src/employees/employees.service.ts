@@ -1,9 +1,11 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Repository } from 'typeorm';
-import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
+import { DataSource, type EntityManager, In, IsNull, Repository } from 'typeorm';
 
+import { AuditService, type AuditValues } from '../audit/audit.service.js';
 import { PasswordService } from '../auth/password.service.js';
+import type { BulkUpdateResponse } from '../common/dto/bulk.dto.js';
+import { SEARCH_COLLATION, escapeLikePattern } from '../common/sql-search.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { DeviceSessionEntity } from '../device-sessions/entities/device-session.entity.js';
 import { FilesService } from '../files/files.service.js';
@@ -25,12 +27,6 @@ export interface EmployeeViewer {
 function canSeeContact(viewer: EmployeeViewer, employeeId: string): boolean {
   return viewer.fullAccess || viewer.id === employeeId;
 }
-const SEARCH_COLLATION = 'Latin1_General_CI_AI';
-
-/** LIKE treats these as wildcards, so a user searching for "%" must not match everything. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[[\]%_]/g, (character) => `[${character}]`);
-}
 
 @Injectable()
 export class EmployeesService {
@@ -42,6 +38,7 @@ export class EmployeesService {
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(FilesService) private readonly filesService: FilesService,
     @Inject(PasswordService) private readonly passwordService: PasswordService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async list(query: ListEmployeesQueryDto, viewer: EmployeeViewer): Promise<EmployeeListResponse> {
@@ -157,8 +154,7 @@ export class EmployeesService {
 
     try {
       const id = await this.dataSource.transaction(async (manager) => {
-        const repository = manager.getRepository(EmployeeEntity);
-        const employee = repository.create({
+        const saved = await this.audit.insert(manager, EmployeeEntity, {
           avatarId: dto.avatarId ?? null,
           email: dto.email || null,
           erpEmployeeId: dto.erpEmployeeId ?? null,
@@ -170,7 +166,6 @@ export class EmployeesService {
           phoneNumber: dto.phoneNumber || null,
           username: dto.username,
         });
-        const saved = await repository.save(employee);
 
         if (saved.avatarId) {
           await this.filesService.attachToSource(manager, {
@@ -209,7 +204,7 @@ export class EmployeesService {
         }
 
         // A plain UPDATE keeps the avatar relation out of the write path entirely.
-        const patch: QueryDeepPartialEntity<EmployeeEntity> = {};
+        const patch: AuditValues<EmployeeEntity> = {};
 
         if (dto.username !== undefined) patch.username = dto.username;
         if (dto.firstname !== undefined) patch.firstname = dto.firstname;
@@ -225,7 +220,7 @@ export class EmployeesService {
         if (dto.avatarId !== undefined) patch.avatarId = dto.avatarId;
 
         if (Object.keys(patch).length > 0) {
-          await repository.update({ id }, patch);
+          await this.audit.update(manager, EmployeeEntity, { id }, patch);
         }
 
         if (avatarChanged && dto.avatarId) {
@@ -255,21 +250,65 @@ export class EmployeesService {
     }
 
     await this.dataSource.transaction(async (manager) => {
-      const repository = manager.getRepository(EmployeeEntity);
-      const employee = await repository.findOneBy({ id });
+      const result = await this.audit.update(manager, EmployeeEntity, { id }, { isActive: false });
 
-      if (!employee) {
+      if (result.matched === 0) {
         throw new NotFoundException('Employee not found.');
       }
 
-      employee.isActive = false;
-      await repository.save(employee);
-
-      await manager.getRepository(DeviceSessionEntity).update(
+      await this.audit.update(
+        manager,
+        DeviceSessionEntity,
         { employeeId: id, revokedAt: IsNull() },
         { revokedAt: new Date(), revocationReason: 'employee_deactivated' },
       );
     });
+  }
+
+  /**
+   * Bulk (de)activation for the list screen (ADR-035). Deactivation revokes sessions
+   * exactly like `deactivate`, and the caller can never deactivate themselves.
+   */
+  async setActiveMany(
+    ids: string[],
+    isActive: boolean,
+    requestingEmployeeId: string,
+  ): Promise<BulkUpdateResponse> {
+    const self = requestingEmployeeId.toLowerCase();
+
+    if (!isActive && ids.some((id) => id.toLowerCase() === self)) {
+      throw new ConflictException('You cannot deactivate your own account.');
+    }
+
+    return this.dataSource.transaction((manager) => this.applyActiveMany(manager, ids, isActive));
+  }
+
+  private async applyActiveMany(
+    manager: EntityManager,
+    ids: string[],
+    isActive: boolean,
+  ): Promise<BulkUpdateResponse> {
+    const context = { via: 'bulk-status' };
+    // Only rows whose state actually changes are written, logged, counted and logged out.
+    const { changedIds } = await this.audit.update(
+      manager,
+      EmployeeEntity,
+      { id: In(ids) },
+      { isActive },
+      { context },
+    );
+
+    if (!isActive && changedIds.length > 0) {
+      await this.audit.update(
+        manager,
+        DeviceSessionEntity,
+        { employeeId: In(changedIds), revokedAt: IsNull() },
+        { revokedAt: new Date(), revocationReason: 'employee_deactivated' },
+        { context },
+      );
+    }
+
+    return { updated: changedIds.length };
   }
 
   private async findOneOrFail(id: string): Promise<EmployeeEntity> {
