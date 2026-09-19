@@ -292,12 +292,10 @@ interface TranslationShape {
     genericSaveError: string;
   };
   recordInfo: {
-    button: string;
     buttonFor: string;
     title: string;
     createdBy: string;
     updatedBy: string;
-    lastChange: string;
     system: string;
     history: string;
     historyEmpty: string;
@@ -650,12 +648,10 @@ export const translations: Record<Locale, TranslationShape> = {
       genericSaveError: 'Şablon kaydedilemedi. Lütfen tekrar deneyin.',
     },
     recordInfo: {
-      button: 'Kayıt bilgisi',
       buttonFor: '{name} kayıt bilgisi',
       title: 'Kayıt bilgisi',
       createdBy: 'Oluşturan',
       updatedBy: 'Son değiştiren',
-      lastChange: 'Son değişiklik: {name} · {date}',
       system: 'Sistem',
       history: 'Değişiklik geçmişi',
       historyEmpty: 'Bu kayıt için henüz değişiklik kaydı yok.',
@@ -1006,12 +1002,10 @@ export const translations: Record<Locale, TranslationShape> = {
       genericSaveError: 'Could not save the template. Please try again.',
     },
     recordInfo: {
-      button: 'Record info',
       buttonFor: 'Record info for {name}',
       title: 'Record info',
       createdBy: 'Created by',
       updatedBy: 'Last changed by',
-      lastChange: 'Last change: {name} · {date}',
       system: 'System',
       history: 'Change history',
       historyEmpty: 'No changes have been recorded for this record yet.',
@@ -1364,12 +1358,10 @@ export const translations: Record<Locale, TranslationShape> = {
       genericSaveError: 'Не удалось сохранить шаблон. Попробуйте ещё раз.',
     },
     recordInfo: {
-      button: 'Сведения о записи',
       buttonFor: 'Сведения о записи: {name}',
       title: 'Сведения о записи',
       createdBy: 'Создал(а)',
       updatedBy: 'Последним изменил(а)',
-      lastChange: 'Последнее изменение: {name} · {date}',
       system: 'Система',
       history: 'История изменений',
       historyEmpty: 'Для этой записи ещё нет сохранённых изменений.',
@@ -1723,12 +1715,10 @@ export const translations: Record<Locale, TranslationShape> = {
       genericSaveError: 'Şablony saklap bolmady. Gaýtadan synanyşyň.',
     },
     recordInfo: {
-      button: 'Ýazgy maglumaty',
       buttonFor: '{name} ýazgy maglumaty',
       title: 'Ýazgy maglumaty',
       createdBy: 'Döreden',
       updatedBy: 'Soňky üýtgeden',
-      lastChange: 'Soňky üýtgeşme: {name} · {date}',
       system: 'Ulgam',
       history: 'Üýtgeşmeler taryhy',
       historyEmpty: 'Bu ýazgy üçin entek üýtgeşme ýazylmady.',

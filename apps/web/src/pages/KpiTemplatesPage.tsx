@@ -10,11 +10,7 @@ import {
 } from '../api/kpi-templates';
 import { AppShell } from '../components/AppShell';
 import { BulkActionBar, type BulkAction } from '../components/BulkActionBar';
-import {
-  RecordInfoIconButton,
-  RecordInfoPanel,
-  type RecordInfoTarget,
-} from '../components/RecordInfo';
+import { RecordInfoButton } from '../components/RecordInfo';
 import { SelectCheckbox } from '../components/SelectCheckbox';
 import { StatusBadge } from '../components/StatusBadge';
 import { localizeApiError } from '../i18n/api-errors';
@@ -103,6 +99,7 @@ function TemplateCard({
           <ChevronIcon />
         </span>
       </Link>
+      <RecordInfoButton tableName="kpi_templates" recordId={template.id} title={template.name} />
     </div>
   );
 }
@@ -114,8 +111,6 @@ export function KpiTemplatesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [notice, setNotice] = useState<BulkNotice | null>(null);
-  const [recordInfo, setRecordInfo] = useState<RecordInfoTarget | null>(null);
-  const closeRecordInfo = useCallback(() => setRecordInfo(null), []);
   const queryClient = useQueryClient();
 
   // Debounce so typing doesn't fire a request per keystroke.
@@ -414,16 +409,6 @@ export function KpiTemplatesPage() {
                     </td>
                     <td className="py-2.5 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <RecordInfoIconButton
-                          label={t('recordInfo.buttonFor', { name: template.name })}
-                          onClick={() =>
-                            setRecordInfo({
-                              tableName: 'kpi_templates',
-                              recordId: template.id,
-                              title: template.name,
-                            })
-                          }
-                        />
                         <Link
                           to={`/kpi-templates/${template.id}`}
                           aria-label={t('kpiTemplates.editTemplate', { name: template.name })}
@@ -431,6 +416,11 @@ export function KpiTemplatesPage() {
                         >
                           <ChevronIcon />
                         </Link>
+                        <RecordInfoButton
+                          tableName="kpi_templates"
+                          recordId={template.id}
+                          title={template.name}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -449,8 +439,6 @@ export function KpiTemplatesPage() {
 
       {/* Keeps the last rows scrollable above the fixed bulk bar. */}
       {bulkBarVisible ? <div aria-hidden="true" className="h-44 sm:h-32" /> : null}
-
-      <RecordInfoPanel target={recordInfo} onClose={closeRecordInfo} />
 
       <BulkActionBar
         count={selectedTemplates.length}

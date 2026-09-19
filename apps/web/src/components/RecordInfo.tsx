@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { getRecordInfo, listRecordHistory } from '../api/audit';
 import { localizeApiError } from '../i18n/api-errors';
@@ -8,6 +9,8 @@ import { pickLocalizedText } from '../i18n/localized-text';
 import { useTranslation, type Translate, type TranslationKey } from '../i18n/locale-store';
 import type { Locale } from '../i18n/translations';
 import { mergeRequestEntries } from '../lib/record-history';
+import { useAuthStore } from '../store/auth-store';
+import { useRecordInfoStore, type RecordInfoTarget } from '../store/record-info-store';
 import type {
   AuditActor,
   AuditedTable,
@@ -17,14 +20,6 @@ import type {
 } from '../types/api';
 import { Drawer } from './Drawer';
 import { Spinner } from './Spinner';
-
-/** The record a RecordInfoPanel describes (ADR-036). */
-export interface RecordInfoTarget {
-  tableName: AuditedTable;
-  recordId: string;
-  /** Shown under the panel title, e.g. the employee's name. */
-  title: string;
-}
 
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
@@ -48,64 +43,55 @@ function InfoIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-/** ⓘ button of a list row; the page owns the RecordInfoPanel it opens. */
-export function RecordInfoIconButton({ label, onClick }: { label: string; onClick: () => void }) {
+/**
+ * The single entry point to record info (ADR-036): the same ⓘ button at the right end of a
+ * record's row or title line on every screen. Renders nothing for users without
+ * full_access, whom the API would refuse anyway.
+ */
+export function RecordInfoButton(target: RecordInfoTarget) {
+  const { t } = useTranslation();
+  const canView = useAuthStore((state) => state.employee?.fullAccess ?? false);
+  const open = useRecordInfoStore((state) => state.open);
+
+  if (!canView) {
+    return null;
+  }
+
+  const label = t('recordInfo.buttonFor', { name: target.title });
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => {
+        // Rows are often links; the button must not navigate.
+        event.preventDefault();
+        event.stopPropagation();
+        open({ tableName: target.tableName, recordId: target.recordId, title: target.title });
+      }}
       aria-label={label}
       title={label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+      className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-emerald-600 dark:hover:bg-slate-800 dark:hover:text-emerald-400"
     >
-      <InfoIcon className="h-4 w-4" />
+      <InfoIcon className="h-5 w-5" />
     </button>
   );
 }
 
-/**
- * "Last change: <who> · <when>" line on top of an edit screen. Tapping it opens the full
- * record info. `version` (the record's updatedAt) refreshes the line after a save.
- */
-export function RecordInfoBar({ version, ...target }: RecordInfoTarget & { version: string }) {
-  const { t, locale } = useTranslation();
-  const [panelTarget, setPanelTarget] = useState<RecordInfoTarget | null>(null);
-  const closePanel = useCallback(() => setPanelTarget(null), []);
-  const infoQuery = useQuery({
-    queryKey: ['record-info', target.tableName, target.recordId, version],
-    queryFn: () => getRecordInfo(target.tableName, target.recordId),
-  });
-  const info = infoQuery.data;
+/** Mounted once next to the routes; closes the panel when the user navigates away. */
+export function RecordInfoHost() {
+  const target = useRecordInfoStore((state) => state.target);
+  const close = useRecordInfoStore((state) => state.close);
+  const { pathname } = useLocation();
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setPanelTarget(target)}
-        className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-      >
-        <InfoIcon className="h-4 w-4 flex-shrink-0 text-slate-400" />
-        <span className="min-w-0 flex-1 truncate">
-          {info
-            ? t('recordInfo.lastChange', {
-                name: actorName(info.updatedBy, t),
-                date: formatDateTime(info.updatedAt, locale),
-              })
-            : infoQuery.isError
-              ? t('recordInfo.error')
-              : t('recordInfo.loading')}
-        </span>
-        <span className="flex-shrink-0 font-semibold text-emerald-700 dark:text-emerald-400">
-          {t('recordInfo.button')}
-        </span>
-      </button>
-      <RecordInfoPanel target={panelTarget} onClose={closePanel} />
-    </>
-  );
+  useEffect(() => {
+    close();
+  }, [pathname, close]);
+
+  return <RecordInfoPanel target={target} onClose={close} />;
 }
 
 /** Right-hand panel: who created and last changed the record, then its change history. */
-export function RecordInfoPanel({
+function RecordInfoPanel({
   target,
   onClose,
 }: {

@@ -12,11 +12,7 @@ import { AppShell } from '../components/AppShell';
 import { AuthenticatedImage } from '../components/AuthenticatedImage';
 import { BulkActionBar, type BulkAction } from '../components/BulkActionBar';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
-import {
-  RecordInfoIconButton,
-  RecordInfoPanel,
-  type RecordInfoTarget,
-} from '../components/RecordInfo';
+import { RecordInfoButton } from '../components/RecordInfo';
 import { Drawer } from '../components/Drawer';
 import { SelectCheckbox } from '../components/SelectCheckbox';
 import { StatusBadge } from '../components/StatusBadge';
@@ -180,6 +176,7 @@ function EmployeeCard({
       ) : (
         <div className={bodyClassName}>{content}</div>
       )}
+      <RecordInfoButton tableName="employees" recordId={employee.id} title={employeeName} />
     </div>
   );
 }
@@ -187,13 +184,11 @@ function EmployeeCard({
 function EmployeeRow({
   employee,
   onShowCard,
-  onShowRecordInfo,
   canManage,
   selection,
 }: {
   employee: EmployeeResponse;
   onShowCard: (employee: EmployeeResponse) => void;
-  onShowRecordInfo: (employee: EmployeeResponse) => void;
   canManage: boolean;
   selection: RowSelection | null;
 }) {
@@ -254,12 +249,6 @@ function EmployeeRow({
       {canManage ? (
         <td className="py-2 pr-4 text-right">
           <div className="flex items-center justify-end gap-1">
-            <RecordInfoIconButton
-              label={t('recordInfo.buttonFor', {
-                name: `${employee.firstname} ${employee.lastname}`,
-              })}
-              onClick={() => onShowRecordInfo(employee)}
-            />
             <Link
               to={`/employees/${employee.id}`}
               aria-label={t('employees.editEmployee', {
@@ -277,6 +266,11 @@ function EmployeeRow({
                 <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
+            <RecordInfoButton
+              tableName="employees"
+              recordId={employee.id}
+              title={`${employee.firstname} ${employee.lastname}`}
+            />
           </div>
         </td>
       ) : null}
@@ -355,8 +349,6 @@ export function EmployeesPage() {
   const [sortValue, setSortValue] = useState('firstname-asc');
   const [cardEmployee, setCardEmployee] = useState<EmployeeResponse | null>(null);
   const [notice, setNotice] = useState<BulkNotice | null>(null);
-  const [recordInfo, setRecordInfo] = useState<RecordInfoTarget | null>(null);
-  const closeRecordInfo = useCallback(() => setRecordInfo(null), []);
   const canManage = useAuthStore((state) => state.employee?.fullAccess ?? false);
   const currentEmployeeId = useAuthStore((state) => state.employee?.id.toLowerCase() ?? null);
   const queryClient = useQueryClient();
@@ -851,13 +843,6 @@ export function EmployeesPage() {
                     key={employee.id}
                     employee={employee}
                     onShowCard={setCardEmployee}
-                    onShowRecordInfo={(row) =>
-                      setRecordInfo({
-                        tableName: 'employees',
-                        recordId: row.id,
-                        title: `${row.firstname} ${row.lastname}`,
-                      })
-                    }
                     canManage={canManage}
                     selection={rowSelection(employee)}
                   />
@@ -882,8 +867,6 @@ export function EmployeesPage() {
         onClose={() => setCardEmployee(null)}
         employee={cardEmployee}
       />
-
-      <RecordInfoPanel target={recordInfo} onClose={closeRecordInfo} />
 
       {canManage ? (
         <BulkActionBar

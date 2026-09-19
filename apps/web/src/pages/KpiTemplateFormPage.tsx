@@ -13,7 +13,6 @@ import {
 import { AppShell } from '../components/AppShell';
 import { FormField, formInputClassName } from '../components/FormField';
 import { KpiTemplateItemEditor } from '../components/KpiTemplateItemEditor';
-import { RecordInfoBar } from '../components/RecordInfo';
 import { Spinner } from '../components/Spinner';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
@@ -256,6 +255,11 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
     <AppShell
       title={pageTitle}
       breadcrumbs={[{ label: t('kpiTemplates.title'), to: '/kpi-templates' }, { label: pageTitle }]}
+      recordInfo={
+        mode === 'edit' && template
+          ? { tableName: 'kpi_templates', recordId: template.id, title: template.name }
+          : undefined
+      }
     >
       {mode === 'edit' && templateQuery.isLoading ? (
         <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -270,15 +274,6 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-          {mode === 'edit' && template ? (
-            <RecordInfoBar
-              tableName="kpi_templates"
-              recordId={template.id}
-              title={template.name}
-              version={template.updatedAt}
-            />
-          ) : null}
-
           {copiedFrom && template ? (
             <p
               role="status"

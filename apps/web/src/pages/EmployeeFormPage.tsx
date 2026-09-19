@@ -7,7 +7,6 @@ import { listErpEmployees } from '../api/erp-employees';
 import { AppShell } from '../components/AppShell';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
 import { FormField, formInputClassName } from '../components/FormField';
-import { RecordInfoBar } from '../components/RecordInfo';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { Spinner } from '../components/Spinner';
 import { PasswordInput } from '../components/PasswordInput';
@@ -187,6 +186,15 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
     <AppShell
       title={pageTitle}
       breadcrumbs={[{ label: t('employees.title'), to: '/employees' }, { label: pageTitle }]}
+      recordInfo={
+        mode === 'edit' && employeeQuery.data
+          ? {
+              tableName: 'employees',
+              recordId: employeeQuery.data.id,
+              title: `${employeeQuery.data.firstname} ${employeeQuery.data.lastname}`,
+            }
+          : undefined
+      }
     >
       {mode === 'edit' && id ? (
         <div className="mb-5 flex gap-1 border-b border-slate-200 dark:border-slate-800">
@@ -240,15 +248,6 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8" noValidate>
-          {mode === 'edit' && employeeQuery.data ? (
-            <RecordInfoBar
-              tableName="employees"
-              recordId={employeeQuery.data.id}
-              title={`${employeeQuery.data.firstname} ${employeeQuery.data.lastname}`}
-              version={employeeQuery.data.updatedAt}
-            />
-          ) : null}
-
           <FormField label={t('employeeForm.usernameLabel')} htmlFor="username" required>
             <input
               id="username"

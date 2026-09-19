@@ -5,16 +5,20 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { logout as logoutRequest } from '../api/auth';
 import { useTranslation } from '../i18n/locale-store';
 import { useAuthStore } from '../store/auth-store';
+import type { RecordInfoTarget } from '../store/record-info-store';
 import { Breadcrumb, type BreadcrumbItem } from './Breadcrumb';
 import { Drawer } from './Drawer';
 import { EmployeeCardModal } from './EmployeeCardModal';
 import { ProfileAvatar } from './ProfileAvatar';
+import { RecordInfoButton } from './RecordInfo';
 
 interface AppShellProps {
   title: string;
   children: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   fullWidth?: boolean;
+  /** Record shown on this screen; puts the record info button at the end of the title line. */
+  recordInfo?: RecordInfoTarget | undefined;
 }
 
 interface NavItem {
@@ -23,7 +27,7 @@ interface NavItem {
   icon?: string;
 }
 
-export function AppShell({ title, children, breadcrumbs, fullWidth = false }: AppShellProps) {
+export function AppShell({ title, children, breadcrumbs, fullWidth = false, recordInfo }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -255,9 +259,17 @@ export function AppShell({ title, children, breadcrumbs, fullWidth = false }: Ap
         </header>
 
         <main className={`w-full pb-24 ${fullWidth ? 'px-0' : 'mx-auto max-w-4xl px-4'} pt-4`}>
-          {breadcrumbs ? (
-            <div className={`mb-4 ${fullWidth ? 'px-4' : ''}`}>
-              <Breadcrumb items={breadcrumbs} />
+          {breadcrumbs || recordInfo ? (
+            <div className={`mb-4 flex items-start gap-2 ${fullWidth ? 'px-4' : ''}`}>
+              <div className="min-w-0 flex-1">
+                {breadcrumbs ? <Breadcrumb items={breadcrumbs} /> : null}
+              </div>
+              {recordInfo ? (
+                // -mt-3 centres the 44px button on the breadcrumb text line without making it taller.
+                <div className="-mt-3 flex-shrink-0">
+                  <RecordInfoButton {...recordInfo} />
+                </div>
+              ) : null}
             </div>
           ) : null}
           {children}
