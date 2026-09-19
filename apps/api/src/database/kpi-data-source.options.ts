@@ -44,6 +44,10 @@ export function getKpiDataSourceOptions(): DataSourceOptions {
     options: {
       encrypt: config.encrypt,
       trustServerCertificate: config.trustServerCertificate,
+      // Columns hold UTC. TypeORM defaults to useUTC: false, which reads and writes
+      // datetime2 in the Node process's time zone: fine in the UTC container, 5 hours off
+      // for scripts and `npm run dev` on an Asia/Ashgabat machine.
+      useUTC: true,
     },
   };
 }

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { EntityMetadata } from 'typeorm';
+import { DataSource, getMetadataArgsStorage, type EntityMetadata } from 'typeorm';
 
-import { assertAuditedWrite } from './audit-guard.subscriber.js';
+import { AuditGuardSubscriber, assertAuditedWrite } from './audit-guard.subscriber.js';
 import { runAuditWrite } from './audit-write-scope.js';
+import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
 
 function metadata(tableName: string, propertyNames: readonly string[]): EntityMetadata {
   return {
@@ -57,4 +58,30 @@ void test('the write scope does not leak into later async work', async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   assert.throws(() => assertAuditedWrite(AUDITED, 'insert'), /must go through AuditService/);
+});
+
+void test('TypeORM loads the guard from the data source options', async () => {
+  // Undecorated subscriber classes are dropped without an error, which once left the guard off.
+  assert.ok(
+    getMetadataArgsStorage().entitySubscribers.some(
+      (subscriber) => subscriber.target === AuditGuardSubscriber,
+    ),
+  );
+
+  // Metadata can be built without connecting; this is what initialize() does first.
+  const dataSource = new DataSource({
+    type: 'mssql',
+    host: 'localhost',
+    username: 'unused',
+    password: 'unused',
+    database: 'unused',
+    entities: [KpiTemplateEntity],
+    subscribers: [AuditGuardSubscriber],
+  });
+  await (dataSource as unknown as { buildMetadatas(): Promise<void> }).buildMetadatas();
+
+  assert.deepEqual(
+    dataSource.subscribers.map((subscriber) => subscriber.constructor),
+    [AuditGuardSubscriber],
+  );
 });

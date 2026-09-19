@@ -1,11 +1,12 @@
-import type {
-  EntityMetadata,
-  EntitySubscriberInterface,
-  InsertEvent,
-  RecoverEvent,
-  RemoveEvent,
-  SoftRemoveEvent,
-  UpdateEvent,
+import {
+  EventSubscriber,
+  type EntityMetadata,
+  type EntitySubscriberInterface,
+  type InsertEvent,
+  type RecoverEvent,
+  type RemoveEvent,
+  type SoftRemoveEvent,
+  type UpdateEvent,
 } from 'typeorm';
 
 import { AUDIT_LOG_TABLE, isAuditedMetadata } from './audit-rules.js';
@@ -16,7 +17,11 @@ import { isAuditWrite } from './audit-write-scope.js';
  * an audited table — save, insert, update, delete, through a repository, the manager or a
  * query builder — must run inside AuditService, and audit_logs only ever receives inserts.
  * Raw `query()` SQL does not raise these events; it is reserved for migrations.
+ *
+ * `@EventSubscriber()` is required: TypeORM silently drops undecorated classes listed in
+ * the data source's `subscribers` option.
  */
+@EventSubscriber()
 export class AuditGuardSubscriber implements EntitySubscriberInterface {
   beforeInsert(event: InsertEvent<unknown>): void {
     assertAuditedWrite(event.metadata, 'insert');
