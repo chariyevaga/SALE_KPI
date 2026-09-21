@@ -3,26 +3,26 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } 
 import { AuditedEntity } from '../../audit/audited-entity.js';
 import { decimalTransformer } from '../../common/decimal.js';
 import { KpiDefinitionEntity } from '../../kpi-definitions/entities/kpi-definition.entity.js';
-import { KpiTemplateEntity } from './kpi-template.entity.js';
+import { KpiAssignmentEntity } from './kpi-assignment.entity.js';
 
 /**
- * One KPI inside a template. The relations are read-only views of the foreign-key
- * columns (persistence: false, same pattern as EmployeeEntity.avatar), so writes only
- * ever go through `templateId` / `kpiDefinitionId`.
+ * One KPI of a plan, copied from the template row it came from. Only `target_value` is
+ * the employee's own; the KPI, its weight and its inputs stay as the template had them
+ * (docs/BUSINESS_RULES.md "Hedef öneri raporları", ADR-039). NULL target = not set yet.
  */
-@Entity({ name: 'kpi_template_items', schema: 'dbo' })
-@Index('IX_kpi_template_items_template', ['templateId', 'sortOrder'])
-@Index('IX_kpi_template_items_definition', ['kpiDefinitionId'])
-export class KpiTemplateItemEntity extends AuditedEntity {
+@Entity({ name: 'kpi_assignment_items', schema: 'dbo' })
+@Index('IX_kpi_assignment_items_assignment', ['assignmentId', 'sortOrder'])
+@Index('IX_kpi_assignment_items_definition', ['kpiDefinitionId'])
+export class KpiAssignmentItemEntity extends AuditedEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
-  @Column({ name: 'template_id', type: 'uniqueidentifier' })
-  templateId: string;
+  @Column({ name: 'assignment_id', type: 'uniqueidentifier' })
+  assignmentId: string;
 
-  @ManyToOne(() => KpiTemplateEntity, { onDelete: 'CASCADE', persistence: false })
-  @JoinColumn({ name: 'template_id', referencedColumnName: 'id' })
-  template?: KpiTemplateEntity;
+  @ManyToOne(() => KpiAssignmentEntity, { onDelete: 'CASCADE', persistence: false })
+  @JoinColumn({ name: 'assignment_id', referencedColumnName: 'id' })
+  assignment?: KpiAssignmentEntity;
 
   @Column({ name: 'kpi_definition_id', type: 'uniqueidentifier' })
   kpiDefinitionId: string;

@@ -30,7 +30,12 @@ import {
 
 import { AccessTokenGuard } from '../auth/access-token.guard.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
-import { BulkIdsDto, BulkStatusDto, BulkUpdateResponse } from '../common/dto/bulk.dto.js';
+import {
+  BulkDeleteResponse,
+  BulkIdsDto,
+  BulkStatusDto,
+  BulkUpdateResponse,
+} from '../common/dto/bulk.dto.js';
 import { CopyKpiTemplateDto } from './dto/copy-kpi-template.dto.js';
 import { ListKpiTemplatesQueryDto } from './dto/list-kpi-templates-query.dto.js';
 import { SaveKpiTemplateDto } from './dto/save-kpi-template.dto.js';
@@ -183,5 +188,45 @@ export class KpiTemplatesController {
   @ApiForbiddenResponse({ description: '`full_access` yok.' })
   async deactivate(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
     await this.kpiTemplatesService.deactivate(id);
+  }
+
+  @Delete(':id/permanent')
+  @UseGuards(FullAccessGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'KPI şablonunu kalıcı olarak siler (yalnız full_access).',
+    description:
+      'Şablon ve KPI satırları veritabanından silinir; geri alınamaz. Şablondan bir KPI planı oluşturulduysa silinmez, `409 KPI_TEMPLATE_IN_USE` döner ve şablon yalnız pasifleştirilebilir (ADR-040).',
+  })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Şablon silindi.' })
+  @ApiConflictResponse({
+    type: KpiTemplateErrorResponse,
+    description: '`KPI_TEMPLATE_IN_USE`: şablon bir KPI planında kullanılıyor.',
+  })
+  @ApiNotFoundResponse({ description: 'Şablon bulunamadı.' })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  async remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
+    await this.kpiTemplatesService.deleteMany([id]);
+  }
+
+  @Post('bulk-delete')
+  @UseGuards(FullAccessGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Seçilen KPI şablonlarını kalıcı olarak siler (yalnız full_access).',
+    description:
+      'Ya hepsi silinir ya da hiçbiri: seçimde bir KPI planında kullanılan şablon varsa `409 KPI_TEMPLATE_IN_USE` döner ve kullanılan şablonlar plan sayısıyla listelenir.',
+  })
+  @ApiBody({ type: BulkIdsDto })
+  @ApiOkResponse({ type: BulkDeleteResponse })
+  @ApiConflictResponse({
+    type: KpiTemplateErrorResponse,
+    description: '`KPI_TEMPLATE_IN_USE`: seçimdeki şablonlardan biri kullanılıyor.',
+  })
+  @ApiNotFoundResponse({ description: 'Seçimde bulunamayan id var.' })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  deleteMany(@Body() dto: BulkIdsDto): Promise<BulkDeleteResponse> {
+    return this.kpiTemplatesService.deleteMany(dto.ids, 'bulk-delete');
   }
 }

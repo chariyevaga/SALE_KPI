@@ -44,6 +44,15 @@ export class BulkStatusDto extends BulkIdsDto {
   isActive: boolean;
 }
 
+export class BulkDeleteResponse {
+  @ApiProperty({
+    type: Number,
+    example: 2,
+    description: 'Silinen kayıt sayısı.',
+  })
+  deleted: number;
+}
+
 export class BulkUpdateResponse {
   @ApiProperty({
     type: Number,

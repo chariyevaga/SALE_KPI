@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   TEMPLATE_NAME_MAX_LENGTH,
   copyNameBase,
+  findTemplatesInUse,
   nextCopyName,
   sumWeights,
   templateItemKey,
@@ -47,4 +48,30 @@ void test('copy names stay within the column length', () => {
 
   assert.equal(copyName.length, TEMPLATE_NAME_MAX_LENGTH);
   assert.ok(copyName.endsWith(' (2)'));
+});
+
+void test('lists only the templates a KPI plan was built from', () => {
+  const templates = [
+    { id: 'AAA', name: 'MÜDÜR KPI 01' },
+    { id: 'BBB', name: 'SATIŞ KPI' },
+    { id: 'CCC', name: 'Taslak' },
+  ];
+  const usage = [
+    { templateId: 'aaa', planCount: 3 },
+    { templateId: 'ccc', planCount: 0 },
+  ];
+
+  assert.deepEqual(findTemplatesInUse(templates, usage), [
+    { id: 'AAA', name: 'MÜDÜR KPI 01', planCount: 3 },
+  ]);
+  assert.deepEqual(findTemplatesInUse(templates, []), []);
+});
+
+void test('counts plans whatever the GUID letter case is', () => {
+  const inUse = findTemplatesInUse(
+    [{ id: 'a791de4b-49af', name: 'KPI' }],
+    [{ templateId: 'A791DE4B-49AF', planCount: 1 }],
+  );
+
+  assert.deepEqual(inUse, [{ id: 'a791de4b-49af', name: 'KPI', planCount: 1 }]);
 });

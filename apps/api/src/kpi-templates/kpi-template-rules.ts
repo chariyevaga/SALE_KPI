@@ -17,6 +17,36 @@ export function templateItemKey(kpiDefinitionId: string, canonicalInputValues: s
 
 export const TEMPLATE_NAME_MAX_LENGTH = 200;
 
+export interface TemplateUsage {
+  templateId: string;
+  planCount: number;
+}
+
+export interface TemplateInUse {
+  id: string;
+  name: string;
+  planCount: number;
+}
+
+/**
+ * Templates that a KPI plan was built from (ADR-040). They cannot be deleted, because the
+ * plan keeps pointing at them; the rest of the selection can go.
+ */
+export function findTemplatesInUse(
+  templates: ReadonlyArray<{ id: string; name: string }>,
+  usage: readonly TemplateUsage[],
+): TemplateInUse[] {
+  const counts = new Map(
+    usage.map((row) => [row.templateId.toLowerCase(), Number(row.planCount)] as const),
+  );
+
+  return templates.flatMap((template) => {
+    const planCount = counts.get(template.id.toLowerCase()) ?? 0;
+
+    return planCount > 0 ? [{ id: template.id, name: template.name, planCount }] : [];
+  });
+}
+
 const COPY_SUFFIX_PATTERN = / \((\d+)\)$/;
 
 /** "MÜDÜR KPI 01 (3)" and "MÜDÜR KPI 01" share the base name "MÜDÜR KPI 01". */

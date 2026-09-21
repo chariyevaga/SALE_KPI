@@ -79,6 +79,11 @@ export interface ApiErrorBody {
   duplicateOf?: number;
   path?: string;
   storeIds?: number[];
+  /** `KPI_TEMPLATE_IN_USE`: templates that KPI plans were built from. */
+  templates?: KpiTemplateInUse[];
+  /** `KPI_ASSIGNMENT_EXISTS` / `KPI_ASSIGNMENT_INELIGIBLE`: the employees involved. */
+  employeeIds?: string[];
+  employees?: { employeeId: string; reason: KpiPlanSkipReason }[];
 }
 
 export interface LocalizedText {
@@ -172,6 +177,18 @@ export interface BulkUpdateResponse {
   updated: number;
 }
 
+/** Result of a bulk delete: rows removed from the database (ADR-040). */
+export interface BulkDeleteResponse {
+  deleted: number;
+}
+
+/** A template that cannot be deleted because KPI plans were built from it. */
+export interface KpiTemplateInUse {
+  id: string;
+  name: string;
+  planCount: number;
+}
+
 export interface KpiTemplateCopyResult {
   sourceId: string;
   id: string;
@@ -194,8 +211,111 @@ export interface SaveKpiTemplateInput {
   }[];
 }
 
+export type KpiPeriodStatus = 'open' | 'closed';
+
+/** A monthly KPI period (ADR-039); plans and targets are written while it is open. */
+export interface KpiPeriod {
+  id: string;
+  year: number;
+  month: number;
+  label: string;
+  status: KpiPeriodStatus;
+  closedAt: string | null;
+  assignmentCount: number;
+  missingTargetCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KpiPeriodListResponse {
+  items: KpiPeriod[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface KpiPlanEmployee {
+  id: string;
+  username: string;
+  firstname: string;
+  lastname: string;
+  isActive: boolean;
+  erpEmployeeId: number | null;
+}
+
+export interface KpiPlanItem {
+  id: string;
+  kpiDefinitionId: string;
+  definition: Pick<KpiDefinition, 'id' | 'code' | 'name' | 'scope' | 'unit' | 'inputMode'>;
+  weight: number;
+  targetValue: number | null;
+  inputValues: Record<string, KpiInputValue>;
+  sortOrder: number;
+}
+
+/** One employee's plan in one period: the template's KPI rows with their own targets. */
+export interface KpiPlan {
+  id: string;
+  period: Pick<KpiPeriod, 'id' | 'year' | 'month' | 'label' | 'status'>;
+  employee: KpiPlanEmployee;
+  templateId: string;
+  templateName: string;
+  totalWeight: number;
+  items: KpiPlanItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KpiPlanSummary {
+  id: string;
+  employee: KpiPlanEmployee;
+  templateId: string;
+  templateName: string;
+  itemCount: number;
+  targetCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KpiPlanListResponse {
+  items: KpiPlanSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type KpiPlanSkipReason = 'already-assigned' | 'inactive' | 'missing-erp-link';
+
+export interface KpiPlanSkipped {
+  employeeId: string;
+  reason: KpiPlanSkipReason;
+}
+
+export interface KpiPlanCopyResult {
+  created: number;
+  skipped: KpiPlanSkipped[];
+}
+
+/** Target suggestion of a plan row, from the KPI report views (ADR-038). */
+export interface KpiPlanRecommendation {
+  itemId: string;
+  monthCount: number;
+  average: number | null;
+  achievableMax: number | null;
+  recommended: number | null;
+  combined?: boolean;
+}
+
+export interface KpiPlanRecommendationsResponse {
+  items: KpiPlanRecommendation[];
+}
+
+export interface SaveKpiTargetsInput {
+  items: { id: string; targetValue: number | null }[];
+}
+
 /** Tables whose screens show record info (ADR-036); the API accepts every audited table. */
-export type AuditedTable = 'employees' | 'kpi_templates';
+export type AuditedTable = 'employees' | 'kpi_templates' | 'kpi_periods' | 'kpi_assignments';
 
 export interface AuditActor {
   id: string;

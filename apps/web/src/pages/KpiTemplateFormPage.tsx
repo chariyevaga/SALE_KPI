@@ -7,6 +7,7 @@ import {
   copyKpiTemplate,
   createKpiTemplate,
   deactivateKpiTemplate,
+  deleteKpiTemplate,
   getKpiTemplate,
   updateKpiTemplate,
 } from '../api/kpi-templates';
@@ -83,6 +84,17 @@ function describeSaveError(error: unknown, t: Translate, locale: Locale): string
   });
 }
 
+/** `KPI_TEMPLATE_IN_USE` says how many KPI plans still point at the template (ADR-040). */
+function describeDeleteError(error: unknown, t: Translate): string {
+  if (error instanceof ApiError && error.body?.code === 'KPI_TEMPLATE_IN_USE') {
+    const planCount = error.body.templates?.[0]?.planCount ?? 0;
+
+    return t('kpiTemplateForm.deleteInUse', { count: String(planCount) });
+  }
+
+  return localizeApiError(error, t, 'kpiTemplateForm.deleteError');
+}
+
 function newDraft(): TemplateDraft {
   return { name: '', description: '', items: [emptyItemDraft()] };
 }
@@ -149,6 +161,15 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
     },
   });
 
+  // Permanent delete; the API refuses it while a KPI plan uses the template (ADR-040).
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteKpiTemplate(id as string),
+    onSuccess: async () => {
+      await refreshTemplates();
+      void navigate('/kpi-templates', { replace: true });
+    },
+  });
+
   const deactivateMutation = useMutation({
     mutationFn: () => deactivateKpiTemplate(id as string),
     onSuccess: async () => {
@@ -181,6 +202,7 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
     setDraftError(null);
     saveMutation.reset();
     deactivateMutation.reset();
+    deleteMutation.reset();
     reactivateMutation.reset();
     copyMutation.reset();
   }
@@ -243,13 +265,15 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
       : describeDraftError(draftError, t, locale)
     : saveMutation.isError
       ? describeSaveError(saveMutation.error, t, locale)
-      : deactivateMutation.isError
-        ? localizeApiError(deactivateMutation.error, t, 'kpiTemplateForm.deactivateError')
-        : reactivateMutation.isError
-          ? describeSaveError(reactivateMutation.error, t, locale)
-          : copyMutation.isError
-            ? localizeApiError(copyMutation.error, t, 'kpiTemplateForm.copyError')
-            : null;
+      : deleteMutation.isError
+        ? describeDeleteError(deleteMutation.error, t)
+        : deactivateMutation.isError
+          ? localizeApiError(deactivateMutation.error, t, 'kpiTemplateForm.deactivateError')
+          : reactivateMutation.isError
+            ? describeSaveError(reactivateMutation.error, t, locale)
+            : copyMutation.isError
+              ? localizeApiError(copyMutation.error, t, 'kpiTemplateForm.copyError')
+              : null;
 
   return (
     <AppShell
@@ -433,6 +457,30 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
                 ? t('kpiTemplateForm.deactivating')
                 : t('kpiTemplateForm.deactivate')}
             </button>
+          ) : null}
+
+          {mode === 'edit' && template ? (
+            <>
+              <button
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  resetFeedback();
+
+                  if (window.confirm(t('kpiTemplateForm.deleteConfirm', { name: template.name }))) {
+                    deleteMutation.mutate();
+                  }
+                }}
+                className="mt-2 h-12 w-full rounded-xl bg-red-500/10 text-base font-semibold text-red-600 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
+              >
+                {deleteMutation.isPending
+                  ? t('kpiTemplateForm.deleting')
+                  : t('kpiTemplateForm.delete')}
+              </button>
+              <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
+                {t('kpiTemplateForm.deleteHint')}
+              </p>
+            </>
           ) : null}
 
           {/* Sticky footer keeps the running total and the primary action within thumb reach. */}

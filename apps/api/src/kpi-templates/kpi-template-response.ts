@@ -199,6 +199,24 @@ export class KpiTemplateErrorResponse {
     description: "`KPI_TEMPLATE_UNKNOWN_STORE`: bulunamayan mağaza id'leri.",
   })
   storeIds?: number[];
+
+  @ApiPropertyOptional({
+    type: () => KpiTemplateInUseResponse,
+    isArray: true,
+    description: '`KPI_TEMPLATE_IN_USE`: silinemeyen şablonlar ve kaç planda kullanıldıkları.',
+  })
+  templates?: KpiTemplateInUseResponse[];
+}
+
+export class KpiTemplateInUseResponse {
+  @ApiProperty({ type: String, format: 'uuid' })
+  id: string;
+
+  @ApiProperty({ type: String, example: 'MÜDÜR KPI 01' })
+  name: string;
+
+  @ApiProperty({ type: Number, example: 3, description: 'Şablondan oluşturulmuş plan sayısı.' })
+  planCount: number;
 }
 
 export interface KpiTemplateItemStats {

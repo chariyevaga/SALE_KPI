@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import {
   bulkCopyKpiTemplates,
+  bulkDeleteKpiTemplates,
   bulkSetKpiTemplatesActive,
   listKpiTemplates,
   type KpiTemplateListQuery,
@@ -15,13 +16,25 @@ import { SelectCheckbox } from '../components/SelectCheckbox';
 import { StatusBadge } from '../components/StatusBadge';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
-import { useTranslation } from '../i18n/locale-store';
+import { useTranslation, type Translate } from '../i18n/locale-store';
+import { ApiError } from '../lib/api-client';
 import { isBulkBarVisible, type BulkNotice } from '../lib/bulk';
 import { useSelection } from '../lib/use-selection';
 import type { KpiTemplateSummary } from '../types/api';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
-type BulkTemplateAction = 'copy' | 'activate' | 'deactivate';
+type BulkTemplateAction = 'copy' | 'activate' | 'deactivate' | 'delete';
+
+/** `KPI_TEMPLATE_IN_USE` names the templates a KPI plan was built from (ADR-040). */
+function describeBulkError(error: unknown, t: Translate): string {
+  if (error instanceof ApiError && error.body?.code === 'KPI_TEMPLATE_IN_USE') {
+    return t('kpiTemplates.bulkDeleteInUse', {
+      names: (error.body.templates ?? []).map((template) => template.name).join(', '),
+    });
+  }
+
+  return localizeApiError(error, t, 'kpiTemplates.bulkError');
+}
 
 function TemplateStatus({ isActive }: { isActive: boolean }) {
   const { t } = useTranslation();
@@ -159,6 +172,10 @@ export function KpiTemplatesPage() {
         return (await bulkCopyKpiTemplates(ids)).copies.length;
       }
 
+      if (action === 'delete') {
+        return (await bulkDeleteKpiTemplates(ids)).deleted;
+      }
+
       return (await bulkSetKpiTemplatesActive(ids, action === 'activate')).updated;
     },
     onMutate: () => setNotice(null),
@@ -169,11 +186,12 @@ export function KpiTemplatesPage() {
           ? 'kpiTemplates.bulkCopied'
           : action === 'activate'
             ? 'kpiTemplates.bulkActivated'
-            : 'kpiTemplates.bulkDeactivated';
+            : action === 'delete'
+              ? 'kpiTemplates.bulkDeleted'
+              : 'kpiTemplates.bulkDeactivated';
       setNotice({ tone: 'success', text: t(key, { count: formatNumber(count, locale) }) });
     },
-    onError: (error) =>
-      setNotice({ tone: 'error', text: localizeApiError(error, t, 'kpiTemplates.bulkError') }),
+    onError: (error) => setNotice({ tone: 'error', text: describeBulkError(error, t) }),
     // Earlier chunks may have been applied even on error, so always refetch.
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['kpi-templates'] }),
   });
@@ -183,6 +201,15 @@ export function KpiTemplatesPage() {
       action === 'deactivate' &&
       !window.confirm(
         t('kpiTemplates.bulkDeactivateConfirm', { count: formatNumber(targets.length, locale) }),
+      )
+    ) {
+      return;
+    }
+
+    if (
+      action === 'delete' &&
+      !window.confirm(
+        t('kpiTemplates.bulkDeleteConfirm', { count: formatNumber(targets.length, locale) }),
       )
     ) {
       return;
@@ -219,11 +246,17 @@ export function KpiTemplatesPage() {
           {
             key: 'deactivate',
             label: withCount(t('kpiTemplates.bulkDeactivate'), toDeactivate.length),
-            tone: 'danger' as const,
+            tone: 'neutral' as const,
             onClick: () => runBulk('deactivate', toDeactivate),
           },
         ]
       : []),
+    {
+      key: 'delete',
+      label: t('kpiTemplates.bulkDelete'),
+      tone: 'danger',
+      onClick: () => runBulk('delete', selectedTemplates),
+    },
   ];
   const bulkBarVisible = isBulkBarVisible(selectedTemplates.length, notice);
 

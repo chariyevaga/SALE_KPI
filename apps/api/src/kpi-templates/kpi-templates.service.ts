@@ -9,8 +9,9 @@ import {
   andWhereEachSearchTerm,
   escapeLikePattern,
 } from '../common/sql-search.js';
-import type { BulkUpdateResponse } from '../common/dto/bulk.dto.js';
+import type { BulkDeleteResponse, BulkUpdateResponse } from '../common/dto/bulk.dto.js';
 import { getFirmNumber } from '../config/environment.js';
+import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
 import { KpiDefinitionEntity } from '../kpi-definitions/entities/kpi-definition.entity.js';
 import {
   readKpiDefinitionInputSchema,
@@ -28,7 +29,11 @@ import type { ListKpiTemplatesQueryDto } from './dto/list-kpi-templates-query.dt
 import type { KpiTemplateItemDto, SaveKpiTemplateDto } from './dto/save-kpi-template.dto.js';
 import { KpiTemplateItemEntity } from './entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from './entities/kpi-template.entity.js';
-import { kpiTemplateBadRequest, kpiTemplateNameTaken } from './kpi-template-errors.js';
+import {
+  kpiTemplateBadRequest,
+  kpiTemplateInUse,
+  kpiTemplateNameTaken,
+} from './kpi-template-errors.js';
 import {
   type KpiTemplateBulkCopyResponse,
   type KpiTemplateItemStats,
@@ -40,9 +45,11 @@ import {
 import {
   REQUIRED_TOTAL_WEIGHT,
   copyNameBase,
+  findTemplatesInUse,
   nextCopyName,
   sumWeights,
   templateItemKey,
+  type TemplateUsage,
 } from './kpi-template-rules.js';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -107,6 +114,9 @@ export class KpiTemplatesService {
     private readonly definitionRepository: Repository<KpiDefinitionEntity>,
     @InjectRepository(StoreEntity)
     private readonly storeRepository: Repository<StoreEntity>,
+    // Read-only here: a template that a plan was built from cannot be deleted (ADR-040).
+    @InjectRepository(KpiAssignmentEntity)
+    private readonly assignmentRepository: Repository<KpiAssignmentEntity>,
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
@@ -254,6 +264,61 @@ export class KpiTemplatesService {
     if (result.matched === 0) {
       throw new NotFoundException('KPI template not found.');
     }
+  }
+
+  /**
+   * Deletes templates with their KPI rows. A template a KPI plan was built from is kept:
+   * the plan points at it, and its history stays readable (ADR-040). Either every selected
+   * template is deletable or nothing is deleted.
+   */
+  async deleteMany(ids: string[], via?: string): Promise<BulkDeleteResponse> {
+    const templates = await this.templateRepository.find({ where: { id: In(ids) } });
+    const found = new Map(templates.map((template) => [template.id.toLowerCase(), template]));
+    const missing = ids.filter((id) => !found.has(id.toLowerCase()));
+
+    if (missing.length > 0) {
+      throw new NotFoundException(`KPI templates not found: ${missing.join(', ')}.`);
+    }
+
+    const usage = await this.assignmentRepository
+      .createQueryBuilder('assignment')
+      .select('assignment.templateId', 'templateId')
+      .addSelect('COUNT(*)', 'planCount')
+      .where('assignment.templateId IN (:...ids)', {
+        ids: templates.map((template) => template.id),
+      })
+      .groupBy('assignment.templateId')
+      .getRawMany<TemplateUsage>();
+    const inUse = findTemplatesInUse(templates, usage);
+
+    if (inUse.length > 0) {
+      throw kpiTemplateInUse(inUse);
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      for (const template of templates) {
+        const items = await this.loadLoggedItems(manager, template.id);
+
+        // The rows are listed in the template's own entry, so they are not logged again.
+        await this.audit.delete(
+          manager,
+          KpiTemplateItemEntity,
+          { templateId: template.id },
+          { log: false },
+        );
+        await this.audit.delete(
+          manager,
+          KpiTemplateEntity,
+          { id: template.id },
+          {
+            ...(via ? { context: { via } } : {}),
+            extraChanges: { items: { old: toItemSnapshots(items) } },
+          },
+        );
+      }
+    });
+
+    return { deleted: templates.length };
   }
 
   /** Bulk (de)activation (ADR-035); only templates whose state changes are counted. */

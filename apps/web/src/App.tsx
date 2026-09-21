@@ -9,9 +9,12 @@ import { useSessionWatchdog } from './lib/session-watchdog';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeesPage } from './pages/EmployeesPage';
+import { KpiPlanFormPage } from './pages/KpiPlanFormPage';
+import { KpiPlansPage } from './pages/KpiPlansPage';
 import { KpiTemplateFormPage } from './pages/KpiTemplateFormPage';
 import { KpiTemplatesPage } from './pages/KpiTemplatesPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyKpiPage } from './pages/MyKpiPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuthStore } from './store/auth-store';
@@ -130,16 +133,24 @@ export function App() {
           path="/my-kpi"
           element={
             <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navMyKpi" />
+              <MyKpiPage />
             </ProtectedRoute>
           }
         />
         <Route
           path="/kpi-plans"
           element={
-            <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navKpiPlans" />
-            </ProtectedRoute>
+            <AdminRoute>
+              <KpiPlansPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-plans/:id"
+          element={
+            <AdminRoute>
+              <KpiPlanFormPage />
+            </AdminRoute>
           }
         />
         <Route path="*" element={<Navigate to="/leaderboard" replace />} />

@@ -230,6 +230,10 @@ interface TranslationShape {
     bulkCopied: string;
     bulkActivated: string;
     bulkDeactivated: string;
+    bulkDelete: string;
+    bulkDeleteConfirm: string;
+    bulkDeleted: string;
+    bulkDeleteInUse: string;
     bulkError: string;
   };
   kpiTemplateForm: {
@@ -273,6 +277,12 @@ interface TranslationShape {
     reactivate: string;
     reactivating: string;
     deactivateError: string;
+    delete: string;
+    deleting: string;
+    deleteConfirm: string;
+    deleteHint: string;
+    deleteError: string;
+    deleteInUse: string;
     copy: string;
     copying: string;
     copyHint: string;
@@ -340,7 +350,106 @@ interface TranslationShape {
         isActive: string;
         items: string;
       };
+      kpi_periods: {
+        year: string;
+        month: string;
+        status: string;
+        closedAt: string;
+      };
+      kpi_assignments: {
+        periodId: string;
+        employeeId: string;
+        templateId: string;
+        templateName: string;
+        items: string;
+      };
     };
+  };
+  kpiPlans: {
+    title: string;
+    periodLabel: string;
+    newPeriod: string;
+    newPeriodTitle: string;
+    year: string;
+    month: string;
+    open: string;
+    statusOpen: string;
+    statusClosed: string;
+    closePeriod: string;
+    closeConfirm: string;
+    closed: string;
+    assign: string;
+    assignTitle: string;
+    templateLabel: string;
+    employeesLabel: string;
+    employeeSearch: string;
+    assignSubmit: string;
+    assigned: string;
+    copyFrom: string;
+    copyConfirm: string;
+    copied: string;
+    copiedNone: string;
+    noPreviousPeriod: string;
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    emptyPeriods: string;
+    noSearchResults: string;
+    searchPlaceholder: string;
+    resultCount: string;
+    targetProgress: string;
+    columnEmployee: string;
+    columnTemplate: string;
+    columnTargets: string;
+    columnActions: string;
+    openPlan: string;
+    openPlanShort: string;
+    periodClosedHint: string;
+    assignError: string;
+    alreadyAssigned: string;
+    ineligible: string;
+    reasonInactive: string;
+    reasonMissingErpLink: string;
+    reasonAlreadyAssigned: string;
+    periodClosedError: string;
+    selectTemplate: string;
+    employeesEmpty: string;
+  };
+  kpiPlanForm: {
+    title: string;
+    loading: string;
+    errorLoading: string;
+    save: string;
+    saved: string;
+    saveError: string;
+    closedError: string;
+    invalidTarget: string;
+    targetLabel: string;
+    missingTarget: string;
+    weight: string;
+    stores: string;
+    currency: string;
+    recommendation: string;
+    recommendationMonths: string;
+    applyRecommendation: string;
+    applyAll: string;
+    combinedHint: string;
+    manualHint: string;
+    noRecommendation: string;
+    deletePlan: string;
+    deleteConfirm: string;
+    deleteError: string;
+    closedNotice: string;
+  };
+  myKpi: {
+    title: string;
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    period: string;
+    weight: string;
+    target: string;
+    noTarget: string;
   };
   errors: {
     generic: string;
@@ -582,6 +691,12 @@ export const translations: Record<Locale, TranslationShape> = {
       bulkCopied: '{count} şablon kopyalandı; kopyaların adına “(2)” gibi bir numara eklendi.',
       bulkActivated: '{count} şablon aktifleştirildi.',
       bulkDeactivated: '{count} şablon pasifleştirildi.',
+      bulkDelete: 'Sil',
+      bulkDeleteConfirm:
+        '{count} şablon kalıcı olarak silinsin mi? Bu işlem geri alınamaz. KPI planında kullanılan şablon silinmez.',
+      bulkDeleted: '{count} şablon kalıcı olarak silindi.',
+      bulkDeleteInUse:
+        'Şu şablonlar KPI planlarında kullanıldığı için silinemez: {names}. Bunları yalnız pasifleştirebilirsiniz.',
       bulkError: 'Toplu işlem tamamlanamadı. Lütfen tekrar deneyin.',
     },
     kpiTemplateForm: {
@@ -626,6 +741,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Tekrar etkinleştir',
       reactivating: 'Etkinleştiriliyor…',
       deactivateError: 'Şablon pasifleştirilemedi.',
+      delete: 'Şablonu sil',
+      deleting: 'Siliniyor…',
+      deleteConfirm: '“{name}” şablonu kalıcı olarak silinsin mi? Bu işlem geri alınamaz.',
+      deleteHint: 'KPI planında kullanılmayan şablon kalıcı olarak silinebilir.',
+      deleteError: 'Şablon silinemedi.',
+      deleteInUse:
+        'Bu şablondan {count} KPI planı oluşturulmuş, bu yüzden silinemez. Şablonu pasifleştirebilirsiniz.',
       copy: 'Kopyasını oluştur',
       copying: 'Kopyalanıyor…',
       copyHint: 'Kaydedilmiş son hâli bütün KPI’larıyla kopyalanır.',
@@ -697,7 +819,107 @@ export const translations: Record<Locale, TranslationShape> = {
           isActive: 'Durum',
           items: 'KPI’lar',
         },
+        kpi_periods: {
+          year: 'Yıl',
+          month: 'Ay',
+          status: 'Durum',
+          closedAt: 'Kapanış zamanı',
+        },
+        kpi_assignments: {
+          periodId: 'Dönem',
+          employeeId: 'Çalışan',
+          templateId: 'Şablon',
+          templateName: 'Şablon adı',
+          items: 'KPI’lar',
+        },
       },
+    },
+    kpiPlans: {
+      title: 'KPI planları',
+      periodLabel: 'Dönem',
+      newPeriod: 'Ay aç',
+      newPeriodTitle: 'Yeni dönem aç',
+      year: 'Yıl',
+      month: 'Ay',
+      open: 'Dönemi aç',
+      statusOpen: 'Açık',
+      statusClosed: 'Kapalı',
+      closePeriod: 'Dönemi kapat',
+      closeConfirm:
+        '{period} dönemi kapatılsın mı? Kapalı dönemde plan ve hedef değiştirilemez, dönem yeniden açılamaz.',
+      closed: '{period} dönemi kapatıldı.',
+      assign: 'Şablon ata',
+      assignTitle: 'Şablon ata',
+      templateLabel: 'KPI şablonu',
+      employeesLabel: 'Çalışanlar',
+      employeeSearch: 'Çalışan ara',
+      assignSubmit: 'Plan oluştur',
+      assigned: '{count} çalışana plan verildi.',
+      copyFrom: '{period} ayından kopyala',
+      copyConfirm: '{period} dönemindeki planlar hedefleriyle kopyalansın mı?',
+      copied: '{created} plan kopyalandı, {skipped} çalışan atlandı.',
+      copiedNone: 'Kopyalanacak uygun plan bulunamadı.',
+      noPreviousPeriod: 'Önceki dönem yok',
+      loading: 'Yükleniyor…',
+      errorLoading: 'Planlar yüklenemedi.',
+      empty: 'Bu dönemde henüz plan yok.',
+      emptyPeriods: 'Henüz KPI dönemi yok. Başlamak için bir ay açın.',
+      noSearchResults: 'Aramaya uygun plan bulunamadı.',
+      searchPlaceholder: 'Çalışan ara',
+      resultCount: '{count} plan',
+      targetProgress: '{done}/{total} hedef',
+      columnEmployee: 'Çalışan',
+      columnTemplate: 'Şablon',
+      columnTargets: 'Hedefler',
+      columnActions: 'İşlem',
+      openPlan: '{name} planını aç',
+      openPlanShort: 'Aç',
+      periodClosedHint: 'Bu dönem kapalı; planlar salt okunur.',
+      assignError: 'Plan oluşturulamadı.',
+      alreadyAssigned: 'Bu çalışanların bu dönemde zaten planı var: {names}',
+      ineligible: 'Bu çalışanlara plan verilemez: {names}',
+      reasonInactive: 'pasif',
+      reasonMissingErpLink: 'Tiger satış personeli eşlemesi yok',
+      reasonAlreadyAssigned: 'planı zaten var',
+      periodClosedError: 'Dönem kapalı olduğu için değişiklik yapılamadı.',
+      selectTemplate: 'Şablon seçin',
+      employeesEmpty: 'Çalışan bulunamadı.',
+    },
+    kpiPlanForm: {
+      title: 'KPI planı',
+      loading: 'Yükleniyor…',
+      errorLoading: 'Plan yüklenemedi.',
+      save: 'Hedefleri kaydet',
+      saved: 'Hedefler kaydedildi.',
+      saveError: 'Hedefler kaydedilemedi.',
+      closedError: 'Dönem kapalı; hedefler değiştirilemez.',
+      invalidTarget: 'Hedef geçersiz. Negatif olmayan, en fazla 4 ondalıklı bir sayı girin.',
+      targetLabel: 'Hedef',
+      missingTarget: 'Hedef girilmedi',
+      weight: 'Ağırlık %{value}',
+      stores: 'Mağazalar',
+      currency: 'Para birimi',
+      recommendation: 'Ortalama {average} · Ulaşılabilir max {max} · Önerilen {recommended}',
+      recommendationMonths: '{count} aylık veri',
+      applyRecommendation: 'Uygula',
+      applyAll: 'Bütün önerileri uygula',
+      combinedHint: 'birden fazla mağaza toplandı',
+      manualHint: 'Bu KPI elle girilir; raporu yoktur.',
+      noRecommendation: 'Bu KPI için rapor verisi yok.',
+      deletePlan: 'Planı sil',
+      deleteConfirm: '{name} çalışanının {period} planı silinsin mi?',
+      deleteError: 'Plan silinemedi.',
+      closedNotice: '{period} dönemi kapalı; hedefler salt okunur.',
+    },
+    myKpi: {
+      title: 'KPI’larım',
+      loading: 'Yükleniyor…',
+      errorLoading: 'KPI planınız yüklenemedi.',
+      empty: 'Bu ay için size verilmiş bir KPI planı yok.',
+      period: 'Dönem',
+      weight: 'Ağırlık',
+      target: 'Hedef',
+      noTarget: 'Hedef henüz girilmedi',
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -937,6 +1159,12 @@ export const translations: Record<Locale, TranslationShape> = {
       bulkCopied: 'Templates copied: {count}. Each copy got a number such as “(2)” in its name.',
       bulkActivated: 'Templates activated: {count}.',
       bulkDeactivated: 'Templates deactivated: {count}.',
+      bulkDelete: 'Delete',
+      bulkDeleteConfirm:
+        'Delete {count} templates for good? This cannot be undone. Templates used by a KPI plan are kept.',
+      bulkDeleted: 'Templates deleted: {count}.',
+      bulkDeleteInUse:
+        'These templates are used by KPI plans and cannot be deleted: {names}. You can only deactivate them.',
       bulkError: 'The bulk action could not be completed. Please try again.',
     },
     kpiTemplateForm: {
@@ -982,6 +1210,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Reactivate',
       reactivating: 'Reactivating…',
       deactivateError: 'Could not deactivate the template.',
+      delete: 'Delete template',
+      deleting: 'Deleting…',
+      deleteConfirm: 'Delete the template “{name}” for good? This cannot be undone.',
+      deleteHint: 'A template no KPI plan uses can be deleted for good.',
+      deleteError: 'Could not delete the template.',
+      deleteInUse:
+        '{count} KPI plans were built from this template, so it cannot be deleted. You can deactivate it instead.',
       copy: 'Create a copy',
       copying: 'Copying…',
       copyHint: 'The last saved version is copied with all of its KPIs.',
@@ -1051,7 +1286,108 @@ export const translations: Record<Locale, TranslationShape> = {
           isActive: 'Status',
           items: 'KPIs',
         },
+        kpi_periods: {
+          year: 'Year',
+          month: 'Month',
+          status: 'Status',
+          closedAt: 'Closed at',
+        },
+        kpi_assignments: {
+          periodId: 'Period',
+          employeeId: 'Employee',
+          templateId: 'Template',
+          templateName: 'Template name',
+          items: 'KPIs',
+        },
       },
+    },
+    kpiPlans: {
+      title: 'KPI plans',
+      periodLabel: 'Period',
+      newPeriod: 'Open month',
+      newPeriodTitle: 'Open a new period',
+      year: 'Year',
+      month: 'Month',
+      open: 'Open period',
+      statusOpen: 'Open',
+      statusClosed: 'Closed',
+      closePeriod: 'Close period',
+      closeConfirm:
+        'Close the {period} period? Plans and targets can no longer be changed and the period cannot be reopened.',
+      closed: 'The {period} period is closed.',
+      assign: 'Assign template',
+      assignTitle: 'Assign template',
+      templateLabel: 'KPI template',
+      employeesLabel: 'Employees',
+      employeeSearch: 'Search employees',
+      assignSubmit: 'Create plans',
+      assigned: '{count} employees got a plan.',
+      copyFrom: 'Copy from {period}',
+      copyConfirm: 'Copy the plans of {period} with their targets?',
+      copied: '{created} plans copied, {skipped} employees skipped.',
+      copiedNone: 'No plan could be copied.',
+      noPreviousPeriod: 'No earlier period',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the plans.',
+      empty: 'No plans in this period yet.',
+      emptyPeriods: 'No KPI period yet. Open a month to start.',
+      noSearchResults: 'No plans match your search.',
+      searchPlaceholder: 'Search employees',
+      resultCount: '{count} plans',
+      targetProgress: '{done}/{total} targets',
+      columnEmployee: 'Employee',
+      columnTemplate: 'Template',
+      columnTargets: 'Targets',
+      columnActions: 'Actions',
+      openPlan: 'Open the plan of {name}',
+      openPlanShort: 'Open',
+      periodClosedHint: 'This period is closed; plans are read-only.',
+      assignError: 'Could not create the plans.',
+      alreadyAssigned: 'These employees already have a plan in this period: {names}',
+      ineligible: 'These employees cannot be given this template: {names}',
+      reasonInactive: 'inactive',
+      reasonMissingErpLink: 'no Tiger salesperson link',
+      reasonAlreadyAssigned: 'already has a plan',
+      periodClosedError: 'The period is closed, so nothing was changed.',
+      selectTemplate: 'Select a template',
+      employeesEmpty: 'No employees found.',
+    },
+    kpiPlanForm: {
+      title: 'KPI plan',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the plan.',
+      save: 'Save targets',
+      saved: 'Targets saved.',
+      saveError: 'Could not save the targets.',
+      closedError: 'The period is closed; targets cannot be changed.',
+      invalidTarget:
+        'The target is invalid. Enter a number that is not negative, with at most 4 decimals.',
+      targetLabel: 'Target',
+      missingTarget: 'No target yet',
+      weight: 'Weight {value}%',
+      stores: 'Stores',
+      currency: 'Currency',
+      recommendation: 'Average {average} · Achievable max {max} · Suggested {recommended}',
+      recommendationMonths: '{count} months of data',
+      applyRecommendation: 'Apply',
+      applyAll: 'Apply every suggestion',
+      combinedHint: 'several stores added up',
+      manualHint: 'This KPI is entered by hand; it has no report.',
+      noRecommendation: 'No report data for this KPI.',
+      deletePlan: 'Delete plan',
+      deleteConfirm: 'Delete the {period} plan of {name}?',
+      deleteError: 'Could not delete the plan.',
+      closedNotice: 'The {period} period is closed; targets are read-only.',
+    },
+    myKpi: {
+      title: 'My KPI',
+      loading: 'Loading…',
+      errorLoading: 'Could not load your KPI plan.',
+      empty: 'You have no KPI plan for this month.',
+      period: 'Period',
+      weight: 'Weight',
+      target: 'Target',
+      noTarget: 'No target yet',
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -1293,6 +1629,12 @@ export const translations: Record<Locale, TranslationShape> = {
         'Скопировано шаблонов: {count}. К названиям копий добавлен номер, например «(2)».',
       bulkActivated: 'Активировано шаблонов: {count}.',
       bulkDeactivated: 'Деактивировано шаблонов: {count}.',
+      bulkDelete: 'Удалить',
+      bulkDeleteConfirm:
+        'Удалить {count} шаблонов безвозвратно? Действие нельзя отменить. Шаблоны, используемые планами KPI, сохраняются.',
+      bulkDeleted: 'Удалено шаблонов: {count}.',
+      bulkDeleteInUse:
+        'Эти шаблоны используются планами KPI и не могут быть удалены: {names}. Их можно только деактивировать.',
       bulkError: 'Не удалось выполнить массовое действие. Попробуйте ещё раз.',
     },
     kpiTemplateForm: {
@@ -1337,6 +1679,14 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Активировать снова',
       reactivating: 'Активация…',
       deactivateError: 'Не удалось деактивировать шаблон.',
+      delete: 'Удалить шаблон',
+      deleting: 'Удаление…',
+      deleteConfirm: 'Удалить шаблон «{name}» безвозвратно? Действие нельзя отменить.',
+      deleteHint:
+        'Шаблон, который не используется ни одним планом KPI, можно удалить безвозвратно.',
+      deleteError: 'Не удалось удалить шаблон.',
+      deleteInUse:
+        'По этому шаблону создано планов KPI: {count}, поэтому его нельзя удалить. Его можно деактивировать.',
       copy: 'Создать копию',
       copying: 'Копирование…',
       copyHint: 'Копируется последняя сохранённая версия со всеми KPI.',
@@ -1407,7 +1757,108 @@ export const translations: Record<Locale, TranslationShape> = {
           isActive: 'Статус',
           items: 'KPI',
         },
+        kpi_periods: {
+          year: 'Год',
+          month: 'Месяц',
+          status: 'Статус',
+          closedAt: 'Время закрытия',
+        },
+        kpi_assignments: {
+          periodId: 'Период',
+          employeeId: 'Сотрудник',
+          templateId: 'Шаблон',
+          templateName: 'Название шаблона',
+          items: 'KPI',
+        },
       },
+    },
+    kpiPlans: {
+      title: 'Планы KPI',
+      periodLabel: 'Период',
+      newPeriod: 'Открыть месяц',
+      newPeriodTitle: 'Открыть новый период',
+      year: 'Год',
+      month: 'Месяц',
+      open: 'Открыть период',
+      statusOpen: 'Открыт',
+      statusClosed: 'Закрыт',
+      closePeriod: 'Закрыть период',
+      closeConfirm:
+        'Закрыть период {period}? После этого планы и цели изменить нельзя, период не открывается заново.',
+      closed: 'Период {period} закрыт.',
+      assign: 'Назначить шаблон',
+      assignTitle: 'Назначить шаблон',
+      templateLabel: 'Шаблон KPI',
+      employeesLabel: 'Сотрудники',
+      employeeSearch: 'Поиск сотрудника',
+      assignSubmit: 'Создать планы',
+      assigned: 'Планы получили сотрудников: {count}.',
+      copyFrom: 'Копировать из {period}',
+      copyConfirm: 'Скопировать планы периода {period} вместе с целями?',
+      copied: 'Скопировано планов: {created}, пропущено сотрудников: {skipped}.',
+      copiedNone: 'Подходящих планов для копирования нет.',
+      noPreviousPeriod: 'Нет предыдущего периода',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить планы.',
+      empty: 'В этом периоде пока нет планов.',
+      emptyPeriods: 'Периодов KPI ещё нет. Откройте месяц, чтобы начать.',
+      noSearchResults: 'По запросу планов не найдено.',
+      searchPlaceholder: 'Поиск сотрудника',
+      resultCount: 'Планов: {count}',
+      targetProgress: '{done}/{total} целей',
+      columnEmployee: 'Сотрудник',
+      columnTemplate: 'Шаблон',
+      columnTargets: 'Цели',
+      columnActions: 'Действие',
+      openPlan: 'Открыть план: {name}',
+      openPlanShort: 'Открыть',
+      periodClosedHint: 'Период закрыт; планы только для чтения.',
+      assignError: 'Не удалось создать планы.',
+      alreadyAssigned: 'У этих сотрудников уже есть план в периоде: {names}',
+      ineligible: 'Этим сотрудникам нельзя назначить шаблон: {names}',
+      reasonInactive: 'неактивен',
+      reasonMissingErpLink: 'нет связи с продавцом Tiger',
+      reasonAlreadyAssigned: 'план уже есть',
+      periodClosedError: 'Период закрыт, изменения не сохранены.',
+      selectTemplate: 'Выберите шаблон',
+      employeesEmpty: 'Сотрудники не найдены.',
+    },
+    kpiPlanForm: {
+      title: 'План KPI',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить план.',
+      save: 'Сохранить цели',
+      saved: 'Цели сохранены.',
+      saveError: 'Не удалось сохранить цели.',
+      closedError: 'Период закрыт; цели изменить нельзя.',
+      invalidTarget:
+        'Неверная цель. Введите неотрицательное число не более чем с 4 знаками после запятой.',
+      targetLabel: 'Цель',
+      missingTarget: 'Цель не задана',
+      weight: 'Вес {value}%',
+      stores: 'Магазины',
+      currency: 'Валюта',
+      recommendation: 'Среднее {average} · Достижимый максимум {max} · Рекомендуется {recommended}',
+      recommendationMonths: 'данных за {count} мес.',
+      applyRecommendation: 'Применить',
+      applyAll: 'Применить все рекомендации',
+      combinedHint: 'несколько магазинов суммированы',
+      manualHint: 'Этот KPI вводится вручную; отчёта нет.',
+      noRecommendation: 'Для этого KPI нет данных отчёта.',
+      deletePlan: 'Удалить план',
+      deleteConfirm: 'Удалить план {period} сотрудника {name}?',
+      deleteError: 'Не удалось удалить план.',
+      closedNotice: 'Период {period} закрыт; цели только для чтения.',
+    },
+    myKpi: {
+      title: 'Мои KPI',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить ваш план KPI.',
+      empty: 'На этот месяц у вас нет плана KPI.',
+      period: 'Период',
+      weight: 'Вес',
+      target: 'Цель',
+      noTarget: 'Цель ещё не задана',
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -1647,6 +2098,12 @@ export const translations: Record<Locale, TranslationShape> = {
       bulkCopied: '{count} şablon nusgalandy; nusgalaryň adyna “(2)” ýaly san goşuldy.',
       bulkActivated: '{count} şablon aktiwleşdirildi.',
       bulkDeactivated: '{count} şablon passiwleşdirildi.',
+      bulkDelete: 'Poz',
+      bulkDeleteConfirm:
+        '{count} şablon hemişelik pozulsynmy? Bu amal yzyna alynmaýar. KPI meýilnamasynda ulanylýan şablon pozulmaýar.',
+      bulkDeleted: '{count} şablon hemişelik pozuldy.',
+      bulkDeleteInUse:
+        'Şu şablonlar KPI meýilnamalarynda ulanylýar we pozulyp bilinmeýär: {names}. Olary diňe passiwleşdirip bilersiňiz.',
       bulkError: 'Köpçülikleýin amal tamamlanmady. Gaýtadan synanyşyň.',
     },
     kpiTemplateForm: {
@@ -1692,6 +2149,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reactivate: 'Gaýtadan aktiwleşdir',
       reactivating: 'Aktiwleşdirilýär…',
       deactivateError: 'Şablony passiwleşdirip bolmady.',
+      delete: 'Şablony poz',
+      deleting: 'Pozulýar…',
+      deleteConfirm: '“{name}” şablony hemişelik pozulsynmy? Bu amal yzyna alynmaýar.',
+      deleteHint: 'KPI meýilnamasynda ulanylmaýan şablon hemişelik pozulyp bilner.',
+      deleteError: 'Şablon pozulmady.',
+      deleteInUse:
+        'Bu şablondan {count} KPI meýilnamasy döredilipdir, şonuň üçin pozulyp bilinmeýär. Ony passiwleşdirip bilersiňiz.',
       copy: 'Nusgasyny döret',
       copying: 'Nusgalanýar…',
       copyHint: 'Iň soňky saklanan görnüşi ähli KPI-lary bilen nusgalanýar.',
@@ -1764,7 +2228,107 @@ export const translations: Record<Locale, TranslationShape> = {
           isActive: 'Ýagdaýy',
           items: 'KPI-lar',
         },
+        kpi_periods: {
+          year: 'Ýyl',
+          month: 'Aý',
+          status: 'Ýagdaýy',
+          closedAt: 'Ýapylan wagty',
+        },
+        kpi_assignments: {
+          periodId: 'Döwür',
+          employeeId: 'Işgär',
+          templateId: 'Şablon',
+          templateName: 'Şablonyň ady',
+          items: 'KPI-lar',
+        },
       },
+    },
+    kpiPlans: {
+      title: 'KPI meýilnamalary',
+      periodLabel: 'Döwür',
+      newPeriod: 'Aý aç',
+      newPeriodTitle: 'Täze döwür aç',
+      year: 'Ýyl',
+      month: 'Aý',
+      open: 'Döwri aç',
+      statusOpen: 'Açyk',
+      statusClosed: 'Ýapyk',
+      closePeriod: 'Döwri ýap',
+      closeConfirm:
+        '{period} döwri ýapylsynmy? Ýapyk döwürde meýilnama we maksat üýtgedilip bilinmeýär, döwür gaýtadan açylmaýar.',
+      closed: '{period} döwri ýapyldy.',
+      assign: 'Şablon belle',
+      assignTitle: 'Şablon belle',
+      templateLabel: 'KPI şablony',
+      employeesLabel: 'Işgärler',
+      employeeSearch: 'Işgär gözle',
+      assignSubmit: 'Meýilnama döret',
+      assigned: '{count} işgäre meýilnama berildi.',
+      copyFrom: '{period} aýyndan göçür',
+      copyConfirm: '{period} döwrüniň meýilnamalary maksatlary bilen göçürilsinmi?',
+      copied: '{created} meýilnama göçürildi, {skipped} işgär geçildi.',
+      copiedNone: 'Göçürmäge amatly meýilnama tapylmady.',
+      noPreviousPeriod: 'Öňki döwür ýok',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Meýilnamalar ýüklenmedi.',
+      empty: 'Bu döwürde entek meýilnama ýok.',
+      emptyPeriods: 'Entek KPI döwri ýok. Başlamak üçin bir aý açyň.',
+      noSearchResults: 'Gözlege laýyk meýilnama tapylmady.',
+      searchPlaceholder: 'Işgär gözle',
+      resultCount: '{count} meýilnama',
+      targetProgress: '{done}/{total} maksat',
+      columnEmployee: 'Işgär',
+      columnTemplate: 'Şablon',
+      columnTargets: 'Maksatlar',
+      columnActions: 'Amal',
+      openPlan: '{name} meýilnamasyny aç',
+      openPlanShort: 'Aç',
+      periodClosedHint: 'Bu döwür ýapyk; meýilnamalar diňe okalýar.',
+      assignError: 'Meýilnama döredilmedi.',
+      alreadyAssigned: 'Bu işgärleriň bu döwürde eýýäm meýilnamasy bar: {names}',
+      ineligible: 'Bu işgärlere şablon berip bolmaýar: {names}',
+      reasonInactive: 'passiw',
+      reasonMissingErpLink: 'Tiger satyjy baglanyşygy ýok',
+      reasonAlreadyAssigned: 'meýilnamasy eýýäm bar',
+      periodClosedError: 'Döwür ýapyk bolany üçin üýtgeşme ýazylmady.',
+      selectTemplate: 'Şablon saýlaň',
+      employeesEmpty: 'Işgär tapylmady.',
+    },
+    kpiPlanForm: {
+      title: 'KPI meýilnamasy',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Meýilnama ýüklenmedi.',
+      save: 'Maksatlary sakla',
+      saved: 'Maksatlar saklandy.',
+      saveError: 'Maksatlar saklanmady.',
+      closedError: 'Döwür ýapyk; maksatlar üýtgedilip bilinmeýär.',
+      invalidTarget: 'Maksat nädogry. Otrisatel bolmadyk, iň köp 4 onluk belgili san giriziň.',
+      targetLabel: 'Maksat',
+      missingTarget: 'Maksat girizilmedi',
+      weight: 'Agram {value}%',
+      stores: 'Dükanlar',
+      currency: 'Walýuta',
+      recommendation: 'Ortaça {average} · Ýetip boljak iň ýokary {max} · Teklip {recommended}',
+      recommendationMonths: '{count} aýlyk maglumat',
+      applyRecommendation: 'Ulan',
+      applyAll: 'Ähli teklipleri ulan',
+      combinedHint: 'birnäçe dükan jemlendi',
+      manualHint: 'Bu KPI el bilen girizilýär; hasabaty ýok.',
+      noRecommendation: 'Bu KPI üçin hasabat maglumaty ýok.',
+      deletePlan: 'Meýilnamany poz',
+      deleteConfirm: '{name} işgäriniň {period} meýilnamasy pozulsynmy?',
+      deleteError: 'Meýilnama pozulmady.',
+      closedNotice: '{period} döwri ýapyk; maksatlar diňe okalýar.',
+    },
+    myKpi: {
+      title: 'Meniň KPI-larym',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'KPI meýilnamaňyz ýüklenmedi.',
+      empty: 'Bu aý üçin size berlen KPI meýilnamasy ýok.',
+      period: 'Döwür',
+      weight: 'Agram',
+      target: 'Maksat',
+      noTarget: 'Maksat entek girizilmedi',
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

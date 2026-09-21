@@ -11,7 +11,9 @@ import { EmployeesModule } from './employees/employees.module.js';
 import { ErpEmployeesModule } from './erp-employees/erp-employees.module.js';
 import { FilesModule } from './files/files.module.js';
 import { HealthModule } from './health/health.module.js';
+import { KpiAssignmentsModule } from './kpi-assignments/kpi-assignments.module.js';
 import { KpiDefinitionsModule } from './kpi-definitions/kpi-definitions.module.js';
+import { KpiPeriodsModule } from './kpi-periods/kpi-periods.module.js';
 import { KpiTemplatesModule } from './kpi-templates/kpi-templates.module.js';
 import { StoresModule } from './stores/stores.module.js';
 import { TigerModule } from './tiger/tiger.module.js';
@@ -30,6 +32,8 @@ import { TigerModule } from './tiger/tiger.module.js';
     StoresModule,
     KpiDefinitionsModule,
     KpiTemplatesModule,
+    KpiPeriodsModule,
+    KpiAssignmentsModule,
     AuditLogsModule,
   ],
 })

@@ -1,6 +1,7 @@
 import { apiFetch } from '../lib/api-client';
 import { chunkIds } from '../lib/bulk';
 import type {
+  BulkDeleteResponse,
   BulkUpdateResponse,
   KpiTemplate,
   KpiTemplateBulkCopyResponse,
@@ -47,6 +48,26 @@ export function updateKpiTemplate(id: string, input: SaveKpiTemplateInput): Prom
 
 export function deactivateKpiTemplate(id: string): Promise<void> {
   return apiFetch<void>(`/kpi-templates/${id}`, { method: 'DELETE' });
+}
+
+/** Permanent delete; the API refuses with `KPI_TEMPLATE_IN_USE` when a plan uses it (ADR-040). */
+export function deleteKpiTemplate(id: string): Promise<void> {
+  return apiFetch<void>(`/kpi-templates/${id}/permanent`, { method: 'DELETE' });
+}
+
+/** Deletes every selected template, or none of them when one is used by a plan. */
+export async function bulkDeleteKpiTemplates(ids: string[]): Promise<BulkDeleteResponse> {
+  let deleted = 0;
+
+  for (const chunk of chunkIds(ids)) {
+    const result = await apiFetch<BulkDeleteResponse>('/kpi-templates/bulk-delete', {
+      method: 'POST',
+      body: { ids: chunk },
+    });
+    deleted += result.deleted;
+  }
+
+  return { deleted };
 }
 
 /** Copies the saved template with all items; without a name the API appends " (n)". */
