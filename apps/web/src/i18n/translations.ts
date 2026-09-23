@@ -526,6 +526,7 @@ interface TranslationShape {
     leading: string;
     podium: string;
     others: string;
+    openKpi: string;
   };
   kpiProgress: {
     totalScore: string;
@@ -1136,6 +1137,7 @@ export const translations: Record<Locale, TranslationShape> = {
       leading: 'Zirvedesin! Böyle devam.',
       podium: 'İlk üç',
       others: 'Diğer sıralar',
+      openKpi: "{name} KPI'larını aç",
     },
     kpiProgress: {
       totalScore: 'Toplam puan',
@@ -1744,6 +1746,7 @@ export const translations: Record<Locale, TranslationShape> = {
       leading: 'You are on top! Keep it up.',
       podium: 'Top three',
       others: 'Everyone else',
+      openKpi: "Open {name}'s KPIs",
     },
     kpiProgress: {
       totalScore: 'Total score',
@@ -2354,6 +2357,7 @@ export const translations: Record<Locale, TranslationShape> = {
       leading: 'Вы на первом месте! Так держать.',
       podium: 'Тройка лидеров',
       others: 'Остальные места',
+      openKpi: 'Открыть KPI: {name}',
     },
     kpiProgress: {
       totalScore: 'Итоговый балл',
@@ -2966,6 +2970,7 @@ export const translations: Record<Locale, TranslationShape> = {
       leading: 'Siz birinji! Şeýle dowam ediň.',
       podium: 'Ilkinji üçlük',
       others: 'Beýleki orunlar',
+      openKpi: '{name} KPI-laryny aç',
     },
     kpiProgress: {
       totalScore: 'Jemi bal',

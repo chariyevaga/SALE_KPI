@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -25,18 +25,25 @@ function currentPeriodLabel(): string {
 interface EmployeeKpiViewProps {
   /** Whose plan to show; without it the signed-in employee's own ("My KPI"). */
   employeeId?: string | undefined;
+  /**
+   * Keeps the chosen period in component state, starting from this label, instead of the
+   * page URL. For views inside a modal, whose page has its own `?period=`.
+   */
+  localPeriod?: string | undefined;
 }
 
 /**
  * An employee's plan: KPIs, weights, targets and results, read-only. "My KPI" shows the
  * signed-in employee's; the employee form's KPI tab and the leaderboard show anyone's to a
  * `full_access` user. The period comes from `?period=2026-09` (other URL parameters such as
- * `?tab=kpi` are kept); without it this month is shown, or the newest month with a plan when
- * this month has none.
+ * `?tab=kpi` are kept), or from component state with `localPeriod`; without one this month is
+ * shown, or the newest month with a plan when this month has none.
  */
-export function EmployeeKpiView({ employeeId }: EmployeeKpiViewProps) {
+export function EmployeeKpiView({ employeeId, localPeriod }: EmployeeKpiViewProps) {
   const { t, locale } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [statePeriod, setStatePeriod] = useState(localPeriod);
+  const usesState = localPeriod !== undefined;
   const owner = employeeId ?? 'me';
 
   const periodsQuery = useQuery({
@@ -44,7 +51,7 @@ export function EmployeeKpiView({ employeeId }: EmployeeKpiViewProps) {
     queryFn: () => (employeeId ? listEmployeeKpiPeriods(employeeId) : listMyKpiPeriods()),
   });
   const periods = useMemo(() => periodsQuery.data?.items ?? [], [periodsQuery.data]);
-  const requested = searchParams.get('period') ?? currentPeriodLabel();
+  const requested = (usesState ? statePeriod : searchParams.get('period')) ?? currentPeriodLabel();
   const selected = periods.find((entry) => entry.period.label === requested) ?? periods[0];
 
   // Plan and results load as one unit, so switching months keeps the previous month on screen
@@ -76,6 +83,11 @@ export function EmployeeKpiView({ employeeId }: EmployeeKpiViewProps) {
   const isOpen = plan?.period.status === 'open';
 
   function selectPeriod(label: string) {
+    if (usesState) {
+      setStatePeriod(label);
+      return;
+    }
+
     const next = new URLSearchParams(searchParams);
 
     next.set('period', label);

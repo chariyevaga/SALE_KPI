@@ -9,9 +9,15 @@ interface ModalProps {
   children: ReactNode;
   /** Buttons shown before the close button, e.g. the record info button. */
   headerActions?: ReactNode;
+  /**
+   * `sm` (default) fits a short form. `lg` is for reading long content: wider, and its body
+   * scrolls under a fixed header. `sm` does not scroll, so dropdowns inside it are not cut off.
+   */
+  size?: 'sm' | 'lg';
 }
 
-export function Modal({ open, onClose, title, children, headerActions }: ModalProps) {
+export function Modal({ open, onClose, title, children, headerActions, size = 'sm' }: ModalProps) {
+  const isLarge = size === 'lg';
   const { t } = useTranslation();
 
   if (!open) {
@@ -26,9 +32,18 @@ export function Modal({ open, onClose, title, children, headerActions }: ModalPr
         onClick={onClose}
         className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
       />
-      <div className="relative z-10 w-full max-w-sm rounded-t-3xl border border-slate-200 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`relative z-10 w-full rounded-t-3xl border border-slate-200 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl dark:border-slate-800 dark:bg-slate-900 ${
+          isLarge ? 'flex max-h-[90dvh] max-w-2xl flex-col' : 'max-w-sm'
+        }`}
+      >
+        <div className="mb-4 flex flex-shrink-0 items-center justify-between gap-2">
+          <h2 className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </h2>
           <div className="flex items-center gap-1">
             {headerActions}
             <button
@@ -49,7 +64,13 @@ export function Modal({ open, onClose, title, children, headerActions }: ModalPr
             </button>
           </div>
         </div>
-        {children}
+        {isLarge ? (
+          <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

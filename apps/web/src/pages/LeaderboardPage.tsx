@@ -1,10 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { CSSProperties, ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { getLeaderboard } from '../api/leaderboard';
 import { AppShell } from '../components/AppShell';
 import { AuthenticatedImage } from '../components/AuthenticatedImage';
+import { EmployeeKpiView } from '../components/EmployeeKpiView';
+import { Modal } from '../components/Modal';
 import { ProgressMeter } from '../components/ProgressMeter';
 import { formatDateTime, formatNumber } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
@@ -114,42 +116,27 @@ function YouBadge() {
 }
 
 /**
- * Where tapping an entry goes. Everyone reaches their own plan ("My KPI"); only a
- * `full_access` user can open other employees', on the employee's KPI tab. For anyone else
- * other entries are not links.
+ * Opens an entry's KPI in a modal; null when the viewer may not open it. Everyone may open
+ * their own; only a `full_access` user may open other employees'.
  */
-function entryLink(
-  entry: LeaderboardEntry,
-  data: LeaderboardResponse,
-  fullAccess: boolean,
-): string | null {
-  if (entry.isMe && data.period) {
-    return `/my-kpi?period=${data.period.label}`;
-  }
+type Opener = (entry: LeaderboardEntry) => (() => void) | null;
 
-  if (!fullAccess) {
-    return null;
-  }
-
-  const period = data.period ? `&period=${data.period.label}` : '';
-
-  return `/employees/${entry.employee.id}?tab=kpi${period}`;
-}
-
-/** An entry that links when it has somewhere to go, and stays plain text otherwise. */
-function MaybeLink({
-  to,
+/** An entry that opens the KPI modal when it may, and stays plain otherwise. */
+function MaybeButton({
+  onOpen,
+  label,
   className,
   children,
 }: {
-  to: string | null;
+  onOpen: (() => void) | null;
+  label: string;
   className: string;
   children: ReactNode;
 }) {
-  return to ? (
-    <Link to={to} className={className}>
+  return onOpen ? (
+    <button type="button" onClick={onOpen} aria-label={label} className={`w-full text-left ${className}`}>
       {children}
-    </Link>
+    </button>
   ) : (
     <div className={className}>{children}</div>
   );
@@ -183,17 +170,26 @@ function nextPlaceUp(
     : null;
 }
 
-function MyStanding({ me, data }: { me: LeaderboardEntry; data: LeaderboardResponse }) {
+function MyStanding({
+  me,
+  data,
+  onOpen,
+}: {
+  me: LeaderboardEntry;
+  data: LeaderboardResponse;
+  onOpen: () => void;
+}) {
   const { t, locale } = useTranslation();
   const ranked = data.entries.filter((entry) => entry.rank !== null).length;
   const next = nextPlaceUp(data.entries, me);
   const medal = medalFor(me.rank);
-  const link = data.period ? `/my-kpi?period=${data.period.label}` : '/my-kpi';
 
   return (
-    <Link
-      to={link}
-      className="mb-5 block rounded-2xl border border-emerald-500/60 bg-emerald-50 p-4 transition hover:border-emerald-500 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:hover:border-emerald-400"
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={t('leaderboard.openKpi', { name: fullName(me) })}
+      className="mb-5 block w-full rounded-2xl text-left border border-emerald-500/60 bg-emerald-50 p-4 transition hover:border-emerald-500 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:hover:border-emerald-400"
     >
       <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
         {t('leaderboard.myStanding')}
@@ -262,7 +258,7 @@ function MyStanding({ me, data }: { me: LeaderboardEntry; data: LeaderboardRespo
           </p>
         </>
       ) : null}
-    </Link>
+    </button>
   );
 }
 
@@ -280,13 +276,11 @@ const PODIUM_LAYOUT: Record<Place, { step: string; avatar: string; delay: number
 function PodiumPlace({
   entry,
   place,
-  data,
-  fullAccess,
+  opener,
 }: {
   entry: LeaderboardEntry;
   place: Place;
-  data: LeaderboardResponse;
-  fullAccess: boolean;
+  opener: Opener;
 }) {
   const { t, locale } = useTranslation();
   // `place` is only where the step stands (2 · 1 · 3). Medal, height and crown follow the
@@ -302,8 +296,9 @@ function PodiumPlace({
       className="flex min-w-0 flex-1 animate-podium-rise flex-col items-center motion-reduce:animate-none"
       style={delay}
     >
-      <MaybeLink
-        to={entryLink(entry, data, fullAccess)}
+      <MaybeButton
+        onOpen={opener(entry)}
+        label={t('leaderboard.openKpi', { name: fullName(entry) })}
         className="flex w-full min-w-0 flex-col items-center rounded-2xl px-1 pb-2 pt-1 transition hover:bg-slate-100 dark:hover:bg-slate-900"
       >
         <div className="relative flex flex-col items-center">
@@ -347,7 +342,7 @@ function PodiumPlace({
         <span className="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">
           {entry.totalScore === null ? '—' : formatNumber(entry.totalScore, locale)}
         </span>
-      </MaybeLink>
+      </MaybeButton>
 
       <div
         className={`flex w-full flex-col items-center justify-start rounded-t-2xl pt-2 shadow-inner ${medal.step} ${layout.step}`}
@@ -361,15 +356,7 @@ function PodiumPlace({
   );
 }
 
-function Podium({
-  top,
-  data,
-  fullAccess,
-}: {
-  top: LeaderboardEntry[];
-  data: LeaderboardResponse;
-  fullAccess: boolean;
-}) {
+function Podium({ top, opener }: { top: LeaderboardEntry[]; opener: Opener }) {
   const { t } = useTranslation();
   // Visual order 2 · 1 · 3; missing places (fewer than three scores) are left empty.
   const slots: { place: Place; entry: LeaderboardEntry | undefined }[] = [
@@ -383,13 +370,7 @@ function Podium({
       <ol className="mx-auto flex max-w-xl items-end gap-2 sm:gap-4">
         {slots.map(({ place, entry }) =>
           entry ? (
-            <PodiumPlace
-              key={entry.assignmentId}
-              entry={entry}
-              place={place}
-              data={data}
-              fullAccess={fullAccess}
-            />
+            <PodiumPlace key={entry.assignmentId} entry={entry} place={place} opener={opener} />
           ) : (
             <li key={`empty-${String(place)}`} aria-hidden="true" className="flex-1" />
           ),
@@ -473,15 +454,7 @@ function EntryScore({ entry, compact = false }: { entry: LeaderboardEntry; compa
   );
 }
 
-function RestList({
-  entries,
-  data,
-  fullAccess,
-}: {
-  entries: LeaderboardEntry[];
-  data: LeaderboardResponse;
-  fullAccess: boolean;
-}) {
+function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Opener }) {
   const { t } = useTranslation();
 
   return (
@@ -490,8 +463,9 @@ function RestList({
       <ol className="flex flex-col gap-2 lg:hidden">
         {entries.map((entry) => (
           <li key={entry.assignmentId}>
-            <MaybeLink
-              to={entryLink(entry, data, fullAccess)}
+            <MaybeButton
+              onOpen={opener(entry)}
+              label={t('leaderboard.openKpi', { name: fullName(entry) })}
               className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
                 entry.isMe
                   ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400/60 dark:bg-emerald-400/10'
@@ -507,7 +481,7 @@ function RestList({
                 </span>
                 <EntryScore entry={entry} compact />
               </div>
-            </MaybeLink>
+            </MaybeButton>
           </li>
         ))}
       </ol>
@@ -533,7 +507,7 @@ function RestList({
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {entries.map((entry) => {
-              const to = entryLink(entry, data, fullAccess);
+              const onOpen = opener(entry);
 
               return (
                 <tr
@@ -550,10 +524,15 @@ function RestList({
                   <td className="px-4 py-2">
                     <div className="flex min-w-0 items-center gap-3">
                       <EntryAvatar entry={entry} className="h-10 w-10 text-xs" />
-                      {to ? (
-                        <Link to={to} className="min-w-0 hover:underline">
+                      {onOpen ? (
+                        <button
+                          type="button"
+                          onClick={onOpen}
+                          aria-label={t('leaderboard.openKpi', { name: fullName(entry) })}
+                          className="min-w-0 text-left hover:underline"
+                        >
                           <EntryName entry={entry} />
-                        </Link>
+                        </button>
                       ) : (
                         <EntryName entry={entry} />
                       )}
@@ -636,6 +615,9 @@ export function LeaderboardPage() {
   const podiumIds = new Set(top.map((entry) => entry.assignmentId));
   const rest = entries.filter((entry) => !podiumIds.has(entry.assignmentId));
   const me = entries.find((entry) => entry.isMe);
+  // Whose KPI the modal shows; the screen itself never navigates away.
+  const [viewing, setViewing] = useState<LeaderboardEntry | null>(null);
+  const opener: Opener = (entry) => (entry.isMe || fullAccess ? () => setViewing(entry) : null);
 
   function update(next: { period?: string | undefined; template?: string | undefined }) {
     const params: Record<string, string> = {};
@@ -739,15 +721,14 @@ export function LeaderboardPage() {
           aria-busy={query.isPlaceholderData}
           className={`transition-opacity ${query.isPlaceholderData ? 'opacity-60' : ''}`}
         >
-          {me ? <MyStanding me={me} data={data} /> : null}
+          {me ? <MyStanding me={me} data={data} onOpen={() => setViewing(me)} /> : null}
 
           {top.length > 0 ? (
             // Keyed by period and filter, so the podium rises again when either changes.
             <Podium
               key={`${data.period?.id ?? ''}-${templateId ?? ''}`}
               top={top}
-              data={data}
-              fullAccess={fullAccess}
+              opener={opener}
             />
           ) : null}
 
@@ -756,10 +737,20 @@ export function LeaderboardPage() {
               <h2 className="mb-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
                 {t('leaderboard.others')}
               </h2>
-              <RestList entries={rest} data={data} fullAccess={fullAccess} />
+              <RestList entries={rest} opener={opener} />
             </section>
           ) : null}
         </div>
+      ) : null}
+
+      {viewing ? (
+        <Modal open size="lg" onClose={() => setViewing(null)} title={fullName(viewing)}>
+          {/* Its own period picker: changing it must not move the leaderboard's period. */}
+          <EmployeeKpiView
+            employeeId={viewing.isMe ? undefined : viewing.employee.id}
+            localPeriod={data?.period?.label ?? ''}
+          />
+        </Modal>
       ) : null}
     </AppShell>
   );
