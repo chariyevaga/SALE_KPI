@@ -20,8 +20,6 @@ interface TranslationShape {
     apply: string;
     clear: string;
     home: string;
-    comingSoon: string;
-    comingSoonHint: string;
     bulkActions: string;
     selectedCount: string;
     clearSelection: string;
@@ -162,6 +160,8 @@ interface TranslationShape {
     tabDetails: string;
     tabSessions: string;
     tabKpi: string;
+    tabKpiPlans: string;
+    goToKpiPlans: string;
     sessionsRevokeAll: string;
     titleCreate: string;
     titleEdit: string;
@@ -494,6 +494,8 @@ interface TranslationShape {
     weight: string;
     target: string;
     noTarget: string;
+    emptyEmployee: string;
+    errorLoadingEmployee: string;
   };
   leaderboard: {
     title: string;
@@ -602,8 +604,6 @@ export const translations: Record<Locale, TranslationShape> = {
       apply: 'Uygula',
       clear: 'Temizle',
       home: 'Ana sayfa',
-      comingSoon: 'Yakında',
-      comingSoonHint: 'Bu ekran üzerinde çalışıyoruz, yakında kullanıma açılacak.',
       bulkActions: 'Toplu işlemler',
       selectedCount: '{count} seçili',
       clearSelection: 'Seçimi temizle',
@@ -747,6 +747,8 @@ export const translations: Record<Locale, TranslationShape> = {
       tabDetails: 'Bilgiler',
       tabSessions: 'Oturumlar',
       tabKpi: 'KPI',
+      tabKpiPlans: 'KPI planları',
+      goToKpiPlans: 'KPI planları ekranına git',
       sessionsRevokeAll: 'Tüm oturumları kapat',
       titleCreate: 'Yeni çalışan',
       titleEdit: 'Çalışanı düzenle',
@@ -1093,6 +1095,8 @@ export const translations: Record<Locale, TranslationShape> = {
       weight: 'Ağırlık',
       target: 'Hedef',
       noTarget: 'Hedef henüz girilmedi',
+      emptyEmployee: 'Bu çalışana henüz bir KPI planı verilmedi.',
+      errorLoadingEmployee: 'Çalışanın KPI planı yüklenemedi.',
     },
     leaderboard: {
       title: 'Sıralama tablosu',
@@ -1200,8 +1204,6 @@ export const translations: Record<Locale, TranslationShape> = {
       apply: 'Apply',
       clear: 'Clear',
       home: 'Home',
-      comingSoon: 'Coming soon',
-      comingSoonHint: 'We are still building this screen; it will be available soon.',
       bulkActions: 'Bulk actions',
       selectedCount: '{count} selected',
       clearSelection: 'Clear selection',
@@ -1345,6 +1347,8 @@ export const translations: Record<Locale, TranslationShape> = {
       tabDetails: 'Details',
       tabSessions: 'Sessions',
       tabKpi: 'KPI',
+      tabKpiPlans: 'KPI plans',
+      goToKpiPlans: 'Go to KPI plans',
       sessionsRevokeAll: 'Sign out everywhere',
       titleCreate: 'New employee',
       titleEdit: 'Edit employee',
@@ -1691,6 +1695,8 @@ export const translations: Record<Locale, TranslationShape> = {
       weight: 'Weight',
       target: 'Target',
       noTarget: 'No target yet',
+      emptyEmployee: 'This employee has no KPI plan yet.',
+      errorLoadingEmployee: "Could not load the employee's KPI plan.",
     },
     leaderboard: {
       title: 'Leaderboard',
@@ -1798,8 +1804,6 @@ export const translations: Record<Locale, TranslationShape> = {
       apply: 'Применить',
       clear: 'Сбросить',
       home: 'Главная',
-      comingSoon: 'Скоро',
-      comingSoonHint: 'Мы ещё работаем над этим разделом, он появится в ближайшее время.',
       bulkActions: 'Массовые действия',
       selectedCount: 'Выбрано: {count}',
       clearSelection: 'Снять выделение',
@@ -1944,6 +1948,8 @@ export const translations: Record<Locale, TranslationShape> = {
       tabDetails: 'Данные',
       tabSessions: 'Сессии',
       tabKpi: 'KPI',
+      tabKpiPlans: 'KPI-планы',
+      goToKpiPlans: 'Перейти к KPI-планам',
       sessionsRevokeAll: 'Завершить все сессии',
       titleCreate: 'Новый сотрудник',
       titleEdit: 'Редактировать сотрудника',
@@ -2291,6 +2297,8 @@ export const translations: Record<Locale, TranslationShape> = {
       weight: 'Вес',
       target: 'Цель',
       noTarget: 'Цель ещё не задана',
+      emptyEmployee: 'У этого сотрудника пока нет KPI-плана.',
+      errorLoadingEmployee: 'Не удалось загрузить KPI-план сотрудника.',
     },
     leaderboard: {
       title: 'Рейтинг',
@@ -2398,8 +2406,6 @@ export const translations: Record<Locale, TranslationShape> = {
       apply: 'Ulan',
       clear: 'Arassala',
       home: 'Baş sahypa',
-      comingSoon: 'Ýakynda',
-      comingSoonHint: 'Bu ekran häzir taýýarlanýar, ýakynda elýeterli bolar.',
       bulkActions: 'Köpçülikleýin amallar',
       selectedCount: '{count} saýlandy',
       clearSelection: 'Saýlawy aýyr',
@@ -2543,6 +2549,8 @@ export const translations: Record<Locale, TranslationShape> = {
       tabDetails: 'Maglumatlar',
       tabSessions: 'Sessiýalar',
       tabKpi: 'KPI',
+      tabKpiPlans: 'KPI meýilnamalary',
+      goToKpiPlans: 'KPI meýilnamalaryna geç',
       sessionsRevokeAll: 'Ähli sessiýalary ýap',
       titleCreate: 'Täze işgär',
       titleEdit: 'Işgäri üýtget',
@@ -2893,6 +2901,8 @@ export const translations: Record<Locale, TranslationShape> = {
       weight: 'Agram',
       target: 'Maksat',
       noTarget: 'Maksat entek girizilmedi',
+      emptyEmployee: 'Bu işgäre entek KPI meýilnamasy berilmedi.',
+      errorLoadingEmployee: 'Işgäriň KPI meýilnamasy ýüklenip bilmedi.',
     },
     leaderboard: {
       title: 'Reýting tablisasy',

@@ -113,7 +113,11 @@ function YouBadge() {
   );
 }
 
-/** Where tapping an entry goes: your own plan, or for an administrator any plan. */
+/**
+ * Where tapping an entry goes. Everyone reaches their own plan ("My KPI"); only a
+ * `full_access` user can open other employees', on the employee's KPI tab. For anyone else
+ * other entries are not links.
+ */
 function entryLink(
   entry: LeaderboardEntry,
   data: LeaderboardResponse,
@@ -123,7 +127,13 @@ function entryLink(
     return `/my-kpi?period=${data.period.label}`;
   }
 
-  return fullAccess ? `/kpi-plans/${entry.assignmentId}` : null;
+  if (!fullAccess) {
+    return null;
+  }
+
+  const period = data.period ? `&period=${data.period.label}` : '';
+
+  return `/employees/${entry.employee.id}?tab=kpi${period}`;
 }
 
 /** An entry that links when it has somewhere to go, and stays plain text otherwise. */

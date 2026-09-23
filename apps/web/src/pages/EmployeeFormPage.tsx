@@ -5,6 +5,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { createEmployee, deactivateEmployee, getEmployee, updateEmployee } from '../api/employees';
 import { listErpEmployees } from '../api/erp-employees';
 import { AppShell } from '../components/AppShell';
+import { EmployeeKpiPlansPanel } from '../components/EmployeeKpiPlansPanel';
+import { EmployeeKpiView } from '../components/EmployeeKpiView';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
 import { FormField, formInputClassName } from '../components/FormField';
 import { SearchableSelect } from '../components/SearchableSelect';
@@ -54,8 +56,9 @@ function validateForm(form: FormValues, mode: 'create' | 'edit'): TranslationKey
 
 const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'details', labelKey: 'employeeForm.tabDetails' },
-  { value: 'sessions', labelKey: 'employeeForm.tabSessions' },
   { value: 'kpi', labelKey: 'employeeForm.tabKpi' },
+  { value: 'kpi-plans', labelKey: 'employeeForm.tabKpiPlans' },
+  { value: 'sessions', labelKey: 'employeeForm.tabSessions' },
 ];
 
 export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
@@ -201,7 +204,8 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
       }
     >
       {mode === 'edit' && id ? (
-        <div className="mb-5 flex gap-1 border-b border-slate-200 dark:border-slate-800">
+        // Four tabs overflow a phone; the bar scrolls sideways instead of wrapping.
+        <div className="-mx-4 mb-5 flex gap-1 overflow-x-auto border-b border-slate-200 px-4 sm:mx-0 sm:px-0 dark:border-slate-800">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.value;
 
@@ -211,7 +215,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 type="button"
                 onClick={() => setSearchParams(tab.value === 'details' ? {} : { tab: tab.value })}
                 aria-current={isActive ? 'page' : undefined}
-                className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${
+                className={`-mb-px min-h-[44px] flex-shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
                   isActive
                     ? 'border-emerald-400 text-emerald-600 dark:text-emerald-400'
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -228,15 +232,10 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         <EmployeeSessionsPanel employeeId={id} />
       ) : null}
 
-      {mode === 'edit' && activeTab === 'kpi' ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {t('common.comingSoon')}
-          </h2>
-          <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            {t('common.comingSoonHint')}
-          </p>
-        </div>
+      {mode === 'edit' && id && activeTab === 'kpi' ? <EmployeeKpiView employeeId={id} /> : null}
+
+      {mode === 'edit' && id && activeTab === 'kpi-plans' ? (
+        <EmployeeKpiPlansPanel employeeId={id} />
       ) : null}
 
       {activeTab !== 'details' && mode === 'edit' ? null : isLoadingExisting ? (

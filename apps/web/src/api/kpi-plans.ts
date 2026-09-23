@@ -131,3 +131,20 @@ export function getMyKpiPlan(month?: { year: number; month: number }): Promise<{
 
   return apiFetch<{ plan: KpiPlan | null }>(`/kpi-assignments/me${params}`);
 }
+
+/** Periods an employee has a plan in; the administrator's view of `listMyKpiPeriods`. */
+export function listEmployeeKpiPeriods(employeeId: string): Promise<KpiMyPeriodListResponse> {
+  return apiFetch<KpiMyPeriodListResponse>(
+    `/kpi-assignments/employees/${employeeId}/periods?page=1&limit=${MY_PERIODS_PAGE_SIZE}`,
+  );
+}
+
+/** An employee's plan; the administrator's view of `getMyKpiPlan`. */
+export function getEmployeeKpiPlan(
+  employeeId: string,
+  month?: { year: number; month: number },
+): Promise<{ plan: KpiPlan | null }> {
+  const params = month ? `?year=${String(month.year)}&month=${String(month.month)}` : '';
+
+  return apiFetch<{ plan: KpiPlan | null }>(`/kpi-assignments/employees/${employeeId}${params}`);
+}

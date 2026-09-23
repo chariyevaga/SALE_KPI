@@ -164,6 +164,41 @@ export class KpiAssignmentsController {
     return this.kpiAssignmentsService.listMyPeriods(request.employee.id, query);
   }
 
+  // An employee's own KPI screen, as an administrator sees it (employee form "KPI" tab and
+  // the leaderboard). Same answers as the "me" routes, for any employee.
+  @Get('kpi-assignments/employees/:employeeId')
+  @UseGuards(FullAccessGuard)
+  @ApiOperation({
+    summary: 'Bir çalışanın planını döner (yalnız full_access).',
+    description:
+      '`GET /kpi-assignments/me` ile aynıdır, ama verilen çalışan için: `year` ve `month` birlikte verilirse o ayın planı, verilmezse en yeni plan; plan yoksa `plan` `null`.',
+  })
+  @ApiParam({ name: 'employeeId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: KpiMyPlanResponse })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  async getForEmployee(
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Query() query: MyKpiPlanQueryDto,
+  ): Promise<KpiMyPlanResponse> {
+    return { plan: await this.kpiAssignmentsService.getMine(employeeId, query) };
+  }
+
+  @Get('kpi-assignments/employees/:employeeId/periods')
+  @UseGuards(FullAccessGuard)
+  @ApiOperation({
+    summary: 'Bir çalışanın planı olan dönemleri listeler (yalnız full_access).',
+    description: '`GET /kpi-assignments/me/periods` ile aynıdır, ama verilen çalışan için.',
+  })
+  @ApiParam({ name: 'employeeId', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: KpiMyPeriodListResponse })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  listEmployeePeriods(
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Query() query: ListMyKpiPeriodsQueryDto,
+  ): Promise<KpiMyPeriodListResponse> {
+    return this.kpiAssignmentsService.listMyPeriods(employeeId, query);
+  }
+
   @Get('kpi-assignments/:id')
   @UseGuards(FullAccessGuard)
   @ApiOperation({ summary: 'Planı KPI satırlarıyla döner (yalnız full_access).' })
