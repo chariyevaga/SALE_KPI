@@ -556,10 +556,6 @@ interface TranslationShape {
     saved: string;
     replaceHint: string;
     existing: string;
-    readOnly: string;
-    listAll: string;
-    listStore: string;
-    showAll: string;
     loading: string;
     errorLoading: string;
     empty: string;
@@ -577,6 +573,19 @@ interface TranslationShape {
     columnStore: string;
     columnCount: string;
     columnActions: string;
+    add: string;
+    addTitle: string;
+    editTitle: string;
+    filters: string;
+    filterDates: string;
+    filterFrom: string;
+    filterTo: string;
+    rangeInvalid: string;
+    rangeFrom: string;
+    rangeTo: string;
+    removeFilter: string;
+    resultCount: string;
+    emptyFiltered: string;
   };
   errors: {
     generic: string;
@@ -1157,11 +1166,6 @@ export const translations: Record<Locale, TranslationShape> = {
       saved: '{store} · {date}: {count} kişi kaydedildi.',
       replaceHint: 'Aynı mağaza ve gün yeniden girilirse sayı güncellenir.',
       existing: 'Bu gün için kayıtlı sayı: {count}. Kaydedince değişir.',
-      readOnly:
-        'Bu ekranı yalnız görüntüleyebilirsiniz. Sayı girmek için çalışan kaydınızda "Ziyaretçi sayısı girebilir" açık olmalı.',
-      listAll: 'Son girişler (tüm mağazalar)',
-      listStore: 'Seçili mağazanın girişleri',
-      showAll: 'Tüm mağazaları göster',
       loading: 'Yükleniyor…',
       errorLoading: 'Girişler yüklenemedi.',
       empty: 'Henüz giriş yok.',
@@ -1179,6 +1183,19 @@ export const translations: Record<Locale, TranslationShape> = {
       columnStore: 'Mağaza',
       columnCount: 'Giren kişi',
       columnActions: 'İşlem',
+      add: 'Sayı ekle',
+      addTitle: 'Ziyaretçi sayısı ekle',
+      editTitle: 'Ziyaretçi sayısını düzelt',
+      filters: 'Filtreler',
+      filterDates: 'Tarih aralığı',
+      filterFrom: 'Başlangıç günü',
+      filterTo: 'Bitiş günü',
+      rangeInvalid: 'Başlangıç günü bitiş gününden sonra olamaz.',
+      rangeFrom: '{date} ve sonrası',
+      rangeTo: '{date} ve öncesi',
+      removeFilter: '{filter} filtresini kaldır',
+      resultCount: '{count} kayıt',
+      emptyFiltered: 'Bu filtrelere uyan kayıt yok.',
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -1757,11 +1774,6 @@ export const translations: Record<Locale, TranslationShape> = {
       saved: '{store} · {date}: {count} people saved.',
       replaceHint: 'Entering the same store and day again replaces the number.',
       existing: 'Already saved for this day: {count}. Saving replaces it.',
-      readOnly:
-        'You can only view this screen. To enter counts, "Can enter visitor counts" must be on in your employee record.',
-      listAll: 'Latest entries (all stores)',
-      listStore: 'Entries of the selected store',
-      showAll: 'Show all stores',
       loading: 'Loading…',
       errorLoading: 'Could not load the entries.',
       empty: 'No entries yet.',
@@ -1779,6 +1791,19 @@ export const translations: Record<Locale, TranslationShape> = {
       columnStore: 'Store',
       columnCount: 'People',
       columnActions: 'Actions',
+      add: 'Add count',
+      addTitle: 'Add visitor count',
+      editTitle: 'Correct visitor count',
+      filters: 'Filters',
+      filterDates: 'Date range',
+      filterFrom: 'From',
+      filterTo: 'To',
+      rangeInvalid: 'The start day cannot be after the end day.',
+      rangeFrom: '{date} onwards',
+      rangeTo: 'Up to {date}',
+      removeFilter: 'Remove filter {filter}',
+      resultCount: 'Entries: {count}',
+      emptyFiltered: 'No entries match these filters.',
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -2359,11 +2384,6 @@ export const translations: Record<Locale, TranslationShape> = {
       saved: '{store} · {date}: сохранено, {count} чел.',
       replaceHint: 'Если снова ввести тот же магазин и день, число заменится.',
       existing: 'На этот день уже сохранено: {count}. Сохранение заменит число.',
-      readOnly:
-        'Этот экран доступен только для просмотра. Чтобы вводить данные, в карточке сотрудника должно быть включено «Может вводить число посетителей».',
-      listAll: 'Последние записи (все магазины)',
-      listStore: 'Записи выбранного магазина',
-      showAll: 'Показать все магазины',
       loading: 'Загрузка…',
       errorLoading: 'Не удалось загрузить записи.',
       empty: 'Записей пока нет.',
@@ -2381,6 +2401,19 @@ export const translations: Record<Locale, TranslationShape> = {
       columnStore: 'Магазин',
       columnCount: 'Посетители',
       columnActions: 'Действие',
+      add: 'Добавить',
+      addTitle: 'Добавить число посетителей',
+      editTitle: 'Исправить число посетителей',
+      filters: 'Фильтры',
+      filterDates: 'Период',
+      filterFrom: 'С',
+      filterTo: 'По',
+      rangeInvalid: 'Начальная дата не может быть позже конечной.',
+      rangeFrom: 'С {date}',
+      rangeTo: 'По {date}',
+      removeFilter: 'Убрать фильтр {filter}',
+      resultCount: 'Записей: {count}',
+      emptyFiltered: 'Нет записей по этим фильтрам.',
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -2963,11 +2996,6 @@ export const translations: Record<Locale, TranslationShape> = {
       saved: '{store} · {date}: {count} adam saklandy.',
       replaceHint: 'Şol bir dükan we gün gaýtadan girizilse, san täzelenýär.',
       existing: 'Bu gün üçin saklanan san: {count}. Saklasaňyz üýtgär.',
-      readOnly:
-        'Bu ekrany diňe görüp bilersiňiz. San girizmek üçin işgär kartyňyzda "Gelýänleriň sanyny girizip biler" açyk bolmaly.',
-      listAll: 'Soňky girizmeler (ähli dükanlar)',
-      listStore: 'Saýlanan dükanyň girizmeleri',
-      showAll: 'Ähli dükanlary görkez',
       loading: 'Ýüklenýär…',
       errorLoading: 'Girizmeler ýüklenmedi.',
       empty: 'Entek girizme ýok.',
@@ -2985,6 +3013,19 @@ export const translations: Record<Locale, TranslationShape> = {
       columnStore: 'Dükan',
       columnCount: 'Adam',
       columnActions: 'Amal',
+      add: 'San goş',
+      addTitle: 'Gelen adam sanyny goş',
+      editTitle: 'Gelen adam sanyny düzet',
+      filters: 'Süzgüçler',
+      filterDates: 'Sene aralygy',
+      filterFrom: 'Başlangyç güni',
+      filterTo: 'Soňky gün',
+      rangeInvalid: 'Başlangyç güni soňky günden soň bolup bilmez.',
+      rangeFrom: '{date} we soňra',
+      rangeTo: '{date} çenli',
+      removeFilter: '{filter} süzgüjini aýyr',
+      resultCount: '{count} ýazgy',
+      emptyFiltered: 'Bu süzgüçlere laýyk ýazgy ýok.',
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',
