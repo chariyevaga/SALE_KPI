@@ -5,11 +5,8 @@ import { DataSource, type EntityManager, In, LessThanOrEqual, Repository } from 
 import type { AuditValue } from '../audit/audit-changes.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
-import {
-  salaryMonthLabel,
-  salaryShare,
-  splitSalary,
-} from '../employee-salaries/employee-salary-rules.js';
+import { salaryShare, splitSalary } from '../employee-salaries/employee-salary-rules.js';
+import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import { KpiAssignmentItemEntity } from '../kpi-assignments/entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
@@ -29,7 +26,6 @@ import { KpiResultEntity, type KpiResultSource } from './entities/kpi-result.ent
 import type {
   KpiPeriodCalculationResponse,
   KpiPlanResultsResponse,
-  KpiPlanSalaryResponse,
   KpiResultResponse,
 } from './kpi-result-response.js';
 import { isCalculableKpi, planScore, sameResults, scoreRow } from './kpi-result-rules.js';
@@ -517,30 +513,9 @@ export class KpiResultsService {
       itemCount: plan.items.length,
       calculatedAt: plan.assignment.scoreCalculatedAt,
       items,
-      salary: salary ? toPlanSalary(salary, totalScore) : null,
+      salary: salary ? toSalaryPayout(salary, totalScore) : null,
     };
   }
-}
-
-/** The salary of the plan's month and what the score earns of its KPI part (ADR-049). */
-function toPlanSalary(
-  salary: EmployeeSalaryEntity,
-  totalScore: number | null,
-): KpiPlanSalaryResponse {
-  const { fixedAmount, kpiAmount } = splitSalary(salary.amount, salary.fixedPercent);
-  const kpiEarned = totalScore === null ? null : salaryShare(kpiAmount, totalScore);
-
-  return {
-    effectiveMonth: salaryMonthLabel(salary.effectiveMonth),
-    amount: salary.amount,
-    currency: salary.currency,
-    fixedPercent: salary.fixedPercent,
-    kpiPercent: salary.kpiPercent,
-    fixedAmount,
-    kpiAmount,
-    kpiEarned,
-    totalEarned: kpiEarned === null ? null : Math.round((fixedAmount + kpiEarned) * 100) / 100,
-  };
 }
 
 /** The first day of the period's month, as SQL Server's `date` reads it. */

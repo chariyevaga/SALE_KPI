@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { listEmployeeKpiPeriods } from '../api/kpi-plans';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
+import type { KpiPlanSalary } from '../types/api';
+import { RevealToggle, SalaryRevealProvider, SecretAmount } from './KpiSalary';
 import { ProgressMeter } from './ProgressMeter';
 
 function ChevronIcon() {
@@ -67,64 +69,123 @@ export function EmployeeKpiPlansPanel({ employeeId }: { employeeId: string }) {
     );
   }
 
-  return (
-    <ul className="flex flex-col gap-2">
-      {plans.map((plan) => {
-        const isOpen = plan.period.status === 'open';
+  const withSalary = plans.some((plan) => plan.salary !== null);
 
-        return (
-          <li key={plan.assignmentId}>
-            <Link
-              to={`/kpi-plans/${plan.assignmentId}`}
-              aria-label={t('kpiPlans.openPlan', {
-                name: `${plan.period.label} · ${plan.templateName}`,
-              })}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-emerald-400 dark:border-slate-800 dark:bg-slate-900"
+  return (
+    <SalaryRevealProvider>
+      {withSalary ? (
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('kpiSalary.planListHint')}
+          </p>
+          <RevealToggle />
+        </div>
+      ) : null}
+      <ul className="flex flex-col gap-2">
+        {plans.map((plan) => {
+          const isOpen = plan.period.status === 'open';
+
+          return (
+            <li
+              key={plan.assignmentId}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-emerald-400 dark:border-slate-800 dark:bg-slate-900"
             >
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-                    {plan.period.label}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <span
-                      aria-hidden="true"
-                      className={`h-2 w-2 rounded-full ${
-                        isOpen ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'
-                      }`}
-                    />
-                    {t(isOpen ? 'kpiPlans.statusOpen' : 'kpiPlans.statusClosed')}
-                  </span>
-                </div>
-                <span className="truncate text-sm text-slate-600 dark:text-slate-300">
-                  {plan.templateName}
-                </span>
-                {plan.totalScore === null ? (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('kpiProgress.notCalculated')}
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <ProgressMeter
-                      className="flex-1"
-                      size="sm"
-                      value={plan.totalScore}
-                      label={t('kpiProgress.totalScore')}
-                      valueText={t('kpiPlans.scoreValue', {
-                        value: formatNumber(plan.totalScore, locale),
-                      })}
-                    />
-                    <span className="w-20 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-                      {t('kpiPlans.scoreValue', { value: formatNumber(plan.totalScore, locale) })}
+              <Link
+                to={`/kpi-plans/${plan.assignmentId}`}
+                aria-label={t('kpiPlans.openPlan', {
+                  name: `${plan.period.label} · ${plan.templateName}`,
+                })}
+                className="flex items-center gap-3 p-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/40"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                      {plan.period.label}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <span
+                        aria-hidden="true"
+                        className={`h-2 w-2 rounded-full ${
+                          isOpen ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'
+                        }`}
+                      />
+                      {t(isOpen ? 'kpiPlans.statusOpen' : 'kpiPlans.statusClosed')}
                     </span>
                   </div>
-                )}
-              </div>
-              <ChevronIcon />
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+                  <span className="truncate text-sm text-slate-600 dark:text-slate-300">
+                    {plan.templateName}
+                  </span>
+                  {plan.totalScore === null ? (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {t('kpiProgress.notCalculated')}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <ProgressMeter
+                        className="flex-1"
+                        size="sm"
+                        value={plan.totalScore}
+                        label={t('kpiProgress.totalScore')}
+                        valueText={t('kpiPlans.scoreValue', {
+                          value: formatNumber(plan.totalScore, locale),
+                        })}
+                      />
+                      <span className="w-20 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                        {t('kpiPlans.scoreValue', { value: formatNumber(plan.totalScore, locale) })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <ChevronIcon />
+              </Link>
+              {/* Outside the link: a hidden amount is a button, and tapping it must not navigate. */}
+              {plan.salary ? <PlanSalaryRow salary={plan.salary} /> : null}
+            </li>
+          );
+        })}
+      </ul>
+    </SalaryRevealProvider>
+  );
+}
+
+/** What the month pays by the plan's score (ADR-049); blurred until revealed. */
+function PlanSalaryRow({ salary }: { salary: KpiPlanSalary }) {
+  const { t } = useTranslation();
+
+  return (
+    <dl className="grid gap-1.5 border-t border-slate-100 px-4 py-3 text-xs dark:border-slate-800">
+      <div className="flex items-center justify-between gap-3">
+        <dt className="text-slate-500 dark:text-slate-400">{t('kpiSalary.kpiEarnedShort')}</dt>
+        <dd className="flex items-baseline gap-1">
+          {salary.kpiEarned === null ? (
+            <span className="text-slate-400">—</span>
+          ) : (
+            <SecretAmount
+              value={salary.kpiEarned}
+              currency={salary.currency}
+              className="font-semibold text-emerald-700 dark:text-emerald-400"
+            />
+          )}
+          <span className="text-slate-400">/</span>
+          <SecretAmount
+            value={salary.kpiAmount}
+            currency={salary.currency}
+            className="text-slate-500 dark:text-slate-400"
+          />
+        </dd>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <dt className="text-slate-500 dark:text-slate-400">
+          {salary.totalEarned === null ? t('kpiSalary.fixedOnly') : t('kpiSalary.payable')}
+        </dt>
+        <dd>
+          <SecretAmount
+            value={salary.totalEarned ?? salary.fixedAmount}
+            currency={salary.currency}
+            className="text-sm font-semibold text-slate-900 dark:text-slate-100"
+          />
+        </dd>
+      </div>
+    </dl>
   );
 }

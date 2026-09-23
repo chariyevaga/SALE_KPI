@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { SalaryPayoutResponse } from '../employee-salaries/salary-payout.js';
 import type { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import { KPI_PERIOD_STATUSES } from '../kpi-periods/entities/kpi-period.entity.js';
@@ -267,6 +268,14 @@ export class KpiMyPeriodResponse {
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   scoreCalculatedAt: Date | null;
+
+  @ApiProperty({
+    type: () => SalaryPayoutResponse,
+    nullable: true,
+    description:
+      'O ay geçerli maaş ve puanla kazanılan (ADR-049). Uç yalnız kendi planlarını ya da (`/employees/:employeeId/periods`) `full_access`’e döndüğü için maaşı da yalnız onlar görür; maaş yoksa `null`.',
+  })
+  salary: SalaryPayoutResponse | null;
 }
 
 export class KpiMyPeriodListResponse {
@@ -423,6 +432,7 @@ export function toKpiAssignmentResponse(
 export function toKpiMyPeriod(
   assignment: KpiAssignmentEntity,
   period: KpiPeriodEntity,
+  salary: SalaryPayoutResponse | null = null,
 ): KpiMyPeriodResponse {
   return {
     assignmentId: assignment.id,
@@ -430,6 +440,7 @@ export function toKpiMyPeriod(
     templateName: assignment.templateName,
     totalScore: assignment.totalScore,
     scoreCalculatedAt: assignment.scoreCalculatedAt,
+    salary,
   };
 }
 

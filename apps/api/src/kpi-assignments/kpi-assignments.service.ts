@@ -5,6 +5,9 @@ import { DataSource, type EntityManager, In, Repository } from 'typeorm';
 import type { AuditValue } from '../audit/audit-changes.js';
 import { AuditService } from '../audit/audit.service.js';
 import { SEARCH_COLLATION, andWhereEachSearchTerm } from '../common/sql-search.js';
+import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import { salaryInForce } from '../employee-salaries/employee-salary-rules.js';
+import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import type { KpiScope, KpiUnit } from '../kpi-definitions/kpi-definition.types.js';
@@ -93,6 +96,8 @@ export class KpiAssignmentsService {
     private readonly templateItemRepository: Repository<KpiTemplateItemEntity>,
     @InjectRepository(EmployeeEntity)
     private readonly employeeRepository: Repository<EmployeeEntity>,
+    @InjectRepository(EmployeeSalaryEntity)
+    private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
@@ -332,11 +337,20 @@ export class KpiAssignmentsService {
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
+    // One read of the employee's salaries serves every month of the page (ADR-049).
+    const salaries = await this.salaryRepository.find({ where: { employeeId } });
 
     return {
-      items: assignments.map((assignment) =>
-        toKpiMyPeriod(assignment, this.readPeriod(assignment)),
-      ),
+      items: assignments.map((assignment) => {
+        const period = this.readPeriod(assignment);
+        const salary = salaryInForce(salaries, periodLabel(period));
+
+        return toKpiMyPeriod(
+          assignment,
+          period,
+          salary ? toSalaryPayout(salary, assignment.totalScore) : null,
+        );
+      }),
       limit,
       page,
       total,

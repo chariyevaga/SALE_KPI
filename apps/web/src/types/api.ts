@@ -323,6 +323,8 @@ export interface KpiMyPeriod {
   templateName: string;
   totalScore: number | null;
   scoreCalculatedAt: string | null;
+  /** The month's salary and what the score earns of it; own plans or full_access only. */
+  salary: KpiPlanSalary | null;
 }
 
 export interface KpiMyPeriodListResponse {
