@@ -69,6 +69,11 @@ function describeSaveError(error: unknown, t: Translate, locale: Locale): string
         return t('kpiTemplateForm.invalidInput', { number });
       case 'KPI_TEMPLATE_UNKNOWN_STORE':
         return t('kpiTemplateForm.unknownStore', { number });
+      case 'KPI_TEMPLATE_UNKNOWN_ITEM_GROUP':
+        return t('kpiTemplateForm.unknownItemGroup', {
+          number,
+          codes: (body.groupCodes ?? []).join(', '),
+        });
       case 'KPI_TEMPLATE_DUPLICATE_ITEM':
         return t('kpiTemplateForm.duplicateItem', {
           number,

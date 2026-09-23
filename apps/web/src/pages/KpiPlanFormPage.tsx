@@ -3,20 +3,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
+  calculateKpiPlan,
   deleteKpiPlan,
   getKpiPlan,
   getKpiPlanRecommendations,
+  getKpiPlanResults,
+  saveKpiActuals,
   saveKpiTargets,
 } from '../api/kpi-plans';
 import { listStores } from '../api/stores';
 import { AppShell } from '../components/AppShell';
 import { formInputDenseClassName } from '../components/FormField';
+import { KpiAchievement, KpiScoreSummary } from '../components/KpiProgress';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
 import { pickLocalizedText } from '../i18n/localized-text';
 import { ApiError } from '../lib/api-client';
-import type { KpiPlan, KpiPlanItem, KpiPlanRecommendation, StoreOption } from '../types/api';
+import type {
+  KpiPlan,
+  KpiPlanItem,
+  KpiPlanRecommendation,
+  KpiResult,
+  StoreOption,
+} from '../types/api';
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 
@@ -27,6 +37,22 @@ function draftFromPlan(plan: KpiPlan): TargetDraft {
   return Object.fromEntries(
     plan.items.map((item) => [item.id, item.targetValue === null ? '' : String(item.targetValue)]),
   );
+}
+
+/** Actual values of the rows Tiger cannot measure; the same "empty means none" rule. */
+function actualDraftFromResults(results: KpiResult[]): TargetDraft {
+  return Object.fromEntries(
+    results
+      .filter((result) => result.source === 'manual')
+      .map((result) => [
+        result.itemId,
+        result.actualValue === null ? '' : String(result.actualValue),
+      ]),
+  );
+}
+
+function toNumberOrNull(value: string): number | null {
+  return value.trim() === '' ? null : Number(value);
 }
 
 function describeSaveError(error: unknown, t: Translate): string {
@@ -41,7 +67,7 @@ function describeSaveError(error: unknown, t: Translate): string {
   return localizeApiError(error, t, 'kpiPlanForm.saveError');
 }
 
-/** Stores and currency of a KPI row, as chosen in the template. */
+/** Stores, item groups and currency of a KPI row, as chosen in the template. */
 function inputSummary(item: KpiPlanItem, stores: StoreOption[], t: Translate): string | null {
   const parts: string[] = [];
   const storeIds = item.inputValues.storeIds;
@@ -54,6 +80,12 @@ function inputSummary(item: KpiPlanItem, stores: StoreOption[], t: Translate): s
     });
 
     parts.push(`${t('kpiPlanForm.stores')}: ${names.join(', ')}`);
+  }
+
+  const groupCodes = item.inputValues.groupCodes;
+
+  if (Array.isArray(groupCodes) && groupCodes.length > 0) {
+    parts.push(`${t('kpiPlanForm.itemGroups')}: ${groupCodes.join(', ')}`);
   }
 
   if (typeof item.inputValues.currency === 'string') {
@@ -69,6 +101,7 @@ export function KpiPlanFormPage() {
   const queryClient = useQueryClient();
   const { t, locale } = useTranslation();
   const [draft, setDraft] = useState<TargetDraft>({});
+  const [actualDraft, setActualDraft] = useState<TargetDraft>({});
   const [notice, setNotice] = useState<Notice>(null);
 
   const planQuery = useQuery({
@@ -92,11 +125,31 @@ export function KpiPlanFormPage() {
   const storesQuery = useQuery({ queryKey: ['stores', ''], queryFn: () => listStores('') });
   const stores = storesQuery.data ?? [];
 
+  // Back to the plan list on this plan's month (the list keeps the month in ?period=).
+  const plansPath = plan ? `/kpi-plans?period=${plan.period.label}` : '/kpi-plans';
+
+  const resultsQuery = useQuery({
+    queryKey: ['kpi-plans', 'results', id],
+    queryFn: () => getKpiPlanResults(id as string),
+    enabled: Boolean(id),
+  });
+  const planResults = resultsQuery.data;
+  const results = useMemo(
+    () => new Map((planResults?.items ?? []).map((item) => [item.itemId, item] as const)),
+    [planResults],
+  );
+
   useEffect(() => {
     if (plan) {
       setDraft(draftFromPlan(plan));
     }
   }, [plan]);
+
+  useEffect(() => {
+    if (planResults) {
+      setActualDraft(actualDraftFromResults(planResults.items));
+    }
+  }, [planResults]);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -113,12 +166,45 @@ export function KpiPlanFormPage() {
     onError: (error) => setNotice({ tone: 'error', text: describeSaveError(error, t) }),
   });
 
+  // One button: the typed-in actual values are written first, then the month is read
+  // from Tiger and the whole plan is scored (ADR-041).
+  const calculateMutation = useMutation({
+    mutationFn: async () => {
+      const manualItems = (plan?.items ?? []).filter((item) => !item.calculable);
+
+      if (manualItems.length > 0) {
+        await saveKpiActuals(id as string, {
+          items: manualItems.map((item) => ({
+            id: item.id,
+            actualValue: toNumberOrNull(actualDraft[item.id] ?? ''),
+          })),
+        });
+      }
+
+      return calculateKpiPlan(id as string);
+    },
+    onSuccess: async (calculated) => {
+      setNotice({
+        tone: 'success',
+        text:
+          calculated.scoredItemCount < calculated.itemCount
+            ? t('kpiPlanForm.calculatedIncomplete', {
+                done: formatNumber(calculated.scoredItemCount, locale),
+                total: formatNumber(calculated.itemCount, locale),
+              })
+            : t('kpiPlanForm.calculated'),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['kpi-plans'] });
+    },
+    onError: (error) => setNotice({ tone: 'error', text: describeSaveError(error, t) }),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => deleteKpiPlan(id as string),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['kpi-plans'] });
       await queryClient.invalidateQueries({ queryKey: ['kpi-periods'] });
-      void navigate('/kpi-plans', { replace: true });
+      void navigate(plansPath, { replace: true });
     },
     onError: (error) =>
       setNotice({ tone: 'error', text: localizeApiError(error, t, 'kpiPlanForm.deleteError') }),
@@ -169,7 +255,7 @@ export function KpiPlanFormPage() {
       title={plan ? employeeName : t('kpiPlanForm.title')}
       breadcrumbs={[
         { label: t('common.home'), to: '/leaderboard' },
-        { label: t('kpiPlans.title'), to: '/kpi-plans' },
+        { label: t('kpiPlans.title'), to: plansPath },
         { label: plan ? `${plan.period.label} · ${employeeName}` : t('kpiPlanForm.title') },
       ]}
       recordInfo={
@@ -201,6 +287,17 @@ export function KpiPlanFormPage() {
               {plan.period.label} · @{plan.employee.username} ·{' '}
               {t('kpiPlanForm.weight', { value: formatNumber(plan.totalWeight, locale) })}
             </p>
+
+            {planResults ? (
+              <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                <KpiScoreSummary
+                  totalScore={planResults.totalScore}
+                  scoredItemCount={planResults.scoredItemCount}
+                  itemCount={planResults.itemCount}
+                  calculatedAt={planResults.calculatedAt}
+                />
+              </div>
+            ) : null}
           </div>
 
           {!isOpen ? (
@@ -236,6 +333,7 @@ export function KpiPlanFormPage() {
             {plan.items.map((item) => {
               const recommendation = recommendations.get(item.id);
               const summary = inputSummary(item, stores, t);
+              const result = results.get(item.id);
 
               return (
                 <div
@@ -320,6 +418,51 @@ export function KpiPlanFormPage() {
                         : t('kpiPlanForm.noRecommendation')}
                     </p>
                   )}
+
+                  {!item.calculable ? (
+                    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <label
+                        htmlFor={`actual-${item.id}`}
+                        className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
+                      >
+                        {t('kpiPlanForm.actualLabel')}
+                      </label>
+                      <input
+                        id={`actual-${item.id}`}
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="any"
+                        disabled={!isOpen}
+                        value={actualDraft[item.id] ?? ''}
+                        onChange={(event) =>
+                          setActualDraft((previous) => ({
+                            ...previous,
+                            [item.id]: event.target.value,
+                          }))
+                        }
+                        placeholder={t('kpiPlanForm.actualPlaceholder')}
+                        className={`${formInputDenseClassName} disabled:opacity-60`}
+                      />
+                      <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                        {t('kpiPlanForm.actualHint')}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {result ? (
+                    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <KpiAchievement
+                        result={result}
+                        name={pickLocalizedText(item.definition.name, locale)}
+                        currency={
+                          typeof item.inputValues.currency === 'string'
+                            ? item.inputValues.currency
+                            : undefined
+                        }
+                      />
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -334,6 +477,16 @@ export function KpiPlanFormPage() {
                 className="h-12 flex-1 rounded-xl bg-emerald-400 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-40"
               >
                 {t('kpiPlanForm.save')}
+              </button>
+              <button
+                type="button"
+                onClick={() => calculateMutation.mutate()}
+                disabled={calculateMutation.isPending}
+                className="h-12 rounded-xl border border-emerald-400/60 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 dark:text-emerald-400"
+              >
+                {calculateMutation.isPending
+                  ? t('kpiPlanForm.calculating')
+                  : t('kpiPlanForm.calculate')}
               </button>
               <button
                 type="button"

@@ -6,14 +6,18 @@ import { AuditService } from '../audit/audit.service.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
 import type { ListKpiPeriodsQueryDto, SaveKpiPeriodDto } from './dto/save-kpi-period.dto.js';
 import { KpiPeriodEntity } from './entities/kpi-period.entity.js';
-import { kpiPeriodClosed } from './kpi-period-errors.js';
+import {
+  kpiPeriodAlreadyOpen,
+  kpiPeriodClosed,
+  kpiPeriodReopenExpired,
+} from './kpi-period-errors.js';
 import {
   type KpiPeriodListResponse,
   type KpiPeriodPlanStats,
   type KpiPeriodResponse,
   toKpiPeriodResponse,
 } from './kpi-period-response.js';
-import { isPeriodOpen, periodLabel } from './kpi-period-rules.js';
+import { canReopenPeriod, isPeriodOpen, periodLabel, reopenableUntil } from './kpi-period-rules.js';
 
 const DEFAULT_PAGE_SIZE = 24;
 
@@ -112,6 +116,31 @@ export class KpiPeriodsService {
       KpiPeriodEntity,
       { id: period.id },
       { status: 'closed', closedAt: new Date() },
+    );
+
+    return this.get(period.id);
+  }
+
+  /**
+   * Undoes a closing made too early (ADR-044): allowed until the 10th day after the month
+   * ends. Plans, targets and results become writable again; recalculating is up to the user.
+   */
+  async reopen(id: string): Promise<KpiPeriodResponse> {
+    const period = await this.findOrFail(id);
+
+    if (isPeriodOpen(period)) {
+      throw kpiPeriodAlreadyOpen(periodLabel(period));
+    }
+
+    if (!canReopenPeriod(period, new Date())) {
+      throw kpiPeriodReopenExpired(periodLabel(period), reopenableUntil(period));
+    }
+
+    await this.audit.update(
+      this.dataSource.manager,
+      KpiPeriodEntity,
+      { id: period.id },
+      { status: 'open', closedAt: null },
     );
 
     return this.get(period.id);

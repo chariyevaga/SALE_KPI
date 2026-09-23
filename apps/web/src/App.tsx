@@ -3,20 +3,21 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { fetchCurrentEmployee } from './api/auth';
-import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute, ProtectedRoute, VisitorCountsRoute } from './components/ProtectedRoute';
 import { RecordInfoHost } from './components/RecordInfo';
 import { useSessionWatchdog } from './lib/session-watchdog';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { KpiPlanFormPage } from './pages/KpiPlanFormPage';
 import { KpiPlansPage } from './pages/KpiPlansPage';
 import { KpiTemplateFormPage } from './pages/KpiTemplateFormPage';
 import { KpiTemplatesPage } from './pages/KpiTemplatesPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyKpiPage } from './pages/MyKpiPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { VisitorCountsPage } from './pages/VisitorCountsPage';
 import { useAuthStore } from './store/auth-store';
 
 function SessionBootstrap() {
@@ -125,7 +126,7 @@ export function App() {
           path="/leaderboard"
           element={
             <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navLeaderboard" />
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />
@@ -151,6 +152,14 @@ export function App() {
             <AdminRoute>
               <KpiPlanFormPage />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/visitor-counts"
+          element={
+            <VisitorCountsRoute>
+              <VisitorCountsPage />
+            </VisitorCountsRoute>
           }
         />
         <Route path="*" element={<Navigate to="/leaderboard" replace />} />

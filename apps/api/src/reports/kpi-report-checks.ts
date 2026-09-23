@@ -25,6 +25,19 @@ export const KPI_REPORT_CODES = [
   'EMPLOYEE_PRODUCT_VARIETY',
 ] as const;
 
+/** Item group KPIs (ADR-045); their reports and helpers come from migration 1799704000000. */
+export const KPI_GROUP_REPORT_CODES = ['STORE_GROUP_SALES', 'EMPLOYEE_GROUP_SALES'] as const;
+
+/**
+ * KPIs Tiger can measure. The rest (`STORE_CONVERSION`) are typed in by a manager, in the plan's result rows (ADR-041).
+ */
+export function isCalculableKpi(code: string): boolean {
+  return (
+    (KPI_REPORT_CODES as readonly string[]).includes(code) ||
+    (KPI_GROUP_REPORT_CODES as readonly string[]).includes(code)
+  );
+}
+
 /** Objects the report migration creates; schema-check requires every one of them. */
 export const KPI_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'SN' | 'V' | 'P' }> = [
   { name: 'dbo.tiger_invoice', type: 'SN' },
@@ -36,6 +49,21 @@ export const KPI_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'SN' | 'V' 
   { name: 'dbo.kpi_report_summary', type: 'V' },
   ...KPI_REPORT_CODES.map((code) => ({ name: `dbo.report_${code}`, type: 'V' as const })),
   { name: 'dbo.show_report', type: 'P' },
+];
+
+/** Objects the item group migration creates (ADR-045); schema-check requires them too. */
+export const KPI_GROUP_REPORT_OBJECTS: ReadonlyArray<{
+  name: string;
+  type: 'SN' | 'V' | 'IF';
+}> = [
+  { name: 'dbo.tiger_items', type: 'SN' },
+  { name: 'dbo.item_groups', type: 'V' },
+  { name: 'dbo.kpi_report_group_lines', type: 'V' },
+  { name: 'dbo.kpi_report_group_monthly', type: 'V' },
+  { name: 'dbo.kpi_report_group_summary', type: 'V' },
+  { name: 'dbo.item_group_coverage', type: 'V' },
+  ...KPI_GROUP_REPORT_CODES.map((code) => ({ name: `dbo.report_${code}`, type: 'V' as const })),
+  { name: 'dbo.kpi_month_group_values', type: 'IF' },
 ];
 
 export interface ReportSource {
@@ -90,6 +118,8 @@ export function compareReportSource(
     tiger_invoice: expected.tables.periodTable('INVOICE'),
     tiger_stline: expected.tables.periodTable('STLINE'),
     tiger_clcard: expected.tables.firmTable('CLCARD'),
+    // Item cards for the item group KPIs (ADR-045).
+    tiger_items: expected.tables.firmTable('ITEMS'),
   };
 
   for (const [name, bracketedTable] of Object.entries(targets)) {

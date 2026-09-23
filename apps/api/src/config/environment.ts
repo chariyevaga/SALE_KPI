@@ -7,6 +7,9 @@ const DEFAULT_FILE_CLEANUP_TIME_ZONE = 'Asia/Ashgabat';
 const DEFAULT_ACCESS_TOKEN_TTL = '15m';
 const DEFAULT_REFRESH_TOKEN_TTL = '30d';
 const DEFAULT_SHORT_SESSION_TTL = '20m';
+const DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 10;
+/** One day; a longer pause is the same as switching the job off. */
+const MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 24 * 60;
 
 function getRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();
@@ -68,6 +71,16 @@ export function getApiPort(): number {
   }
 
   return configuredPort;
+}
+
+/**
+ * Origins the browser may call the API from. In development (`NODE_ENV=development`) every
+ * origin is allowed, so any local web port works without editing `CORS_ORIGINS`; the API
+ * reads no cookies (tokens travel in the Authorization header), so this opens nothing a
+ * page could abuse. Any other NODE_ENV, production included, uses the list.
+ */
+export function getCorsOrigin(): true | string[] {
+  return process.env.NODE_ENV === 'development' ? true : getCorsOrigins();
 }
 
 export function getCorsOrigins(): string[] {
@@ -180,6 +193,23 @@ export function getFileCleanupTimeZone(): string {
   }
 
   return timeZone;
+}
+
+/**
+ * Minutes between two automatic calculations of the open KPI periods; 0 switches the job
+ * off (ADR-047). Every run reads each open month from Tiger once.
+ */
+export function getKpiAutoCalculationIntervalMinutes(): number {
+  const name = 'KPI_AUTO_CALCULATION_INTERVAL_MINUTES';
+  const value = Number(process.env[name] ?? DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES);
+
+  if (!Number.isInteger(value) || value < 0 || value > MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES) {
+    throw new Error(
+      `${name} must be an integer between 0 (off) and ${MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES}.`,
+    );
+  }
+
+  return value;
 }
 
 export interface TokenConfig {

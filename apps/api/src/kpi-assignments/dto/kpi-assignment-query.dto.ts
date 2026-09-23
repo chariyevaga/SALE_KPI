@@ -42,6 +42,23 @@ export class ListKpiAssignmentsQueryDto {
   templateId?: string;
 }
 
+export class ListMyKpiPeriodsQueryDto {
+  @ApiPropertyOptional({ type: Number, default: 1, minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ type: Number, default: 24, minimum: 1, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
 export class MyKpiPlanQueryDto {
   @ApiPropertyOptional({
     type: Number,

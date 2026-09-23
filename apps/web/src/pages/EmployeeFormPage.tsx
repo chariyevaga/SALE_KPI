@@ -23,6 +23,7 @@ interface FormValues {
   phoneNumber: string;
   erpEmployeeId: string;
   fullAccess: boolean;
+  canEnterVisitorCounts: boolean;
 }
 
 const EMPTY_FORM: FormValues = {
@@ -34,6 +35,7 @@ const EMPTY_FORM: FormValues = {
   phoneNumber: '',
   erpEmployeeId: '',
   fullAccess: false,
+  canEnterVisitorCounts: false,
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -109,6 +111,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         erpEmployeeId:
           employeeQuery.data.erpEmployeeId !== null ? String(employeeQuery.data.erpEmployeeId) : '',
         fullAccess: employeeQuery.data.fullAccess,
+        canEnterVisitorCounts: employeeQuery.data.canEnterVisitorCounts,
       });
     }
   }, [employeeQuery.data]);
@@ -123,6 +126,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         phoneNumber: form.phoneNumber || null,
         erpEmployeeId: form.erpEmployeeId ? Number(form.erpEmployeeId) : null,
         fullAccess: form.fullAccess,
+        canEnterVisitorCounts: form.canEnterVisitorCounts,
         ...(form.password ? { password: form.password } : {}),
       };
 
@@ -374,6 +378,25 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               checked={form.fullAccess}
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, fullAccess: event.target.checked }))
+              }
+              className="h-6 w-11 flex-shrink-0 cursor-pointer accent-emerald-400"
+            />
+          </label>
+
+          <label className="flex min-h-[44px] cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <span>
+              <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+                {t('employeeForm.visitorCountsLabel')}
+              </span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">
+                {t('employeeForm.visitorCountsHint')}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={form.canEnterVisitorCounts}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, canEnterVisitorCounts: event.target.checked }))
               }
               className="h-6 w-11 flex-shrink-0 cursor-pointer accent-emerald-400"
             />

@@ -6,7 +6,7 @@ import {
   type KpiPeriodStatus,
 } from './entities/kpi-period.entity.js';
 import { KPI_PERIOD_ERROR_CODES, type KpiPeriodErrorCode } from './kpi-period-errors.js';
-import { periodLabel } from './kpi-period-rules.js';
+import { canReopenPeriod, periodLabel, reopenableUntil } from './kpi-period-rules.js';
 
 /** Plan counts of a period; both come from one grouped query for the whole page. */
 export interface KpiPeriodPlanStats {
@@ -32,6 +32,21 @@ export class KpiPeriodResponse {
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   closedAt: Date | null;
+
+  @ApiProperty({
+    type: Boolean,
+    description:
+      'Kapalı dönem şu an yeniden açılabiliyorsa `true` (ADR-044); açık dönemde `false`.',
+  })
+  canReopen: boolean;
+
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    example: '2026-10-10',
+    description: 'Kapalı dönemin yeniden açılabileceği son gün: ayın bitiminden sonraki 10. gün.',
+  })
+  reopenableUntil: string;
 
   @ApiProperty({ type: Number, example: 8, description: 'Dönemdeki plan sayısı.' })
   assignmentCount: number;
@@ -89,6 +104,8 @@ export function toKpiPeriodResponse(
     label: periodLabel(period),
     status: period.status,
     closedAt: period.closedAt,
+    canReopen: canReopenPeriod(period, new Date()),
+    reopenableUntil: reopenableUntil(period),
     assignmentCount: stats?.assignmentCount ?? 0,
     missingTargetCount: stats?.missingTargetCount ?? 0,
     createdAt: period.createdAt,

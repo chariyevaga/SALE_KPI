@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
+import { KpiResultEntity } from '../kpi-results/entities/kpi-result.entity.js';
 import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
@@ -19,6 +20,7 @@ import { KpiRecommendationsService } from './kpi-recommendations.service.js';
       KpiAssignmentEntity,
       KpiAssignmentItemEntity,
       KpiPeriodEntity,
+      KpiResultEntity,
       KpiTemplateEntity,
       KpiTemplateItemEntity,
       EmployeeEntity,

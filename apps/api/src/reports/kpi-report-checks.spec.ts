@@ -16,6 +16,7 @@ function source(overrides: Partial<ReportSource> = {}): ReportSource {
       { name: 'tiger_invoice', database: 'Lorem', schema: 'dbo', table: 'LG_003_01_INVOICE' },
       { name: 'tiger_stline', database: 'Lorem', schema: 'dbo', table: 'LG_003_01_STLINE' },
       { name: 'tiger_clcard', database: 'Lorem', schema: 'dbo', table: 'LG_003_CLCARD' },
+      { name: 'tiger_items', database: 'Lorem', schema: 'dbo', table: 'LG_003_ITEMS' },
     ],
     settings: { firm: 3, sharedCustomerCodes: '120.99361279916' },
     ...overrides,
@@ -33,13 +34,14 @@ void test('compares synonym targets without regard to case', () => {
 });
 
 void test('stops when the synonyms read another firm, period or database', () => {
-  const [invoice, stline, clcard] = source().synonyms;
+  const [invoice, stline, clcard, items] = source().synonyms;
   const problems = compareReportSource(
     source({
       synonyms: [
         { ...invoice!, table: 'LG_001_01_INVOICE' },
         { ...stline!, database: 'DBHTJ' },
         { ...clcard!, database: null },
+        items!,
       ],
     }),
     expected,
@@ -96,4 +98,14 @@ void test('ignores order, spaces and repeats in the shared cash account lists', 
   );
 
   assert.deepEqual(problems, { errors: [], warnings: [] });
+});
+
+void test('the item cards of the item group KPIs must come from the configured firm', () => {
+  const synonyms = source().synonyms.map((row) =>
+    row.name === 'tiger_items' ? { ...row, table: 'LG_001_ITEMS' } : row,
+  );
+
+  assert.deepEqual(compareReportSource(source({ synonyms }), expected).errors, [
+    'dbo.tiger_items points to Lorem.dbo.LG_001_ITEMS instead of Lorem.dbo.LG_003_ITEMS',
+  ]);
 });

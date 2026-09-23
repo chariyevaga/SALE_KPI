@@ -5,13 +5,13 @@
       "name": "api",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/api", "run", "dev"],
-      "port": 3000
+      "port": 4444
     },
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/web", "run", "dev", "--", "--port", "5180", "--strictPort"],
-      "port": 5180
+      "runtimeArgs": ["--prefix", "apps/web", "run", "dev"],
+      "port": 5555
     }
   ]
 }

@@ -1,26 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { listEmployees } from '../api/employees';
 import {
   assignKpiTemplate,
+  calculateKpiPeriod,
   closeKpiPeriod,
   copyKpiPlans,
+  deleteKpiPlan,
   ensureKpiPeriod,
   listKpiPeriods,
   listKpiPlans,
+  reopenKpiPeriod,
 } from '../api/kpi-plans';
 import { listKpiTemplates } from '../api/kpi-templates';
 import { AppShell } from '../components/AppShell';
 import { Drawer } from '../components/Drawer';
 import { FormField, formInputClassName } from '../components/FormField';
+import { ProgressMeter } from '../components/ProgressMeter';
 import { RecordInfoButton } from '../components/RecordInfo';
 import { SelectCheckbox } from '../components/SelectCheckbox';
-import { StatusBadge } from '../components/StatusBadge';
 import { localizeApiError } from '../i18n/api-errors';
-import { formatNumber } from '../i18n/formatters';
+import { formatDate, formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
+import type { Locale } from '../i18n/translations';
 import { ApiError } from '../lib/api-client';
 import type { EmployeeResponse, KpiPeriod, KpiPlanSkipReason, KpiPlanSummary } from '../types/api';
 
@@ -28,6 +32,11 @@ type Notice = { tone: 'success' | 'error'; text: string } | null;
 
 function employeeName(employee: { firstname: string; lastname: string }): string {
   return `${employee.firstname} ${employee.lastname}`.trim();
+}
+
+/** Today in UTC: the calendar the reopen rule is written in (ADR-044). */
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function skipReason(reason: KpiPlanSkipReason, t: Translate): string {
@@ -71,19 +80,132 @@ function describeAssignError(error: unknown, t: Translate, employees: EmployeeRe
   return localizeApiError(error, t, 'kpiPlans.assignError');
 }
 
-function PeriodStatus({ period }: { period: KpiPeriod }) {
-  const { t } = useTranslation();
-  const isOpen = period.status === 'open';
+/** Errors of the period actions and of deleting a plan (ADR-039, ADR-044). */
+function describePeriodError(error: unknown, t: Translate, locale: Locale): string {
+  if (error instanceof ApiError && error.body?.code) {
+    const body = error.body as { code?: string; reopenableUntil?: string };
 
+    switch (body.code) {
+      case 'KPI_PERIOD_CLOSED':
+        return t('kpiPlans.periodClosedError');
+      case 'KPI_PERIOD_REOPEN_EXPIRED':
+        return t('kpiPlans.reopenExpired', {
+          date: body.reopenableUntil ? formatDate(body.reopenableUntil, locale) : '—',
+        });
+    }
+  }
+
+  return localizeApiError(error, t);
+}
+
+function PlusIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <StatusBadge
-      isActive={isOpen}
-      label={t(isOpen ? 'kpiPlans.statusOpen' : 'kpiPlans.statusClosed')}
-    />
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      className={className}
+    >
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    </svg>
   );
 }
 
-function PlanCard({ plan, periodId }: { plan: KpiPlanSummary; periodId: string }) {
+function TrashIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-5 w-5"
+    >
+      <path
+        d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** 44 px delete button of one plan row; rendered only while the period is open. */
+function DeletePlanButton({
+  name,
+  onDelete,
+  disabled,
+}: {
+  name: string;
+  onDelete: () => void;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const label = t('kpiPlans.deletePlan', { name });
+
+  return (
+    <button
+      type="button"
+      onClick={onDelete}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-500/10 hover:text-red-600 disabled:opacity-40 dark:hover:text-red-400"
+    >
+      <TrashIcon />
+    </button>
+  );
+}
+
+/** A plan's score on its 0–100 bar with the number beside it (ADR-041). */
+function PlanScoreMeter({
+  score,
+  name,
+  compact = false,
+  className = '',
+}: {
+  score: number;
+  name: string;
+  /** Number only, for the table whose column header already says "score". */
+  compact?: boolean;
+  className?: string;
+}) {
+  const { t, locale } = useTranslation();
+  const value = formatNumber(score, locale);
+  const text = compact ? value : t('kpiPlans.scoreValue', { value });
+
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <ProgressMeter
+        size="sm"
+        value={score}
+        label={t('kpiProgress.scoreMeterLabel', { name })}
+        valueText={t('kpiPlans.scoreValue', { value })}
+        className="flex-1"
+      />
+      <span
+        className={`flex-shrink-0 whitespace-nowrap text-right font-semibold tabular-nums text-slate-900 dark:text-slate-100 ${
+          compact ? 'w-12 text-sm' : 'w-20 text-xs'
+        }`}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+
+function PlanCard({
+  plan,
+  onDelete,
+  deleting,
+}: {
+  plan: KpiPlanSummary;
+  /** Absent when the period is closed. */
+  onDelete: (() => void) | undefined;
+  deleting: boolean;
+}) {
   const { t, locale } = useTranslation();
   const name = employeeName(plan.employee);
 
@@ -91,18 +213,20 @@ function PlanCard({ plan, periodId }: { plan: KpiPlanSummary; periodId: string }
     <div className="flex min-h-[64px] items-center overflow-hidden rounded-xl border border-slate-200 bg-white transition dark:border-slate-800 dark:bg-slate-900">
       <Link
         to={`/kpi-plans/${plan.id}`}
-        state={{ periodId }}
         className="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3 pl-4 pr-2 transition active:bg-slate-100 dark:active:bg-slate-800"
       >
-        <span className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {name}
           </span>
           <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
             {plan.templateName}
           </span>
+          {plan.totalScore === null ? null : (
+            <PlanScoreMeter score={plan.totalScore} name={name} className="mt-2" />
+          )}
           <span
-            className={`mt-0.5 block text-xs ${
+            className={`mt-1 block text-xs ${
               plan.targetCount < plan.itemCount
                 ? 'text-amber-600 dark:text-amber-400'
                 : 'text-slate-500 dark:text-slate-400'
@@ -113,17 +237,163 @@ function PlanCard({ plan, periodId }: { plan: KpiPlanSummary; periodId: string }
               total: formatNumber(plan.itemCount, locale),
             })}
           </span>
-        </span>
+        </div>
       </Link>
+      {onDelete ? <DeletePlanButton name={name} onDelete={onDelete} disabled={deleting} /> : null}
       <RecordInfoButton tableName="kpi_assignments" recordId={plan.id} title={name} />
     </div>
+  );
+}
+
+interface PeriodPanelProps {
+  periods: KpiPeriod[];
+  period: KpiPeriod;
+  previousPeriod: KpiPeriod | undefined;
+  onSelect: (label: string) => void;
+  onNewPeriod: () => void;
+  onCalculate: () => void;
+  onCopy: () => void;
+  onClose: () => void;
+  onReopen: () => void;
+  calculating: boolean;
+  copying: boolean;
+  closing: boolean;
+  reopening: boolean;
+}
+
+/**
+ * The selected month in one card: which month it is, whether it can still change, and the
+ * actions that act on the whole month. Adding plans is the floating button of the list.
+ */
+function PeriodPanel({
+  periods,
+  period,
+  previousPeriod,
+  onSelect,
+  onNewPeriod,
+  onCalculate,
+  onCopy,
+  onClose,
+  onReopen,
+  calculating,
+  copying,
+  closing,
+  reopening,
+}: PeriodPanelProps) {
+  const { t, locale } = useTranslation();
+  const isOpen = period.status === 'open';
+  const statusHint = isOpen
+    ? t('kpiPlans.periodOpenHint')
+    : period.canReopen
+      ? t('kpiPlans.periodClosedReopenable', { date: formatDate(period.reopenableUntil, locale) })
+      : t('kpiPlans.periodClosedFinal');
+
+  return (
+    <section
+      aria-label={t('kpiPlans.periodLabel')}
+      className="mx-4 mb-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div className="flex items-center gap-2">
+        <select
+          value={period.label}
+          onChange={(event) => onSelect(event.target.value)}
+          aria-label={t('kpiPlans.periodLabel')}
+          className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 sm:max-w-48 sm:flex-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        >
+          {periods.map((item) => (
+            <option key={item.id} value={item.label}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onNewPeriod}
+          className="inline-flex h-11 flex-shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <PlusIcon className="h-4 w-4" />
+          {t('kpiPlans.newPeriod')}
+        </button>
+      </div>
+
+      <div className="mt-3 flex items-start gap-2">
+        <span
+          aria-hidden="true"
+          className={`mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full ${
+            isOpen ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'
+          }`}
+        />
+        <p className="min-w-0 text-sm">
+          <span className="block font-semibold text-slate-900 dark:text-slate-100">
+            {t(isOpen ? 'kpiPlans.statusOpen' : 'kpiPlans.statusClosed')}
+          </span>
+          <span className="block text-slate-500 dark:text-slate-400">{statusHint}</span>
+        </p>
+      </div>
+
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        {t('kpiPlans.periodPlans', { count: formatNumber(period.assignmentCount, locale) })}
+        {period.missingTargetCount > 0 ? (
+          <span className="text-amber-700 dark:text-amber-400">
+            {' · '}
+            {t('kpiPlans.periodMissingTargets', {
+              count: formatNumber(period.missingTargetCount, locale),
+            })}
+          </span>
+        ) : null}
+      </p>
+
+      {isOpen || period.canReopen ? (
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+          {isOpen ? (
+            <>
+              <button
+                type="button"
+                onClick={onCalculate}
+                disabled={calculating || period.assignmentCount === 0}
+                className="h-11 grow rounded-lg border border-emerald-400/60 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 sm:grow-0 dark:text-emerald-400"
+              >
+                {calculating ? t('kpiPlans.calculatingAll') : t('kpiPlans.calculateAll')}
+              </button>
+              {previousPeriod ? (
+                <button
+                  type="button"
+                  onClick={onCopy}
+                  disabled={copying}
+                  className="h-11 grow rounded-lg border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 sm:grow-0 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {t('kpiPlans.copyFrom', { period: previousPeriod.label })}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={closing}
+                className="h-11 grow rounded-lg border border-red-300 px-4 text-sm font-medium text-red-600 transition hover:bg-red-500/10 disabled:opacity-40 sm:ml-auto sm:grow-0 dark:border-red-500/40 dark:text-red-400"
+              >
+                {t('kpiPlans.closePeriod')}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onReopen}
+              disabled={reopening}
+              className="h-11 grow rounded-lg border border-emerald-400/60 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 sm:grow-0 dark:text-emerald-400"
+            >
+              {t('kpiPlans.reopenPeriod')}
+            </button>
+          )}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
 export function KpiPlansPage() {
   const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
-  const [periodId, setPeriodId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [newPeriodOpen, setNewPeriodOpen] = useState(false);
@@ -137,10 +407,23 @@ export function KpiPlansPage() {
 
   const periodsQuery = useQuery({ queryKey: ['kpi-periods'], queryFn: listKpiPeriods });
   const periods = useMemo(() => periodsQuery.data?.items ?? [], [periodsQuery.data]);
-  const period = periods.find((item) => item.id === periodId) ?? periods[0];
+  // The chosen month lives in the address (?period=2026-09), so a reload or a way back from a
+  // plan lands on the same month; without it the newest month is shown.
+  const period = periods.find((item) => item.label === searchParams.get('period')) ?? periods[0];
   const previousPeriod = period
     ? periods.find((item) => item.year * 12 + item.month < period.year * 12 + period.month)
     : undefined;
+
+  function selectPeriod(label: string) {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set('period', label);
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const plansQuery = useQuery({
     queryKey: ['kpi-plans', period?.id, search],
@@ -160,7 +443,7 @@ export function KpiPlansPage() {
     mutationFn: ({ year, month }: { year: number; month: number }) => ensureKpiPeriod(year, month),
     onSuccess: async (opened) => {
       setNewPeriodOpen(false);
-      setPeriodId(opened.id);
+      selectPeriod(opened.label);
       await refresh();
     },
     onError: (error) => setNotice({ tone: 'error', text: localizeApiError(error, t) }),
@@ -172,7 +455,16 @@ export function KpiPlansPage() {
       setNotice({ tone: 'success', text: t('kpiPlans.closed', { period: closed.label }) });
       await refresh();
     },
-    onError: (error) => setNotice({ tone: 'error', text: localizeApiError(error, t) }),
+    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: (id: string) => reopenKpiPeriod(id),
+    onSuccess: async (reopened) => {
+      setNotice({ tone: 'success', text: t('kpiPlans.reopened', { period: reopened.label }) });
+      await refresh();
+    },
+    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
   });
 
   const copyMutation = useMutation({
@@ -191,13 +483,52 @@ export function KpiPlansPage() {
       });
       await refresh();
     },
-    onError: (error) => setNotice({ tone: 'error', text: localizeApiError(error, t) }),
+    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
+  });
+
+  const calculateMutation = useMutation({
+    mutationFn: (id: string) => calculateKpiPeriod(id),
+    onSuccess: async (result) => {
+      setNotice({
+        tone: 'success',
+        text:
+          result.incomplete === 0
+            ? t('kpiPlans.calculatedAll', { count: formatNumber(result.calculated, locale) })
+            : t('kpiPlans.calculatedAllIncomplete', {
+                count: formatNumber(result.calculated, locale),
+                incomplete: formatNumber(result.incomplete, locale),
+              }),
+      });
+      await refresh();
+    },
+    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (plan: KpiPlanSummary) => deleteKpiPlan(plan.id),
+    onSuccess: async (_result, plan) => {
+      setNotice({
+        tone: 'success',
+        text: t('kpiPlans.deleted', { name: employeeName(plan.employee) }),
+      });
+      await refresh();
+    },
+    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
   });
 
   function closePeriod() {
     if (!period) return;
 
-    if (window.confirm(t('kpiPlans.closeConfirm', { period: period.label }))) {
+    // Closing before the reopen window ends can be undone; after it, closing is final.
+    const message =
+      todayUtc() <= period.reopenableUntil
+        ? t('kpiPlans.closeConfirm', {
+            period: period.label,
+            date: formatDate(period.reopenableUntil, locale),
+          })
+        : t('kpiPlans.closeConfirmFinal', { period: period.label });
+
+    if (window.confirm(message)) {
       closeMutation.mutate(period.id);
     }
   }
@@ -207,6 +538,18 @@ export function KpiPlansPage() {
 
     if (window.confirm(t('kpiPlans.copyConfirm', { period: previousPeriod.label }))) {
       copyMutation.mutate({ target: period.id, source: previousPeriod.id });
+    }
+  }
+
+  function removePlan(plan: KpiPlanSummary) {
+    if (!period) return;
+
+    const confirmed = window.confirm(
+      t('kpiPlanForm.deleteConfirm', { name: employeeName(plan.employee), period: period.label }),
+    );
+
+    if (confirmed) {
+      deleteMutation.mutate(plan);
     }
   }
 
@@ -224,43 +567,43 @@ export function KpiPlansPage() {
         period ? { tableName: 'kpi_periods', recordId: period.id, title: period.label } : undefined
       }
     >
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        <select
-          value={period?.id ?? ''}
-          onChange={(event) => setPeriodId(event.target.value)}
-          aria-label={t('kpiPlans.periodLabel')}
-          className="h-11 min-w-32 rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-        >
-          {periods.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-          {periods.length === 0 ? <option value="">—</option> : null}
-        </select>
+      {periodsQuery.isLoading ? (
+        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.loading')}
+        </p>
+      ) : null}
 
-        <button
-          type="button"
-          onClick={() => setNewPeriodOpen(true)}
-          className="h-11 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          {t('kpiPlans.newPeriod')}
-        </button>
-
-        {period ? <PeriodStatus period={period} /> : null}
-
-        {/* Full row on a phone, next to the period controls from sm up. */}
-        <div className="relative w-full min-w-0 sm:ml-auto sm:w-auto sm:max-w-xs sm:flex-1">
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t('kpiPlans.searchPlaceholder')}
-            aria-label={t('kpiPlans.searchPlaceholder')}
-            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500"
-          />
+      {!periodsQuery.isLoading && periods.length === 0 ? (
+        <div className="px-4 py-10 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t('kpiPlans.emptyPeriods')}</p>
+          <button
+            type="button"
+            onClick={() => setNewPeriodOpen(true)}
+            className="mt-4 inline-flex h-11 items-center gap-1.5 rounded-lg bg-emerald-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+          >
+            <PlusIcon className="h-4 w-4" />
+            {t('kpiPlans.newPeriod')}
+          </button>
         </div>
-      </div>
+      ) : null}
+
+      {period ? (
+        <PeriodPanel
+          periods={periods}
+          period={period}
+          previousPeriod={previousPeriod}
+          onSelect={selectPeriod}
+          onNewPeriod={() => setNewPeriodOpen(true)}
+          onCalculate={() => calculateMutation.mutate(period.id)}
+          onCopy={copyFromPrevious}
+          onClose={closePeriod}
+          onReopen={() => reopenMutation.mutate(period.id)}
+          calculating={calculateMutation.isPending}
+          copying={copyMutation.isPending}
+          closing={closeMutation.isPending}
+          reopening={reopenMutation.isPending}
+        />
+      ) : null}
 
       {notice ? (
         <p
@@ -275,22 +618,17 @@ export function KpiPlansPage() {
         </p>
       ) : null}
 
-      {period && !isOpenPeriod ? (
-        <p className="mx-4 mb-3 rounded-lg bg-slate-500/10 px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
-          {t('kpiPlans.periodClosedHint')}
-        </p>
-      ) : null}
-
-      {periodsQuery.isLoading ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          {t('kpiPlans.loading')}
-        </p>
-      ) : null}
-
-      {!periodsQuery.isLoading && periods.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          {t('kpiPlans.emptyPeriods')}
-        </p>
+      {period ? (
+        <div className="px-4 pb-3">
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={t('kpiPlans.searchPlaceholder')}
+            aria-label={t('kpiPlans.searchPlaceholder')}
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 sm:max-w-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500"
+          />
+        </div>
       ) : null}
 
       {plansQuery.isError ? (
@@ -318,7 +656,12 @@ export function KpiPlansPage() {
 
           <div className="flex flex-col gap-2 px-4 pb-28 lg:hidden">
             {plans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} periodId={period?.id ?? ''} />
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                onDelete={isOpenPeriod ? () => removePlan(plan) : undefined}
+                deleting={deleteMutation.isPending}
+              />
             ))}
           </div>
 
@@ -331,6 +674,7 @@ export function KpiPlansPage() {
                   <th className="py-2 pr-3 text-right font-medium">
                     {t('kpiPlans.columnTargets')}
                   </th>
+                  <th className="py-2 pr-3 text-right font-medium">{t('kpiPlans.columnScore')}</th>
                   <th className="py-2 pr-4 text-right font-medium">
                     {t('kpiPlans.columnActions')}
                   </th>
@@ -345,7 +689,6 @@ export function KpiPlansPage() {
                     <td className="py-2.5 pl-4 pr-3">
                       <Link
                         to={`/kpi-plans/${plan.id}`}
-                        state={{ periodId: period?.id }}
                         className="text-sm font-medium text-slate-900 dark:text-slate-100"
                       >
                         {employeeName(plan.employee)}
@@ -369,11 +712,22 @@ export function KpiPlansPage() {
                         total: formatNumber(plan.itemCount, locale),
                       })}
                     </td>
+                    <td className="py-2.5 pr-3 text-right text-sm text-slate-400 dark:text-slate-500">
+                      {plan.totalScore === null ? (
+                        t('kpiPlans.noScore')
+                      ) : (
+                        <PlanScoreMeter
+                          score={plan.totalScore}
+                          name={employeeName(plan.employee)}
+                          compact
+                          className="ml-auto w-40"
+                        />
+                      )}
+                    </td>
                     <td className="py-2.5 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/kpi-plans/${plan.id}`}
-                          state={{ periodId: period?.id }}
                           aria-label={t('kpiPlans.openPlan', {
                             name: employeeName(plan.employee),
                           })}
@@ -381,6 +735,13 @@ export function KpiPlansPage() {
                         >
                           {t('kpiPlans.openPlanShort')}
                         </Link>
+                        {isOpenPeriod ? (
+                          <DeletePlanButton
+                            name={employeeName(plan.employee)}
+                            onDelete={() => removePlan(plan)}
+                            disabled={deleteMutation.isPending}
+                          />
+                        ) : null}
                         <RecordInfoButton
                           tableName="kpi_assignments"
                           recordId={plan.id}
@@ -397,33 +758,14 @@ export function KpiPlansPage() {
       ) : null}
 
       {period && isOpenPeriod ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:left-72 dark:border-slate-800 dark:bg-slate-950/95">
-          <button
-            type="button"
-            onClick={() => setAssignOpen(true)}
-            className="h-12 flex-1 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 sm:flex-none"
-          >
-            {t('kpiPlans.assign')}
-          </button>
-          <button
-            type="button"
-            onClick={copyFromPrevious}
-            disabled={!previousPeriod || copyMutation.isPending}
-            className="h-12 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            {previousPeriod
-              ? t('kpiPlans.copyFrom', { period: previousPeriod.label })
-              : t('kpiPlans.noPreviousPeriod')}
-          </button>
-          <button
-            type="button"
-            onClick={closePeriod}
-            disabled={closeMutation.isPending}
-            className="h-12 rounded-xl border border-red-300 px-4 text-sm font-medium text-red-600 transition hover:bg-red-500/10 disabled:opacity-40 dark:border-red-500/40 dark:text-red-400"
-          >
-            {t('kpiPlans.closePeriod')}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setAssignOpen(true)}
+          className="fixed bottom-6 right-6 z-30 inline-flex h-14 items-center gap-2 rounded-full bg-emerald-400 pl-4 pr-5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-300 active:scale-95"
+        >
+          <PlusIcon className="h-6 w-6" />
+          {t('kpiPlans.assign')}
+        </button>
       ) : null}
 
       <NewPeriodDrawer

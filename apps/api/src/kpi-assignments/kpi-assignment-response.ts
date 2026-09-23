@@ -10,6 +10,7 @@ import type {
 import { periodLabel } from '../kpi-periods/kpi-period-rules.js';
 import { KpiTemplateDefinitionResponse } from '../kpi-templates/kpi-template-response.js';
 import { sumWeights } from '../kpi-templates/kpi-template-rules.js';
+import { isCalculableKpi } from '../reports/kpi-report-checks.js';
 import type { KpiAssignmentItemEntity } from './entities/kpi-assignment-item.entity.js';
 import type { KpiAssignmentEntity } from './entities/kpi-assignment.entity.js';
 import {
@@ -89,6 +90,12 @@ export class KpiAssignmentItemResponse {
 
   @ApiProperty({ type: Number, example: 1 })
   sortOrder: number;
+
+  @ApiProperty({
+    type: Boolean,
+    description: '`true`: gerçekleşen Tiger\u2019dan hesaplanır. `false`: elle girilir (ADR-041).',
+  })
+  calculable: boolean;
 }
 
 export class KpiAssignmentResponse {
@@ -117,6 +124,25 @@ export class KpiAssignmentResponse {
   @ApiProperty({ type: () => KpiAssignmentItemResponse, isArray: true })
   items: KpiAssignmentItemResponse[];
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 86.25,
+    description: 'Planın toplam puanı (ADR-041); hiç hesaplanmadıysa `null`.',
+  })
+  totalScore: number | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 4,
+    description: 'Puanı hesaplanabilen satır sayısı; satır sayısından azsa puan eksiktir.',
+  })
+  scoredItemCount: number | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  scoreCalculatedAt: Date | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt: Date;
 
@@ -142,6 +168,25 @@ export class KpiAssignmentSummaryResponse {
 
   @ApiProperty({ type: Number, example: 3, description: 'Hedefi girilmiş KPI sayısı.' })
   targetCount: number;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 86.25,
+    description: 'Planın toplam puanı (ADR-041); hiç hesaplanmadıysa `null`.',
+  })
+  totalScore: number | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 4,
+    description: 'Puanı hesaplanabilen satır sayısı; satır sayısından azsa puan eksiktir.',
+  })
+  scoredItemCount: number | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  scoreCalculatedAt: Date | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt: Date;
@@ -195,6 +240,47 @@ export class KpiMyPlanResponse {
     description: 'Çalışanın planı; yoksa `null`.',
   })
   plan: KpiAssignmentResponse | null;
+}
+
+/** A period the signed-in employee has a plan in: one option of the My KPI period list. */
+export class KpiMyPeriodResponse {
+  @ApiProperty({ type: String, format: 'uuid', description: 'Planın kimliği.' })
+  assignmentId: string;
+
+  @ApiProperty({ type: () => KpiAssignmentPeriodResponse })
+  period: KpiAssignmentPeriodResponse;
+
+  @ApiProperty({
+    type: String,
+    example: 'SATIŞ KPI 01',
+    description: 'Şablonun atama anındaki adı.',
+  })
+  templateName: string;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 86.25,
+    description: 'Planın toplam puanı (ADR-041); hiç hesaplanmadıysa `null`.',
+  })
+  totalScore: number | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  scoreCalculatedAt: Date | null;
+}
+
+export class KpiMyPeriodListResponse {
+  @ApiProperty({ type: () => KpiMyPeriodResponse, isArray: true })
+  items: KpiMyPeriodResponse[];
+
+  @ApiProperty({ type: Number })
+  total: number;
+
+  @ApiProperty({ type: Number })
+  page: number;
+
+  @ApiProperty({ type: Number })
+  limit: number;
 }
 
 export class KpiAssignmentRecommendationResponse {
@@ -308,6 +394,7 @@ function toItemResponse(item: KpiAssignmentItemEntity): KpiAssignmentItemRespons
     targetValue: item.targetValue,
     inputValues: JSON.parse(item.inputValues) as Record<string, unknown>,
     sortOrder: item.sortOrder,
+    calculable: isCalculableKpi(definition.code),
   };
 }
 
@@ -325,8 +412,24 @@ export function toKpiAssignmentResponse(
     templateName: assignment.templateName,
     totalWeight: sumWeights(items.map((item) => item.weight)),
     items: items.map(toItemResponse),
+    totalScore: assignment.totalScore,
+    scoredItemCount: assignment.scoredItemCount,
+    scoreCalculatedAt: assignment.scoreCalculatedAt,
     createdAt: assignment.createdAt,
     updatedAt: assignment.updatedAt,
+  };
+}
+
+export function toKpiMyPeriod(
+  assignment: KpiAssignmentEntity,
+  period: KpiPeriodEntity,
+): KpiMyPeriodResponse {
+  return {
+    assignmentId: assignment.id,
+    period: toKpiAssignmentPeriod(period),
+    templateName: assignment.templateName,
+    totalScore: assignment.totalScore,
+    scoreCalculatedAt: assignment.scoreCalculatedAt,
   };
 }
 
@@ -347,6 +450,9 @@ export function toKpiAssignmentSummary(
     templateName: assignment.templateName,
     itemCount: stats?.itemCount ?? 0,
     targetCount: stats?.targetCount ?? 0,
+    totalScore: assignment.totalScore,
+    scoredItemCount: assignment.scoredItemCount,
+    scoreCalculatedAt: assignment.scoreCalculatedAt,
     createdAt: assignment.createdAt,
     updatedAt: assignment.updatedAt,
   };

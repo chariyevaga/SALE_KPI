@@ -13,7 +13,10 @@ import {
 } from 'class-validator';
 
 import { GUID_PATTERN } from '../../common/guid.js';
-import { MAX_TARGET_DECIMALS, MAX_TARGET_VALUE } from '../../kpi-assignments/kpi-assignment-rules.js';
+import {
+  MAX_TARGET_DECIMALS,
+  MAX_TARGET_VALUE,
+} from '../../kpi-assignments/kpi-assignment-rules.js';
 
 export class KpiActualDto {
   @ApiProperty({ type: String, format: 'uuid', description: '`kpi_assignment_items.id`' })

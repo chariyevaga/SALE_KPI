@@ -16,11 +16,15 @@ import type {
   KpiAssignmentRecommendationsResponse,
 } from './kpi-assignment-response.js';
 
-/** One row of `dbo.kpi_report_summary` (ADR-038, docs/REPORTS.md). */
+/**
+ * One row of `dbo.kpi_report_summary` (ADR-038, docs/REPORTS.md) or, for item group KPIs,
+ * of `dbo.kpi_report_group_summary`, which adds the group (ADR-045).
+ */
 interface ReportRow {
   kpiCode: string;
   entityRef: number;
   currency: string | null;
+  groupCode?: string | null;
   monthCount: number;
   average: number | null;
   achievableMax: number | null;
@@ -76,16 +80,33 @@ export class KpiRecommendationsService {
   }
 
   private async readReportRows(lookups: EntityLookup[]): Promise<ReportRow[]> {
+    const [plain, grouped] = await Promise.all([
+      this.readSummary(
+        lookups.filter((lookup) => lookup.groupCodes === undefined),
+        false,
+      ),
+      this.readSummary(
+        lookups.filter((lookup) => lookup.groupCodes !== undefined),
+        true,
+      ),
+    ]);
+
+    return [...plain, ...grouped];
+  }
+
+  /** One query per summary view, filtered to the KPIs, entities and groups asked for. */
+  private async readSummary(lookups: EntityLookup[], grouped: boolean): Promise<ReportRow[]> {
     const codes = [...new Set(lookups.map((lookup) => lookup.kpiCode))];
     const refs = [...new Set(lookups.flatMap((lookup) => lookup.entityRefs))];
+    const groups = [...new Set(lookups.flatMap((lookup) => lookup.groupCodes ?? []))];
 
-    if (codes.length === 0 || refs.length === 0) {
+    if (codes.length === 0 || refs.length === 0 || (grouped && groups.length === 0)) {
       return [];
     }
 
-    const parameters = [...codes, ...refs];
-    const codeParameters = codes.map((_, index) => `@${index}`).join(', ');
-    const refParameters = refs.map((_, index) => `@${codes.length + index}`).join(', ');
+    const parameters = [...codes, ...refs, ...(grouped ? groups : [])];
+    const list = (values: unknown[], offset: number) =>
+      values.map((_, index) => `@${offset + index}`).join(', ');
 
     return this.dataSource.query<ReportRow[]>(
       `
@@ -93,20 +114,24 @@ export class KpiRecommendationsService {
           [kpi_code] AS [kpiCode],
           [entity_ref] AS [entityRef],
           [currency] AS [currency],
+          ${grouped ? '[group_code] AS [groupCode],' : ''}
           [month_count] AS [monthCount],
           [average_value] AS [average],
           [achievable_max_target] AS [achievableMax],
           [recommended_target] AS [recommended]
-        FROM [dbo].[kpi_report_summary]
-        WHERE [kpi_code] IN (${codeParameters}) AND [entity_ref] IN (${refParameters})
+        FROM [dbo].[${grouped ? 'kpi_report_group_summary' : 'kpi_report_summary'}]
+        WHERE [kpi_code] IN (${list(codes, 0)})
+          AND [entity_ref] IN (${list(refs, codes.length)})
+          ${grouped ? `AND [group_code] IN (${list(groups, codes.length + refs.length)})` : ''}
       `,
       parameters,
     );
   }
 
   /**
-   * One suggestion per plan row. Several stores are added up, which is exact for money and
-   * receipts and an approximation for customer counts (docs/REPORTS.md).
+   * One suggestion per plan row. Several stores (and, for item group KPIs, several groups)
+   * are added up, which is exact for money and receipts and an approximation for customer
+   * counts (docs/REPORTS.md).
    */
   private summarise(
     lookups: EntityLookup[],
@@ -126,7 +151,10 @@ export class KpiRecommendationsService {
           average: round(sum(matching.map((row) => toNumber(row.average))), 2),
           achievableMax: round(sum(matching.map((row) => toNumber(row.achievableMax))), 0),
           recommended: round(sum(matching.map((row) => toNumber(row.recommended))), 0),
-          ...(matching.length > 1 ? { combined: true } : {}),
+          // "Several stores added up": groups of one store are exact sums and need no note.
+          ...(new Set(matching.map((row) => Number(row.entityRef))).size > 1
+            ? { combined: true }
+            : {}),
         },
       ];
     });

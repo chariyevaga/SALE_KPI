@@ -123,19 +123,19 @@ cp .env.example .env
 
 Özellikle doldurulması gereken alanlar:
 
-| Değişken                 | Açıklama                                                                          |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı                         |
-| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                                                 |
-| `FIRM_NR`                | Logo Tiger firma numarası                                                         |
-| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                                        |
-| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı                   |
-| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                                    |
-| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token                                 |
-| `API_PORT`               | API'nin host üzerinde yayımlanacağı port; web varsayılan olarak bu portu kullanır |
-| `API_BASE_URL`           | İsteğe bağlı tam API adresi override'ı; yalnız domain/reverse proxy için          |
-| `WEB_PORT`               | Web uygulamasının host üzerinde yayımlanacağı port                                |
-| `CORS_ORIGINS`           | Web uygulamasının browser origin'i                                                |
+| Değişken                 | Açıklama                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı                                             |
+| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                                                                     |
+| `FIRM_NR`                | Logo Tiger firma numarası                                                                             |
+| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                                                            |
+| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı                                       |
+| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                                                        |
+| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token                                                     |
+| `API_PORT`               | API'nin host üzerinde yayımlanacağı port; web varsayılan olarak bu portu kullanır                     |
+| `API_BASE_URL`           | İsteğe bağlı tam API adresi override'ı; yalnız domain/reverse proxy için                              |
+| `WEB_PORT`               | Web uygulamasının host üzerinde yayımlanacağı port                                                    |
+| `CORS_ORIGINS`           | Web uygulamasının browser origin'i (`NODE_ENV=development` iken yok sayılır, her origin kabul edilir) |
 
 Güçlü secret üretmek için her secret alanında ayrı bir çıktı kullanın:
 

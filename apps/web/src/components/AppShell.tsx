@@ -54,6 +54,10 @@ export function AppShell({
           { to: '/kpi-plans', label: t('appShell.navKpiPlans') },
         ]
       : []),
+    // Whoever enters the daily visitor counts, plus administrators (ADR-043).
+    ...(employee?.canEnterVisitorCounts || employee?.fullAccess
+      ? [{ to: '/visitor-counts', label: t('appShell.navVisitorCounts') }]
+      : []),
     { to: '/sessions', label: t('appShell.navSessions') },
   ];
 

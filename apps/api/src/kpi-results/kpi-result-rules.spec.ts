@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { isCalculableKpi, planScore, scoreRow } from './kpi-result-rules.js';
+import {
+  type ComparableResult,
+  isCalculableKpi,
+  planScore,
+  sameResults,
+  scoreRow,
+} from './kpi-result-rules.js';
 
 void test('scores a row against its target and weight', () => {
   assert.deepEqual(scoreRow({ targetValue: 1000, actualValue: 800, weight: 50 }), {
@@ -69,7 +75,7 @@ void test('the plan total adds up the rows that could be scored', () => {
 void test('unscored rows are counted but do not lower the total', () => {
   const total = planScore([
     scoreRow({ targetValue: 1000, actualValue: 1000, weight: 60 }),
-    // The manual discipline KPI nobody has filled in yet.
+    // A manual KPI nobody has filled in yet.
     scoreRow({ targetValue: 100, actualValue: null, weight: 40 }),
   ]);
 
@@ -83,7 +89,47 @@ void test('a plan nothing could be scored in totals zero', () => {
 void test('only the KPIs with a Tiger report are calculated', () => {
   assert.equal(isCalculableKpi('STORE_SALES'), true);
   assert.equal(isCalculableKpi('EMPLOYEE_PRODUCT_VARIETY'), true);
-  // No visitor data, and discipline is a manager's judgement (docs/BUSINESS_RULES.md).
+  // No visitor data yet (docs/BUSINESS_RULES.md).
   assert.equal(isCalculableKpi('STORE_CONVERSION'), false);
-  assert.equal(isCalculableKpi('EMPLOYEE_DISCIPLINE'), false);
+});
+
+function resultRow(overrides: Partial<ComparableResult> = {}): ComparableResult {
+  return {
+    assignmentItemId: 'A1B2C3D4-0000-0000-0000-000000000001',
+    targetValue: 1000,
+    actualValue: 812.3456,
+    source: 'calculated',
+    weight: 50,
+    ...scoreRow({ targetValue: 1000, actualValue: 812.3456, weight: 50 }),
+    ...overrides,
+  };
+}
+
+void test('sameResults: equal at the stored precision, whatever the GUID case', () => {
+  const stored = [resultRow()];
+  // A fresh Tiger sum carries more decimals than decimal(19,4) keeps.
+  const next = [
+    resultRow({
+      assignmentItemId: 'a1b2c3d4-0000-0000-0000-000000000001',
+      actualValue: 812.345600000001,
+    }),
+  ];
+
+  assert.equal(sameResults(stored, next), true);
+});
+
+void test('sameResults: a moved value, a new row or a first calculation is a change', () => {
+  const stored = [resultRow()];
+
+  assert.equal(sameResults(stored, [resultRow({ actualValue: 900 })]), false);
+  assert.equal(sameResults(stored, [resultRow({ targetValue: null })]), false);
+  assert.equal(
+    sameResults(stored, [
+      resultRow(),
+      resultRow({ assignmentItemId: 'a1b2c3d4-0000-0000-0000-000000000002' }),
+    ]),
+    false,
+  );
+  assert.equal(sameResults([], [resultRow()]), false);
+  assert.equal(sameResults([], []), true);
 });

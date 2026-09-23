@@ -104,6 +104,15 @@ export class CreateEmployeeDto {
   @IsBoolean()
   fullAccess?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'true ise mağazaların günlük ziyaretçi sayısını girebilir (ADR-043).',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  canEnterVisitorCounts?: boolean;
+
   @ApiPropertyOptional({ type: Boolean, default: true })
   @IsOptional()
   @IsBoolean()

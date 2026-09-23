@@ -90,4 +90,25 @@ export class KpiPeriodsController {
   close(@Param('id', new ParseUUIDPipe()) id: string): Promise<KpiPeriodResponse> {
     return this.kpiPeriodsService.close(id);
   }
+
+  @Post(':id/reopen')
+  @UseGuards(FullAccessGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Yanlışlıkla kapatılan dönemi yeniden açar (yalnız full_access, ADR-044).',
+    description:
+      'Dönemin ayı bittikten sonraki 10. günün sonuna kadar (UTC) yapılabilir; `reopenableUntil` son günü söyler. Sonrasında kapanış kesindir. Açılan dönemde plan, hedef ve hesaplama yeniden yazılabilir.',
+  })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: KpiPeriodResponse })
+  @ApiNotFoundResponse({ description: 'Dönem yok.' })
+  @ApiConflictResponse({
+    description:
+      'Dönem zaten açık (`KPI_PERIOD_OPEN`) ya da yeniden açma süresi geçti (`KPI_PERIOD_REOPEN_EXPIRED`, `reopenableUntil` döner).',
+    type: KpiPeriodErrorResponse,
+  })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  reopen(@Param('id', new ParseUUIDPipe()) id: string): Promise<KpiPeriodResponse> {
+    return this.kpiPeriodsService.reopen(id);
+  }
 }

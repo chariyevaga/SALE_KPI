@@ -6,13 +6,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module.js';
-import { getApiPort, getCorsOrigins } from './config/environment.js';
+import { getApiPort, getCorsOrigin } from './config/environment.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: getCorsOrigins(),
+    origin: getCorsOrigin(),
   });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -32,7 +32,11 @@ async function bootstrap(): Promise<void> {
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, swaggerDocument);
+  // Swagger UI assets are served by the API itself; the null validatorUrl keeps it from
+  // calling validator.swagger.io (ADR-042).
+  SwaggerModule.setup('api/docs', app, swaggerDocument, {
+    swaggerOptions: { validatorUrl: null },
+  });
 
   await app.listen(getApiPort(), '0.0.0.0');
 }

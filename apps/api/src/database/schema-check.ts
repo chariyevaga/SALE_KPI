@@ -10,6 +10,7 @@ import {
 } from '../config/environment.js';
 import {
   compareReportSource,
+  KPI_GROUP_REPORT_OBJECTS,
   KPI_REPORT_OBJECTS,
   readReportSource,
 } from '../reports/kpi-report-checks.js';
@@ -34,11 +35,18 @@ const REQUIRED_OBJECTS = [
   { name: 'dbo.kpi_periods', type: 'U' },
   { name: 'dbo.kpi_assignments', type: 'U' },
   { name: 'dbo.kpi_assignment_items', type: 'U' },
+  { name: 'dbo.kpi_results', type: 'U' },
+  // The month the results are calculated from (ADR-041); an inline table-valued function.
+  { name: 'dbo.kpi_month_values', type: 'IF' },
+  // Daily store visitor counts, the conversion KPI's denominator (ADR-043).
+  { name: 'dbo.store_visitor_counts', type: 'U' },
   { name: 'dbo.audit_logs', type: 'U' },
   { name: 'dbo.stores', type: 'V' },
   { name: 'dbo.erp_employees', type: 'V' },
   // KPI report views with their Tiger synonyms and helpers (ADR-038).
   ...KPI_REPORT_OBJECTS,
+  // Item group sales: item cards, group list, group reports and month function (ADR-045).
+  ...KPI_GROUP_REPORT_OBJECTS,
 ] as const;
 
 async function objectExists(name: string, type: string): Promise<boolean> {
@@ -133,6 +141,17 @@ async function checkTigerSource(): Promise<void> {
 
   for (const warning of reportSource.warnings) {
     console.warn(`WARNING: ${warning}.`);
+  }
+
+  // Sales of items without a group code count in no item group KPI (ADR-045).
+  const [coverage] = await dataSource.query<Array<{ share: number | string | null }>>(
+    'SELECT [ungrouped_share] AS [share] FROM [dbo].[item_group_coverage]',
+  );
+
+  if (coverage?.share !== null && coverage?.share !== undefined && Number(coverage.share) > 0) {
+    console.warn(
+      `WARNING: ${Number(coverage.share).toFixed(2)}% of the last 12 months' net sales are on items without a group code (STGRPCODE); they count in no *_GROUP_SALES KPI. Give the item cards a group in Tiger.`,
+    );
   }
 
   const tiger = new DataSource(getTigerDataSourceOptions());

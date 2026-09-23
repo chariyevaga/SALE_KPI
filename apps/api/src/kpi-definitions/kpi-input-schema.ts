@@ -6,7 +6,12 @@
 
 export const KPI_LOCALES = ['tr', 'en', 'ru', 'tk'] as const;
 export const KPI_INPUT_TYPES = ['number', 'select', 'lookup', 'boolean'] as const;
-export const KPI_LOOKUP_SOURCES = ['stores'] as const;
+/**
+ * `stores`: Tiger workplaces, values are `GET /stores` ids (numbers). `itemGroups`: Tiger item
+ * group codes (`STGRPCODE`, ADR-045), values are the codes themselves (strings) because Logo
+ * has no master table that would give them ids.
+ */
+export const KPI_LOOKUP_SOURCES = ['stores', 'itemGroups'] as const;
 
 export type KpiLocale = (typeof KPI_LOCALES)[number];
 export type KpiInputType = (typeof KPI_INPUT_TYPES)[number];

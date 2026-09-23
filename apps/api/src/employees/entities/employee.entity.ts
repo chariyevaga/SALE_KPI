@@ -59,4 +59,8 @@ export class EmployeeEntity extends AuditedEntity {
 
   @Column({ name: 'full_access', type: 'bit', default: false })
   fullAccess: boolean;
+
+  /** May enter the daily store visitor counts of the conversion KPI (ADR-043). */
+  @Column({ name: 'can_enter_visitor_counts', type: 'bit', default: false })
+  canEnterVisitorCounts: boolean;
 }

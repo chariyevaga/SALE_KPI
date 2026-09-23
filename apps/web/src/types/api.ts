@@ -15,6 +15,8 @@ export interface EmployeeResponse {
   erpEmployeeCode: string | null;
   firstname: string;
   fullAccess: boolean;
+  /** May enter the daily store visitor counts (ADR-043). */
+  canEnterVisitorCounts: boolean;
   id: string;
   isActive: boolean;
   lastname: string;
@@ -50,6 +52,7 @@ export interface CreateEmployeeInput {
   erpEmployeeId?: number | null;
   avatarId?: string | null;
   fullAccess?: boolean;
+  canEnterVisitorCounts?: boolean;
   isActive?: boolean;
 }
 
@@ -79,6 +82,8 @@ export interface ApiErrorBody {
   duplicateOf?: number;
   path?: string;
   storeIds?: number[];
+  /** `KPI_TEMPLATE_UNKNOWN_ITEM_GROUP`: item group codes that do not exist. */
+  groupCodes?: string[];
   /** `KPI_TEMPLATE_IN_USE`: templates that KPI plans were built from. */
   templates?: KpiTemplateInUse[];
   /** `KPI_ASSIGNMENT_EXISTS` / `KPI_ASSIGNMENT_INELIGIBLE`: the employees involved. */
@@ -97,6 +102,9 @@ export type KpiScope = 'store' | 'employee';
 export type KpiUnit = 'money' | 'count' | 'percent' | 'score';
 export type KpiInputMode = 'calculated' | 'manual';
 
+/** `stores`: values are `GET /stores` ids; `itemGroups`: values are item group codes (ADR-045). */
+export type KpiLookupSource = 'stores' | 'itemGroups';
+
 export interface KpiSelectOption {
   value: string;
   label: LocalizedText;
@@ -111,7 +119,7 @@ interface KpiInputFieldBase {
 export type KpiInputField =
   | (KpiInputFieldBase & { type: 'number'; min?: number; max?: number; decimals?: number })
   | (KpiInputFieldBase & { type: 'select'; multiple: boolean; options: KpiSelectOption[] })
-  | (KpiInputFieldBase & { type: 'lookup'; multiple: boolean; source: 'stores' })
+  | (KpiInputFieldBase & { type: 'lookup'; multiple: boolean; source: KpiLookupSource })
   | (KpiInputFieldBase & { type: 'boolean' });
 
 export interface KpiDefinition {
@@ -129,6 +137,18 @@ export interface StoreOption {
   id: number;
   nr: number;
   name: string | null;
+}
+
+/** A Tiger item group (`STGRPCODE`) for item group KPIs (ADR-045). */
+export interface ItemGroupOption {
+  code: string;
+  itemCount: number;
+}
+
+export interface ItemGroupListResponse {
+  items: ItemGroupOption[];
+  /** Share (%) of the last 12 months' net sales on items without a group; null without sales. */
+  ungroupedSalesShare: number | null;
 }
 
 export type KpiInputValue = number | string | boolean | number[] | string[];
@@ -221,6 +241,10 @@ export interface KpiPeriod {
   label: string;
   status: KpiPeriodStatus;
   closedAt: string | null;
+  /** A closed period can be reopened until `reopenableUntil` (ADR-044). */
+  canReopen: boolean;
+  /** `YYYY-MM-DD`: the 10th day after the period's month ends. */
+  reopenableUntil: string;
   assignmentCount: number;
   missingTargetCount: number;
   createdAt: string;
@@ -251,6 +275,8 @@ export interface KpiPlanItem {
   targetValue: number | null;
   inputValues: Record<string, KpiInputValue>;
   sortOrder: number;
+  /** false: Tiger cannot measure this KPI, the actual value is typed in (ADR-041). */
+  calculable: boolean;
 }
 
 /** One employee's plan in one period: the template's KPI rows with their own targets. */
@@ -262,6 +288,9 @@ export interface KpiPlan {
   templateName: string;
   totalWeight: number;
   items: KpiPlanItem[];
+  totalScore: number | null;
+  scoredItemCount: number | null;
+  scoreCalculatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -273,12 +302,31 @@ export interface KpiPlanSummary {
   templateName: string;
   itemCount: number;
   targetCount: number;
+  totalScore: number | null;
+  scoredItemCount: number | null;
+  scoreCalculatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface KpiPlanListResponse {
   items: KpiPlanSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** A period the signed-in employee has a plan in (`GET /kpi-assignments/me/periods`). */
+export interface KpiMyPeriod {
+  assignmentId: string;
+  period: Pick<KpiPeriod, 'id' | 'year' | 'month' | 'label' | 'status'>;
+  templateName: string;
+  totalScore: number | null;
+  scoreCalculatedAt: string | null;
+}
+
+export interface KpiMyPeriodListResponse {
+  items: KpiMyPeriod[];
   total: number;
   page: number;
   limit: number;
@@ -310,12 +358,82 @@ export interface KpiPlanRecommendationsResponse {
   items: KpiPlanRecommendation[];
 }
 
+/** Where a result's actual value came from (ADR-041). */
+export type KpiResultSource = 'calculated' | 'manual';
+
+/** One plan row's result: what it achieved and the score it earned. */
+export interface KpiResult {
+  itemId: string;
+  definition: Pick<KpiDefinition, 'id' | 'code' | 'name' | 'scope' | 'unit' | 'inputMode'>;
+  weight: number;
+  targetValue: number | null;
+  actualValue: number | null;
+  source: KpiResultSource;
+  /** May pass 100 and may be negative; the score itself is capped at 100. */
+  rawAchievement: number | null;
+  cappedAchievement: number | null;
+  weightedScore: number | null;
+  calculatedAt: string | null;
+}
+
+export interface KpiPlanResults {
+  assignmentId: string;
+  totalScore: number | null;
+  scoredItemCount: number;
+  itemCount: number;
+  calculatedAt: string | null;
+  items: KpiResult[];
+}
+
+export interface KpiPeriodCalculation {
+  calculated: number;
+  incomplete: number;
+  calculatedAt: string;
+}
+
+export interface SaveKpiActualsInput {
+  items: { id: string; actualValue: number | null }[];
+}
+
 export interface SaveKpiTargetsInput {
   items: { id: string; targetValue: number | null }[];
 }
 
 /** Tables whose screens show record info (ADR-036); the API accepts every audited table. */
-export type AuditedTable = 'employees' | 'kpi_templates' | 'kpi_periods' | 'kpi_assignments';
+/** One store's visitor count for one day (ADR-043). */
+export interface StoreVisitorCount {
+  id: string;
+  storeId: number;
+  /** Tiger store number and name; null when the store is gone from Tiger. */
+  storeNr: number | null;
+  storeName: string | null;
+  /** `YYYY-MM-DD` */
+  date: string;
+  visitorCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoreVisitorCountListResponse {
+  items: StoreVisitorCount[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface SaveStoreVisitorCountInput {
+  storeId: number;
+  date: string;
+  visitorCount: number;
+}
+
+export type AuditedTable =
+  | 'employees'
+  | 'kpi_templates'
+  | 'kpi_periods'
+  | 'kpi_assignments'
+  | 'kpi_results'
+  | 'store_visitor_counts';
 
 export interface AuditActor {
   id: string;
@@ -359,4 +477,40 @@ export interface RecordInfo {
   createdBy: AuditActor | null;
   updatedAt: string;
   updatedBy: AuditActor | null;
+}
+
+/** A period as the leaderboard lists it. */
+export type LeaderboardPeriod = Pick<KpiPeriod, 'id' | 'year' | 'month' | 'label' | 'status'>;
+
+/** One plan on the leaderboard (ADR-047): who, which template, and the stored total score. */
+export interface LeaderboardEntry {
+  /** Equal scores share a rank; `null` when the plan was never calculated. */
+  rank: number | null;
+  assignmentId: string;
+  employee: {
+    id: string;
+    firstname: string;
+    lastname: string;
+    avatarUrl: string | null;
+  };
+  templateId: string;
+  templateName: string;
+  totalScore: number | null;
+  scoredItemCount: number;
+  itemCount: number;
+  isMe: boolean;
+}
+
+export interface LeaderboardResponse {
+  period: LeaderboardPeriod | null;
+  /** Periods with at least one plan, newest first. */
+  periods: LeaderboardPeriod[];
+  templates: { id: string; name: string; planCount: number }[];
+  calculatedAt: string | null;
+  autoCalculation: {
+    /** 0: the scheduled recalculation is off. */
+    intervalMinutes: number;
+    lastRunAt: string | null;
+  };
+  entries: LeaderboardEntry[];
 }

@@ -8,10 +8,19 @@ import type { KpiInputField, KpiLookupSource } from './kpi-input-schema.js';
 
 export type KpiInputValue = number | string | boolean | number[] | string[];
 
+/** Lookup values per source: store ids are numbers, item group codes are strings (ADR-045). */
+export interface KpiLookupValues {
+  stores: number[];
+  itemGroups: string[];
+}
+
+/** Longest Tiger item group code (`LG_xxx_ITEMS.STGRPCODE` is `varchar(25)`). */
+export const ITEM_GROUP_CODE_MAX_LENGTH = 25;
+
 export interface ParsedKpiInputValues {
   values: Record<string, KpiInputValue>;
-  /** Referenced lookup ids per source; the caller checks that they exist. */
-  lookupIds: Map<KpiLookupSource, number[]>;
+  /** Referenced lookup values per source; the caller checks that they exist. */
+  lookups: KpiLookupValues;
 }
 
 export class KpiInputValuesError extends Error {
@@ -58,6 +67,49 @@ function readLookupId(value: unknown, path: string): number {
   }
 
   return value;
+}
+
+/** Trimmed and upper-case, like `dbo.item_groups` lists the codes. */
+function readGroupCode(value: unknown, path: string): string {
+  const code = typeof value === 'string' ? value.trim().toUpperCase() : '';
+
+  if (code.length === 0 || code.length > ITEM_GROUP_CODE_MAX_LENGTH) {
+    throw new KpiInputValuesError(
+      path,
+      `must be an item group code of 1-${ITEM_GROUP_CODE_MAX_LENGTH} characters.`,
+    );
+  }
+
+  return code;
+}
+
+function parseLookup(
+  source: KpiLookupSource,
+  multiple: boolean,
+  raw: unknown,
+  path: string,
+): KpiInputValue {
+  if (source === 'itemGroups') {
+    if (!multiple) {
+      return readGroupCode(raw, path);
+    }
+
+    const codes = readArray(raw, path).map((value, index) =>
+      readGroupCode(value, `${path}[${index}]`),
+    );
+    assertUnique(codes, path);
+
+    return codes.sort();
+  }
+
+  if (!multiple) {
+    return readLookupId(raw, path);
+  }
+
+  const ids = readArray(raw, path).map((value, index) => readLookupId(value, `${path}[${index}]`));
+  assertUnique(ids, path);
+
+  return ids.sort((left, right) => left - right);
 }
 
 function parseField(field: KpiInputField, raw: unknown, path: string): KpiInputValue {
@@ -108,18 +160,8 @@ function parseField(field: KpiInputField, raw: unknown, path: string): KpiInputV
 
       return selected.sort((left, right) => order.indexOf(left) - order.indexOf(right));
     }
-    case 'lookup': {
-      if (!field.multiple) {
-        return readLookupId(raw, path);
-      }
-
-      const ids = readArray(raw, path).map((value, index) =>
-        readLookupId(value, `${path}[${index}]`),
-      );
-      assertUnique(ids, path);
-
-      return ids.sort((left, right) => left - right);
-    }
+    case 'lookup':
+      return parseLookup(field.source, field.multiple, raw, path);
   }
 }
 
@@ -141,7 +183,7 @@ export function parseKpiInputValues(
   }
 
   const values: Record<string, KpiInputValue> = {};
-  const lookupIds = new Map<KpiLookupSource, number[]>();
+  const lookups: KpiLookupValues = { stores: [], itemGroups: [] };
 
   for (const field of schema) {
     const fieldPath = `${path}.${field.key}`;
@@ -159,10 +201,19 @@ export function parseKpiInputValues(
     values[field.key] = value;
 
     if (field.type === 'lookup') {
-      const ids = Array.isArray(value) ? (value as number[]) : [value as number];
-      lookupIds.set(field.source, [...(lookupIds.get(field.source) ?? []), ...ids]);
+      const list: Array<number | string> = Array.isArray(value)
+        ? value
+        : [value as number | string];
+
+      if (field.source === 'itemGroups') {
+        lookups.itemGroups.push(
+          ...list.filter((entry): entry is string => typeof entry === 'string'),
+        );
+      } else {
+        lookups.stores.push(...list.filter((entry): entry is number => typeof entry === 'number'));
+      }
     }
   }
 
-  return { values, lookupIds };
+  return { values, lookups };
 }

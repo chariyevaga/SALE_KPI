@@ -17,12 +17,13 @@ import {
   readKpiDefinitionInputSchema,
   readKpiDefinitionName,
 } from '../kpi-definitions/kpi-definition-response.js';
-import type {
-  KpiInputField,
-  KpiLookupSource,
-  LocalizedText,
-} from '../kpi-definitions/kpi-input-schema.js';
-import { KpiInputValuesError, parseKpiInputValues } from '../kpi-definitions/kpi-input-values.js';
+import type { KpiInputField, LocalizedText } from '../kpi-definitions/kpi-input-schema.js';
+import {
+  KpiInputValuesError,
+  type KpiLookupValues,
+  parseKpiInputValues,
+} from '../kpi-definitions/kpi-input-values.js';
+import { ItemGroupEntity } from '../item-groups/entities/item-group.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 import type { CopyKpiTemplateDto } from './dto/copy-kpi-template.dto.js';
 import type { ListKpiTemplatesQueryDto } from './dto/list-kpi-templates-query.dto.js';
@@ -67,7 +68,7 @@ interface LoggedItem extends ItemValues {
 }
 
 interface PreparedItem extends LoggedItem {
-  lookupIds: Map<KpiLookupSource, number[]>;
+  lookups: KpiLookupValues;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -114,6 +115,8 @@ export class KpiTemplatesService {
     private readonly definitionRepository: Repository<KpiDefinitionEntity>,
     @InjectRepository(StoreEntity)
     private readonly storeRepository: Repository<StoreEntity>,
+    @InjectRepository(ItemGroupEntity)
+    private readonly itemGroupRepository: Repository<ItemGroupEntity>,
     // Read-only here: a template that a plan was built from cannot be deleted (ADR-040).
     @InjectRepository(KpiAssignmentEntity)
     private readonly assignmentRepository: Repository<KpiAssignmentEntity>,
@@ -526,7 +529,7 @@ export class KpiTemplatesService {
         code: definition.code,
         inputValues,
         kpiDefinitionId: definition.id,
-        lookupIds: parsed.lookupIds,
+        lookups: parsed.lookups,
         name: definition.name,
         sortOrder: index + 1,
         targetValue: item.targetValue ?? null,
@@ -578,7 +581,12 @@ export class KpiTemplatesService {
   }
 
   private async assertLookupIdsExist(items: PreparedItem[]): Promise<void> {
-    const storeIds = [...new Set(items.flatMap((item) => item.lookupIds.get('stores') ?? []))];
+    await this.assertStoresExist(items);
+    await this.assertItemGroupsExist(items);
+  }
+
+  private async assertStoresExist(items: PreparedItem[]): Promise<void> {
+    const storeIds = [...new Set(items.flatMap((item) => item.lookups.stores))];
 
     if (storeIds.length === 0) {
       return;
@@ -591,13 +599,40 @@ export class KpiTemplatesService {
     const existing = new Set(found.map((store) => store.id));
 
     for (const [index, item] of items.entries()) {
-      const missing = (item.lookupIds.get('stores') ?? []).filter((id) => !existing.has(id));
+      const missing = item.lookups.stores.filter((id) => !existing.has(id));
 
       if (missing.length > 0) {
         throw kpiTemplateBadRequest(
           'KPI_TEMPLATE_UNKNOWN_STORE',
           `items[${index}] references unknown stores: ${missing.join(', ')}.`,
           { itemIndex: index, storeIds: missing },
+        );
+      }
+    }
+  }
+
+  /** Group codes must be on an item card of the firm; empty groups are not listed (ADR-045). */
+  private async assertItemGroupsExist(items: PreparedItem[]): Promise<void> {
+    const codes = [...new Set(items.flatMap((item) => item.lookups.itemGroups))];
+
+    if (codes.length === 0) {
+      return;
+    }
+
+    const found = await this.itemGroupRepository.find({
+      select: { code: true },
+      where: { code: In(codes) },
+    });
+    const existing = new Set(found.map((group) => group.code.toUpperCase()));
+
+    for (const [index, item] of items.entries()) {
+      const missing = item.lookups.itemGroups.filter((code) => !existing.has(code));
+
+      if (missing.length > 0) {
+        throw kpiTemplateBadRequest(
+          'KPI_TEMPLATE_UNKNOWN_ITEM_GROUP',
+          `items[${index}] references unknown item groups: ${missing.join(', ')}.`,
+          { itemIndex: index, groupCodes: missing },
         );
       }
     }

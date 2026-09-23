@@ -1,4 +1,4 @@
-import { KPI_REPORT_CODES } from '../reports/kpi-report-checks.js';
+export { isCalculableKpi } from '../reports/kpi-report-checks.js';
 
 /**
  * The score formula of docs/BUSINESS_RULES.md "Puan hesabı" (ADR-041):
@@ -63,13 +63,61 @@ export function planScore(scores: readonly Score[]): PlanScore {
   };
 }
 
-/** KPIs Tiger can measure; the rest (`EMPLOYEE_DISCIPLINE`, `STORE_CONVERSION`) are typed in. */
-export function isCalculableKpi(code: string): boolean {
-  return (KPI_REPORT_CODES as readonly string[]).includes(code);
-}
-
 function round(value: number): number {
   const factor = 10 ** SCORE_DECIMALS;
 
   return Math.round(value * factor) / factor;
+}
+
+/** What a stored or freshly built result row holds, as far as a change matters. */
+export interface ComparableResult extends Score {
+  assignmentItemId: string;
+  targetValue: number | null;
+  actualValue: number | null;
+  source: string;
+  weight: number;
+}
+
+/** `kpi_results` keeps four decimals (decimal(19,4)); Tiger sums can carry more. */
+const STORED_VALUE_DECIMALS = 4;
+
+/**
+ * True when a new calculation would write exactly what is stored. The scheduled
+ * recalculation (ADR-047) skips such plans, so the audit log only gains an entry when a
+ * number really moved. Values are compared at the precision the columns store.
+ */
+export function sameResults(
+  stored: readonly ComparableResult[],
+  next: readonly ComparableResult[],
+): boolean {
+  if (stored.length !== next.length) {
+    return false;
+  }
+
+  const byItem = new Map(stored.map((row) => [row.assignmentItemId.toLowerCase(), row]));
+
+  return next.every((row) => {
+    const previous = byItem.get(row.assignmentItemId.toLowerCase());
+
+    return (
+      previous !== undefined &&
+      previous.source === row.source &&
+      sameNumber(previous.targetValue, row.targetValue) &&
+      sameNumber(previous.actualValue, row.actualValue) &&
+      sameNumber(previous.weight, row.weight) &&
+      sameNumber(previous.rawAchievement, row.rawAchievement) &&
+      sameNumber(previous.cappedAchievement, row.cappedAchievement) &&
+      sameNumber(previous.weightedScore, row.weightedScore)
+    );
+  });
+}
+
+function sameNumber(left: number | null, right: number | null): boolean {
+  if (left === null || right === null) {
+    return left === right;
+  }
+
+  const factor = 10 ** STORED_VALUE_DECIMALS;
+
+  return Math.round(left * factor) === Math.round(right * factor);
 }

@@ -2,6 +2,7 @@ import { pickLocalizedText } from '../i18n/localized-text';
 import { useTranslation } from '../i18n/locale-store';
 import type { KpiInputField, KpiInputValue } from '../types/api';
 import { FormField, RequiredMark, formInputClassName, formInputDenseClassName } from './FormField';
+import { ItemGroupLookupField } from './ItemGroupLookupField';
 import { StoreLookupField } from './StoreLookupField';
 
 interface KpiInputFieldsProps {
@@ -48,6 +49,35 @@ export function KpiInputFields({
 
         switch (field.type) {
           case 'lookup': {
+            if (field.source === 'itemGroups') {
+              const codes = Array.isArray(current)
+                ? current.filter((entry): entry is string => typeof entry === 'string')
+                : typeof current === 'string'
+                  ? [current]
+                  : [];
+
+              return (
+                <FormField
+                  key={field.key}
+                  label={label}
+                  htmlFor={id}
+                  required={field.required}
+                  dense={dense}
+                >
+                  <ItemGroupLookupField
+                    id={id}
+                    multiple={field.multiple}
+                    value={codes}
+                    onChange={(next) =>
+                      setValue(field.key, field.multiple ? next : (next[0] ?? undefined))
+                    }
+                    required={field.required}
+                    inputClassName={inputClassName}
+                  />
+                </FormField>
+              );
+            }
+
             const ids = Array.isArray(current)
               ? current.filter((entry): entry is number => typeof entry === 'number')
               : typeof current === 'number'

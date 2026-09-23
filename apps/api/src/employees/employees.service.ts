@@ -160,6 +160,7 @@ export class EmployeesService {
           erpEmployeeId: dto.erpEmployeeId ?? null,
           firstname: dto.firstname,
           fullAccess: dto.fullAccess ?? false,
+          canEnterVisitorCounts: dto.canEnterVisitorCounts ?? false,
           isActive: dto.isActive ?? true,
           lastname: dto.lastname,
           passwordHash,
@@ -213,6 +214,9 @@ export class EmployeesService {
         if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber || null;
         if (dto.erpEmployeeId !== undefined) patch.erpEmployeeId = dto.erpEmployeeId;
         if (dto.fullAccess !== undefined) patch.fullAccess = dto.fullAccess;
+        if (dto.canEnterVisitorCounts !== undefined) {
+          patch.canEnterVisitorCounts = dto.canEnterVisitorCounts;
+        }
         if (dto.isActive !== undefined) patch.isActive = dto.isActive;
         if (dto.password !== undefined) {
           patch.passwordHash = await this.passwordService.hash(dto.password);

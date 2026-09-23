@@ -23,6 +23,11 @@ export interface EntityLookup {
   /** More than one when the row covers several stores; their values are added up. */
   entityRefs: number[];
   currency: string | null;
+  /**
+   * Item group KPIs (ADR-045): the groups the row covers, added up like the stores. Absent for
+   * every other KPI, whose value sources have no group column.
+   */
+  groupCodes?: string[];
 }
 
 export function readStoreIds(inputValues: string): number[] {
@@ -38,6 +43,16 @@ export function readCurrency(inputValues: string): string | null {
   const values = JSON.parse(inputValues) as Record<string, unknown>;
 
   return typeof values.currency === 'string' ? values.currency : null;
+}
+
+/** The item group codes of a group KPI row, as the input validator stored them. */
+export function readGroupCodes(inputValues: string): string[] | null {
+  const values = JSON.parse(inputValues) as Record<string, unknown>;
+  const groupCodes = values.groupCodes;
+
+  return Array.isArray(groupCodes)
+    ? groupCodes.filter((code): code is string => typeof code === 'string')
+    : null;
 }
 
 /** Local store id → Tiger branch number, for the stores the rows mention. */
@@ -81,7 +96,11 @@ export function buildEntityLookups(
 
             return nr === undefined ? [] : [nr];
           })
-        : [options.erpEmployeeId].flatMap((ref) => (ref === null || ref === undefined ? [] : [ref]));
+        : [options.erpEmployeeId].flatMap((ref) =>
+            ref === null || ref === undefined ? [] : [ref],
+          );
+
+    const groupCodes = readGroupCodes(item.inputValues);
 
     return entityRefs.length === 0
       ? []
@@ -91,27 +110,39 @@ export function buildEntityLookups(
             kpiCode: definition.code,
             entityRefs,
             currency: readCurrency(item.inputValues),
+            ...(groupCodes === null ? {} : { groupCodes }),
           },
         ];
   });
 }
 
-/** A row of a KPI value source (`kpi_report_summary`, `kpi_month_values`). */
+/**
+ * A row of a KPI value source (`kpi_report_summary`, `kpi_month_values` and their item group
+ * counterparts, which add `groupCode`).
+ */
 export interface EntityValueRow {
   kpiCode: string;
   entityRef: number;
   currency: string | null;
+  groupCode?: string | null;
 }
 
-/** The rows of one lookup: same KPI, same currency, any of the row's entities. */
+/**
+ * The rows of one lookup: same KPI, same currency, any of the row's entities and, for item
+ * group KPIs, any of its groups.
+ */
 export function matchRows<Row extends EntityValueRow>(
   lookup: EntityLookup,
   rows: readonly Row[],
 ): Row[] {
+  const groups = lookup.groupCodes?.map((code) => code.toUpperCase());
+
   return rows.filter(
     (row) =>
       row.kpiCode === lookup.kpiCode &&
       lookup.entityRefs.includes(Number(row.entityRef)) &&
-      (row.currency ?? null) === lookup.currency,
+      (row.currency ?? null) === lookup.currency &&
+      (groups === undefined ||
+        (typeof row.groupCode === 'string' && groups.includes(row.groupCode.toUpperCase()))),
   );
 }

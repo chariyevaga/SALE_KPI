@@ -25,6 +25,25 @@ const STORE_SALES_SCHEMA = parseKpiInputSchema([
   },
 ]);
 
+const STORE_GROUP_SALES_SCHEMA = parseKpiInputSchema([
+  {
+    key: 'storeIds',
+    type: 'lookup',
+    label: { tr: 'Mağazalar' },
+    required: true,
+    multiple: true,
+    source: 'stores',
+  },
+  {
+    key: 'groupCodes',
+    type: 'lookup',
+    label: { tr: 'Malzeme grupları' },
+    required: true,
+    multiple: true,
+    source: 'itemGroups',
+  },
+]);
+
 const MIXED_SCHEMA = parseKpiInputSchema([
   { key: 'minDays', type: 'number', label: { tr: 'Gün' }, required: false, min: 1, decimals: 0 },
   { key: 'includeReturns', type: 'boolean', label: { tr: 'İadeler' }, required: false },
@@ -46,7 +65,7 @@ void test('normalizes filled values into schema order with sorted lookup ids', (
 
   assert.deepEqual(parsed.values, { storeIds: [2, 4], currency: 'TMT' });
   assert.deepEqual(Object.keys(parsed.values), ['storeIds', 'currency']);
-  assert.deepEqual([...parsed.lookupIds], [['stores', [2, 4]]]);
+  assert.deepEqual(parsed.lookups, { stores: [2, 4], itemGroups: [] });
 });
 
 void test('accepts an empty object for a schema without fields', () => {
@@ -112,5 +131,34 @@ void test('validates numbers, booleans and multi-select values of optional field
   assert.throws(
     () => parseKpiInputValues(MIXED_SCHEMA, { includeReturns: 'yes' }),
     KpiInputValuesError,
+  );
+});
+
+void test('item group codes are trimmed, upper-cased and sorted text', () => {
+  const parsed = parseKpiInputValues(STORE_GROUP_SALES_SCHEMA, {
+    storeIds: [6],
+    groupCodes: ['tufli ', 'ELBISE'],
+  });
+
+  assert.deepEqual(parsed.values, { storeIds: [6], groupCodes: ['ELBISE', 'TUFLI'] });
+  assert.deepEqual(parsed.lookups, { stores: [6], itemGroups: ['ELBISE', 'TUFLI'] });
+});
+
+void test('item group codes must be 1-25 characters of text and unique', () => {
+  const withGroups = (groupCodes: unknown) =>
+    parseKpiInputValues(STORE_GROUP_SALES_SCHEMA, { storeIds: [6], groupCodes });
+
+  // Store ids are numbers, group codes are not.
+  assert.throws(() => withGroups([12]), /groupCodes\[0\] must be an item group code/);
+  assert.throws(() => withGroups(['  ']), /groupCodes\[0\] must be an item group code/);
+  assert.throws(() => withGroups(['X'.repeat(26)]), /must be an item group code of 1-25/);
+  // "elbise" and "ELBISE" are the same code, as they are in Tiger.
+  assert.throws(() => withGroups(['ELBISE', 'elbise']), /groupCodes contains duplicates/);
+});
+
+void test('store lookups still take positive integer ids only', () => {
+  assert.throws(
+    () => parseKpiInputValues(STORE_GROUP_SALES_SCHEMA, { storeIds: ['LOREM'], groupCodes: ['X'] }),
+    /storeIds\[0\] must be a positive integer id/,
   );
 });

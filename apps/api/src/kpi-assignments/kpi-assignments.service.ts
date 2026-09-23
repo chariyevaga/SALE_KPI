@@ -10,12 +10,14 @@ import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-respons
 import type { KpiScope, KpiUnit } from '../kpi-definitions/kpi-definition.types.js';
 import type { LocalizedText } from '../kpi-definitions/kpi-input-schema.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
+import { KpiResultEntity } from '../kpi-results/entities/kpi-result.entity.js';
 import { kpiPeriodClosed } from '../kpi-periods/kpi-period-errors.js';
 import { isPeriodOpen, periodLabel } from '../kpi-periods/kpi-period-rules.js';
 import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
 import type {
   ListKpiAssignmentsQueryDto,
+  ListMyKpiPeriodsQueryDto,
   MyKpiPlanQueryDto,
 } from './dto/kpi-assignment-query.dto.js';
 import type {
@@ -33,8 +35,10 @@ import {
   type KpiAssignmentResponse,
   type KpiAssignmentSkippedResponse,
   type KpiAssignmentSummaryResponse,
+  type KpiMyPeriodListResponse,
   toKpiAssignmentResponse,
   toKpiAssignmentSummary,
+  toKpiMyPeriod,
 } from './kpi-assignment-response.js';
 import {
   findIneligibleEmployees,
@@ -45,6 +49,8 @@ import {
 } from './kpi-assignment-rules.js';
 
 const DEFAULT_PAGE_SIZE = 20;
+/** One plan per month at most, so a page of the own-periods list is two years. */
+const MY_PERIODS_PAGE_SIZE = 24;
 
 /** A KPI row plus what its plan's log entry shows about it (ADR-036). */
 interface LoggedItem extends PlanItemValues {
@@ -310,6 +316,33 @@ export class KpiAssignmentsService {
     return assignment ? this.toResponse(assignment) : null;
   }
 
+  /** The periods the employee has a plan in, newest first: the My KPI screen's period list. */
+  async listMyPeriods(
+    employeeId: string,
+    query: ListMyKpiPeriodsQueryDto,
+  ): Promise<KpiMyPeriodListResponse> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? MY_PERIODS_PAGE_SIZE;
+    const [assignments, total] = await this.assignmentRepository
+      .createQueryBuilder('assignment')
+      .innerJoinAndSelect('assignment.period', 'period')
+      .where('assignment.employeeId = :employeeId', { employeeId })
+      .orderBy('period.year', 'DESC')
+      .addOrderBy('period.month', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items: assignments.map((assignment) =>
+        toKpiMyPeriod(assignment, this.readPeriod(assignment)),
+      ),
+      limit,
+      page,
+      total,
+    };
+  }
+
   /** Writes the targets of the sent rows; nothing else in a plan can change (ADR-039). */
   async setTargets(id: string, dto: SaveKpiTargetsDto): Promise<KpiAssignmentResponse> {
     const assignment = await this.assignmentRepository.findOne({
@@ -415,6 +448,14 @@ export class KpiAssignmentsService {
     const items = await this.loadPlanItems(this.dataSource.manager, assignment.id);
 
     await this.dataSource.transaction(async (manager) => {
+      // The results hang on the plan's rows (ADR-041), so they go first; like the rows
+      // themselves they are not logged one by one, the plan's own entry carries them.
+      await this.audit.delete(
+        manager,
+        KpiResultEntity,
+        { assignmentId: assignment.id },
+        { log: false },
+      );
       await this.audit.delete(
         manager,
         KpiAssignmentItemEntity,
@@ -522,6 +563,14 @@ export class KpiAssignmentsService {
     }
 
     return assignment.employee;
+  }
+
+  private readPeriod(assignment: KpiAssignmentEntity): KpiPeriodEntity {
+    if (!assignment.period) {
+      throw new Error(`kpi_assignments[${assignment.id}] was loaded without its period.`);
+    }
+
+    return assignment.period;
   }
 
   private async findPeriodOrFail(id: string): Promise<KpiPeriodEntity> {

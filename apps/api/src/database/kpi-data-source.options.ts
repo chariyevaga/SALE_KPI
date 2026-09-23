@@ -9,12 +9,15 @@ import { DeviceSessionEntity } from '../device-sessions/entities/device-session.
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { FileEntity } from '../files/entities/file.entity.js';
+import { ItemGroupEntity } from '../item-groups/entities/item-group.entity.js';
 import { KpiAssignmentItemEntity } from '../kpi-assignments/entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
 import { KpiDefinitionEntity } from '../kpi-definitions/entities/kpi-definition.entity.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
+import { KpiResultEntity } from '../kpi-results/entities/kpi-result.entity.js';
 import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
+import { StoreVisitorCountEntity } from '../store-visitor-counts/entities/store-visitor-count.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 
 export function getKpiDataSourceOptions(): DataSourceOptions {
@@ -33,12 +36,15 @@ export function getKpiDataSourceOptions(): DataSourceOptions {
       DeviceSessionEntity,
       ErpEmployeeEntity,
       StoreEntity,
+      ItemGroupEntity,
       KpiDefinitionEntity,
       KpiTemplateEntity,
       KpiTemplateItemEntity,
       KpiPeriodEntity,
+      KpiResultEntity,
       KpiAssignmentEntity,
       KpiAssignmentItemEntity,
+      StoreVisitorCountEntity,
       AuditLogEntity,
     ],
     // Rejects writes to audited tables that bypass AuditService (ADR-036).

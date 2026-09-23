@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { getFirmNumber, getTigerSharedCustomerCodes } from './environment.js';
+import {
+  getCorsOrigin,
+  getFirmNumber,
+  getKpiAutoCalculationIntervalMinutes,
+  getTigerSharedCustomerCodes,
+} from './environment.js';
 
 function withEnvironment(values: Record<string, string | undefined>, run: () => void): void {
   const previous = Object.fromEntries(Object.keys(values).map((name) => [name, process.env[name]]));
@@ -52,4 +57,40 @@ void test('keeps the firm number within what Logo supports', () => {
     assert.throws(() => getFirmNumber(), /FIRM_NR must be an integer between 1 and 999/),
   );
   withEnvironment({ FIRM_NR: '0' }, () => assert.throws(() => getFirmNumber()));
+});
+
+void test('reads the KPI auto-calculation interval; 0 switches it off', () => {
+  const name = 'KPI_AUTO_CALCULATION_INTERVAL_MINUTES';
+
+  withEnvironment({ [name]: undefined }, () => {
+    assert.equal(getKpiAutoCalculationIntervalMinutes(), 10);
+  });
+
+  withEnvironment({ [name]: '30' }, () => {
+    assert.equal(getKpiAutoCalculationIntervalMinutes(), 30);
+  });
+
+  withEnvironment({ [name]: '0' }, () => {
+    assert.equal(getKpiAutoCalculationIntervalMinutes(), 0);
+  });
+
+  for (const invalid of ['-1', '1.5', 'ten', '1441']) {
+    withEnvironment({ [name]: invalid }, () => {
+      assert.throws(() => getKpiAutoCalculationIntervalMinutes(), /between 0 \(off\) and 1440/);
+    });
+  }
+});
+
+void test('allows every origin in development and only the list elsewhere', () => {
+  const origins = 'http://localhost:5555, https://kpi.example.com';
+
+  withEnvironment({ NODE_ENV: 'development', CORS_ORIGINS: origins }, () => {
+    assert.equal(getCorsOrigin(), true);
+  });
+
+  for (const mode of ['production', 'test', undefined]) {
+    withEnvironment({ NODE_ENV: mode, CORS_ORIGINS: origins }, () => {
+      assert.deepEqual(getCorsOrigin(), ['http://localhost:5555', 'https://kpi.example.com']);
+    });
+  }
 });

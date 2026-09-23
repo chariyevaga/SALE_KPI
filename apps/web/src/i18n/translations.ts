@@ -53,6 +53,7 @@ interface TranslationShape {
     navLeaderboard: string;
     navMyKpi: string;
     navKpiPlans: string;
+    navVisitorCounts: string;
     navKpiTemplates: string;
     navSettings: string;
     navSessions: string;
@@ -177,6 +178,8 @@ interface TranslationShape {
     phoneLabel: string;
     fullAccessLabel: string;
     fullAccessHint: string;
+    visitorCountsLabel: string;
+    visitorCountsHint: string;
     erpEmployeeLabel: string;
     erpEmployeeNone: string;
     erpEmployeeSearchPlaceholder: string;
@@ -262,6 +265,13 @@ interface TranslationShape {
     storesNoResults: string;
     storesError: string;
     removeStore: string;
+    itemGroupsPlaceholder: string;
+    itemGroupsNoResults: string;
+    itemGroupsError: string;
+    itemGroupOption: string;
+    removeItemGroup: string;
+    ungroupedHint: string;
+    unknownItemGroup: string;
     selectPlaceholder: string;
     noInputs: string;
     totalWeight: string;
@@ -341,6 +351,7 @@ interface TranslationShape {
         erpEmployeeId: string;
         avatarId: string;
         fullAccess: string;
+        canEnterVisitorCounts: string;
         isActive: string;
         passwordHash: string;
       };
@@ -363,12 +374,16 @@ interface TranslationShape {
         templateName: string;
         items: string;
       };
+      store_visitor_counts: {
+        storeId: string;
+        visitDate: string;
+        visitorCount: string;
+      };
     };
   };
   kpiPlans: {
     title: string;
     periodLabel: string;
-    newPeriod: string;
     newPeriodTitle: string;
     year: string;
     month: string;
@@ -376,7 +391,19 @@ interface TranslationShape {
     statusOpen: string;
     statusClosed: string;
     closePeriod: string;
+    newPeriod: string;
     closeConfirm: string;
+    closeConfirmFinal: string;
+    reopenPeriod: string;
+    reopened: string;
+    reopenExpired: string;
+    periodOpenHint: string;
+    periodClosedReopenable: string;
+    periodClosedFinal: string;
+    periodPlans: string;
+    periodMissingTargets: string;
+    deletePlan: string;
+    deleted: string;
     closed: string;
     assign: string;
     assignTitle: string;
@@ -389,7 +416,6 @@ interface TranslationShape {
     copyConfirm: string;
     copied: string;
     copiedNone: string;
-    noPreviousPeriod: string;
     loading: string;
     errorLoading: string;
     empty: string;
@@ -404,7 +430,13 @@ interface TranslationShape {
     columnActions: string;
     openPlan: string;
     openPlanShort: string;
-    periodClosedHint: string;
+    calculateAll: string;
+    calculatingAll: string;
+    calculatedAll: string;
+    calculatedAllIncomplete: string;
+    columnScore: string;
+    noScore: string;
+    scoreValue: string;
     assignError: string;
     alreadyAssigned: string;
     ineligible: string;
@@ -428,6 +460,7 @@ interface TranslationShape {
     missingTarget: string;
     weight: string;
     stores: string;
+    itemGroups: string;
     currency: string;
     recommendation: string;
     recommendationMonths: string;
@@ -440,6 +473,14 @@ interface TranslationShape {
     deleteConfirm: string;
     deleteError: string;
     closedNotice: string;
+    calculate: string;
+    calculating: string;
+    calculated: string;
+    calculatedIncomplete: string;
+    actualLabel: string;
+    actualPlaceholder: string;
+    actualHint: string;
+    calculatedItem: string;
   };
   myKpi: {
     title: string;
@@ -447,9 +488,93 @@ interface TranslationShape {
     errorLoading: string;
     empty: string;
     period: string;
+    periodOption: string;
+    periodOpen: string;
+    periodClosed: string;
     weight: string;
     target: string;
     noTarget: string;
+  };
+  leaderboard: {
+    title: string;
+    period: string;
+    templateFilter: string;
+    allTemplates: string;
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    autoEvery: string;
+    autoOff: string;
+    periodClosed: string;
+    updatedAt: string;
+    notCalculated: string;
+    scoredOf: string;
+    you: string;
+    rank: string;
+    unranked: string;
+    colRank: string;
+    colEmployee: string;
+    colTemplate: string;
+    colScore: string;
+    myStanding: string;
+    placeShort: string;
+    myNotCalculated: string;
+    amongCount: string;
+    gapToNext: string;
+    leading: string;
+    podium: string;
+    others: string;
+  };
+  kpiProgress: {
+    totalScore: string;
+    outOf: string;
+    notCalculated: string;
+    calculatedAt: string;
+    incomplete: string;
+    achievement: string;
+    percent: string;
+    reached: string;
+    actualOfTarget: string;
+    actualOnly: string;
+    contribution: string;
+    noTarget: string;
+    noActual: string;
+    meterLabel: string;
+    scoreMeterLabel: string;
+  };
+  visitorCounts: {
+    title: string;
+    store: string;
+    date: string;
+    count: string;
+    countPlaceholder: string;
+    save: string;
+    update: string;
+    saving: string;
+    saved: string;
+    replaceHint: string;
+    existing: string;
+    readOnly: string;
+    listAll: string;
+    listStore: string;
+    showAll: string;
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    people: string;
+    edit: string;
+    editFor: string;
+    deleteFor: string;
+    deleteConfirm: string;
+    deleted: string;
+    errorUnknownStore: string;
+    errorFutureDate: string;
+    errorClosed: string;
+    saveError: string;
+    columnDate: string;
+    columnStore: string;
+    columnCount: string;
+    columnActions: string;
   };
   errors: {
     generic: string;
@@ -511,6 +636,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Sıralama tablosu',
       navMyKpi: 'KPI’larım',
       navKpiPlans: 'KPI planları',
+      navVisitorCounts: 'Ziyaretçi sayıları',
       navKpiTemplates: 'KPI şablonları',
       navSettings: 'Ayarlar',
       navSessions: 'Oturumlarım',
@@ -637,6 +763,9 @@ export const translations: Record<Locale, TranslationShape> = {
       phoneLabel: 'Telefon (opsiyonel)',
       fullAccessLabel: 'Yönetici erişimi',
       fullAccessHint: 'Çalışanlar ve dosya yönetimi gibi ekranlara erişebilir.',
+      visitorCountsLabel: 'Ziyaretçi sayısı girebilir',
+      visitorCountsHint:
+        'Mağazalara her gün giren kişi sayısını "Ziyaretçi sayıları" ekranından girer.',
       erpEmployeeLabel: 'ERP satış personeli (opsiyonel)',
       erpEmployeeNone: 'Bağlı değil',
       erpEmployeeSearchPlaceholder: 'Kod veya ad ile arayın',
@@ -726,6 +855,14 @@ export const translations: Record<Locale, TranslationShape> = {
       storesNoResults: 'Eşleşen mağaza bulunamadı.',
       storesError: 'Mağaza listesi yüklenemedi.',
       removeStore: '{name} mağazasını kaldır',
+      itemGroupsPlaceholder: 'Malzeme grubu ara ve ekle',
+      itemGroupsNoResults: 'Grup bulunamadı.',
+      itemGroupsError: 'Malzeme grupları yüklenemedi.',
+      itemGroupOption: '{code} · {count} ürün',
+      removeItemGroup: '{name} grubunu çıkar',
+      ungroupedHint:
+        'Grubu boş ürünler hiçbir grup KPI’ına girmez: son 12 ayda cironun %{share}’i. Ürün kartlarına Tiger’da grup verildikçe dahil olurlar.',
+      unknownItemGroup: '{number}. KPI artık bulunmayan malzeme grubu içeriyor: {codes}.',
       selectPlaceholder: 'Seçin',
       noInputs: 'Bu KPI için hedef dışında ek bilgi gerekmez.',
       totalWeight: 'Toplam ağırlık: %{total} / %100',
@@ -810,6 +947,7 @@ export const translations: Record<Locale, TranslationShape> = {
           erpEmployeeId: 'ERP satış personeli',
           avatarId: 'Profil fotoğrafı',
           fullAccess: 'Yönetici erişimi',
+          canEnterVisitorCounts: 'Ziyaretçi sayısı girebilir',
           isActive: 'Durum',
           passwordHash: 'Parola',
         },
@@ -832,12 +970,16 @@ export const translations: Record<Locale, TranslationShape> = {
           templateName: 'Şablon adı',
           items: 'KPI’lar',
         },
+        store_visitor_counts: {
+          storeId: 'Mağaza',
+          visitDate: 'Gün',
+          visitorCount: 'Giren kişi sayısı',
+        },
       },
     },
     kpiPlans: {
       title: 'KPI planları',
       periodLabel: 'Dönem',
-      newPeriod: 'Ay aç',
       newPeriodTitle: 'Yeni dönem aç',
       year: 'Yıl',
       month: 'Ay',
@@ -845,8 +987,22 @@ export const translations: Record<Locale, TranslationShape> = {
       statusOpen: 'Açık',
       statusClosed: 'Kapalı',
       closePeriod: 'Dönemi kapat',
+      newPeriod: 'Yeni dönem',
       closeConfirm:
-        '{period} dönemi kapatılsın mı? Kapalı dönemde plan ve hedef değiştirilemez, dönem yeniden açılamaz.',
+        '{period} dönemi kapatılsın mı? Kapalı dönemde plan, hedef ve puan değiştirilemez. Yanlışlıkla kapatırsanız {date} tarihine kadar yeniden açabilirsiniz.',
+      closeConfirmFinal:
+        '{period} dönemi kapatılsın mı? Yeniden açma süresi geçtiği için kapanış kesin olur; plan, hedef ve puan bir daha değiştirilemez.',
+      reopenPeriod: 'Dönemi yeniden aç',
+      reopened: '{period} dönemi yeniden açıldı.',
+      reopenExpired: 'Bu dönem {date} tarihine kadar yeniden açılabilirdi; artık kesinleşti.',
+      periodOpenHint: 'Planlar, hedefler ve puanlar değiştirilebilir.',
+      periodClosedReopenable:
+        'Değişiklik yapılamaz. Yanlışlıkla kapattıysanız {date} tarihine kadar yeniden açabilirsiniz.',
+      periodClosedFinal: 'Kesinleşti: değişiklik yapılamaz, yeniden açılamaz.',
+      periodPlans: '{count} plan',
+      periodMissingTargets: '{count} planın hedefi eksik',
+      deletePlan: '{name} planını sil',
+      deleted: '{name} çalışanının planı silindi.',
       closed: '{period} dönemi kapatıldı.',
       assign: 'Şablon ata',
       assignTitle: 'Şablon ata',
@@ -859,7 +1015,6 @@ export const translations: Record<Locale, TranslationShape> = {
       copyConfirm: '{period} dönemindeki planlar hedefleriyle kopyalansın mı?',
       copied: '{created} plan kopyalandı, {skipped} çalışan atlandı.',
       copiedNone: 'Kopyalanacak uygun plan bulunamadı.',
-      noPreviousPeriod: 'Önceki dönem yok',
       loading: 'Yükleniyor…',
       errorLoading: 'Planlar yüklenemedi.',
       empty: 'Bu dönemde henüz plan yok.',
@@ -874,7 +1029,13 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'İşlem',
       openPlan: '{name} planını aç',
       openPlanShort: 'Aç',
-      periodClosedHint: 'Bu dönem kapalı; planlar salt okunur.',
+      calculateAll: 'Tümünü hesapla',
+      calculatingAll: 'Hesaplanıyor…',
+      calculatedAll: '{count} planın puanı hesaplandı.',
+      calculatedAllIncomplete: '{count} planın puanı hesaplandı; {incomplete} planın puanı eksik.',
+      columnScore: 'Puan',
+      noScore: '—',
+      scoreValue: '{value} puan',
       assignError: 'Plan oluşturulamadı.',
       alreadyAssigned: 'Bu çalışanların bu dönemde zaten planı var: {names}',
       ineligible: 'Bu çalışanlara plan verilemez: {names}',
@@ -898,6 +1059,7 @@ export const translations: Record<Locale, TranslationShape> = {
       missingTarget: 'Hedef girilmedi',
       weight: 'Ağırlık %{value}',
       stores: 'Mağazalar',
+      itemGroups: 'Gruplar',
       currency: 'Para birimi',
       recommendation: 'Ortalama {average} · Ulaşılabilir max {max} · Önerilen {recommended}',
       recommendationMonths: '{count} aylık veri',
@@ -910,16 +1072,109 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm: '{name} çalışanının {period} planı silinsin mi?',
       deleteError: 'Plan silinemedi.',
       closedNotice: '{period} dönemi kapalı; hedefler salt okunur.',
+      calculate: 'Hesapla',
+      calculating: 'Hesaplanıyor…',
+      calculated: 'Puan hesaplandı.',
+      calculatedIncomplete: 'Puan hesaplandı; {done}/{total} satır puanlanabildi.',
+      actualLabel: 'Gerçekleşen',
+      actualPlaceholder: 'Elle girilir',
+      actualHint: 'Bu KPI Tiger’dan hesaplanmaz; değeri siz girersiniz.',
+      calculatedItem: 'Bu KPI Tiger’dan hesaplanıyor, elle girilemez.',
     },
     myKpi: {
       title: 'KPI’larım',
       loading: 'Yükleniyor…',
       errorLoading: 'KPI planınız yüklenemedi.',
-      empty: 'Bu ay için size verilmiş bir KPI planı yok.',
+      empty: 'Size henüz bir KPI planı verilmedi.',
       period: 'Dönem',
+      periodOption: '{period} · {score} puan',
+      periodOpen: 'Dönem açık; puan henüz kesinleşmedi.',
+      periodClosed: 'Dönem kapandı; puan kesinleşti.',
       weight: 'Ağırlık',
       target: 'Hedef',
       noTarget: 'Hedef henüz girilmedi',
+    },
+    leaderboard: {
+      title: 'Sıralama tablosu',
+      period: 'Dönem',
+      templateFilter: 'Şablona göre süz',
+      allTemplates: 'Tümü',
+      loading: 'Yükleniyor…',
+      errorLoading: 'Sıralama yüklenemedi.',
+      empty: 'Bu dönemde henüz KPI planı yok.',
+      autoEvery: 'Puanlar {minutes} dakikada bir kendiliğinden güncellenir',
+      autoOff: 'Otomatik güncelleme kapalı',
+      periodClosed: 'Dönem kapandı; puanlar kesin',
+      updatedAt: 'son güncelleme {at}',
+      notCalculated: 'Puan henüz hesaplanmadı',
+      scoredOf: '{done}/{total} KPI puanlandı',
+      you: 'Sen',
+      rank: '{rank}. sıra',
+      unranked: 'Sırası yok',
+      colRank: 'Sıra',
+      colEmployee: 'Çalışan',
+      colTemplate: 'Şablon',
+      colScore: 'Puan',
+      myStanding: 'Senin yerin',
+      placeShort: 'sıra',
+      myNotCalculated: 'Puanın henüz hesaplanmadı.',
+      amongCount: '{count} kişi arasında',
+      gapToNext: '{rank}. sıraya çıkmak için {gap} puan daha',
+      leading: 'Zirvedesin! Böyle devam.',
+      podium: 'İlk üç',
+      others: 'Diğer sıralar',
+    },
+    kpiProgress: {
+      totalScore: 'Toplam puan',
+      outOf: '/ {max}',
+      notCalculated: 'Puan henüz hesaplanmadı.',
+      calculatedAt: 'Son hesaplama: {at}',
+      incomplete: '{done}/{total} KPI puanlandı; kalanların hedefi ya da gerçekleşeni yok.',
+      achievement: 'Gerçekleşme',
+      percent: '%{value}',
+      reached: 'Hedefe ulaşıldı',
+      actualOfTarget: 'Gerçekleşen {actual} / hedef {target}',
+      actualOnly: 'Gerçekleşen {actual}',
+      contribution: 'Katkı {score} / {weight}',
+      noTarget: 'Hedef girilmediği için puanlanmadı.',
+      noActual: 'Gerçekleşen girilmediği için puanlanmadı.',
+      meterLabel: '{name} gerçekleşmesi',
+      scoreMeterLabel: '{name} toplam puanı',
+    },
+    visitorCounts: {
+      title: 'Ziyaretçi sayıları',
+      store: 'Mağaza',
+      date: 'Gün',
+      count: 'Giren kişi sayısı',
+      countPlaceholder: 'Örn. 184',
+      save: 'Kaydet',
+      update: 'Güncelle',
+      saving: 'Kaydediliyor…',
+      saved: '{store} · {date}: {count} kişi kaydedildi.',
+      replaceHint: 'Aynı mağaza ve gün yeniden girilirse sayı güncellenir.',
+      existing: 'Bu gün için kayıtlı sayı: {count}. Kaydedince değişir.',
+      readOnly:
+        'Bu ekranı yalnız görüntüleyebilirsiniz. Sayı girmek için çalışan kaydınızda "Ziyaretçi sayısı girebilir" açık olmalı.',
+      listAll: 'Son girişler (tüm mağazalar)',
+      listStore: 'Seçili mağazanın girişleri',
+      showAll: 'Tüm mağazaları göster',
+      loading: 'Yükleniyor…',
+      errorLoading: 'Girişler yüklenemedi.',
+      empty: 'Henüz giriş yok.',
+      people: 'kişi',
+      edit: 'Düzenle',
+      editFor: '{store} · {date} girişini düzenle',
+      deleteFor: '{store} · {date} girişini sil',
+      deleteConfirm: '{store} mağazasının {date} günlük sayısı silinsin mi?',
+      deleted: 'Giriş silindi.',
+      errorUnknownStore: 'Seçilen mağaza Tiger’da bulunamadı.',
+      errorFutureDate: 'Gelecekteki bir gün için sayı girilemez.',
+      errorClosed: 'Bu gün kapalı bir KPI dönemine ait; sayı değiştirilemez.',
+      saveError: 'Sayı kaydedilemedi.',
+      columnDate: 'Gün',
+      columnStore: 'Mağaza',
+      columnCount: 'Giren kişi',
+      columnActions: 'İşlem',
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -979,6 +1234,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Leaderboard',
       navMyKpi: 'My KPI',
       navKpiPlans: 'KPI plans',
+      navVisitorCounts: 'Visitor counts',
       navKpiTemplates: 'KPI templates',
       navSessions: 'My sessions',
       navSettings: 'Settings',
@@ -1105,6 +1361,9 @@ export const translations: Record<Locale, TranslationShape> = {
       phoneLabel: 'Phone (optional)',
       fullAccessLabel: 'Admin access',
       fullAccessHint: 'Can access screens like employees and file management.',
+      visitorCountsLabel: 'Can enter visitor counts',
+      visitorCountsHint:
+        'Enters how many people walked into the stores each day on the "Visitor counts" screen.',
       erpEmployeeLabel: 'ERP sales rep (optional)',
       erpEmployeeNone: 'Not linked',
       erpEmployeeSearchPlaceholder: 'Search by code or name',
@@ -1194,6 +1453,14 @@ export const translations: Record<Locale, TranslationShape> = {
       storesNoResults: 'No matching store found.',
       storesError: 'Could not load the store list.',
       removeStore: 'Remove {name}',
+      itemGroupsPlaceholder: 'Search and add an item group',
+      itemGroupsNoResults: 'No group found.',
+      itemGroupsError: 'Item groups could not be loaded.',
+      itemGroupOption: '{code} · {count} items',
+      removeItemGroup: 'Remove group {name}',
+      ungroupedHint:
+        'Items without a group count in no group KPI: {share}% of the last 12 months’ sales. They count once their item cards get a group in Tiger.',
+      unknownItemGroup: 'KPI {number} contains item groups that no longer exist: {codes}.',
       selectPlaceholder: 'Select',
       noInputs: 'This KPI needs nothing besides the target.',
       totalWeight: 'Total weight: {total}% / 100%',
@@ -1277,6 +1544,7 @@ export const translations: Record<Locale, TranslationShape> = {
           erpEmployeeId: 'ERP sales rep',
           avatarId: 'Profile photo',
           fullAccess: 'Admin access',
+          canEnterVisitorCounts: 'Can enter visitor counts',
           isActive: 'Status',
           passwordHash: 'Password',
         },
@@ -1299,12 +1567,16 @@ export const translations: Record<Locale, TranslationShape> = {
           templateName: 'Template name',
           items: 'KPIs',
         },
+        store_visitor_counts: {
+          storeId: 'Store',
+          visitDate: 'Day',
+          visitorCount: 'People who came in',
+        },
       },
     },
     kpiPlans: {
       title: 'KPI plans',
       periodLabel: 'Period',
-      newPeriod: 'Open month',
       newPeriodTitle: 'Open a new period',
       year: 'Year',
       month: 'Month',
@@ -1312,8 +1584,22 @@ export const translations: Record<Locale, TranslationShape> = {
       statusOpen: 'Open',
       statusClosed: 'Closed',
       closePeriod: 'Close period',
+      newPeriod: 'New period',
       closeConfirm:
-        'Close the {period} period? Plans and targets can no longer be changed and the period cannot be reopened.',
+        'Close the {period} period? Plans, targets and scores can no longer be changed. If you close it by mistake, you can reopen it until {date}.',
+      closeConfirmFinal:
+        'Close the {period} period? The reopening window has passed, so closing is final: plans, targets and scores can never be changed again.',
+      reopenPeriod: 'Reopen period',
+      reopened: 'The {period} period is open again.',
+      reopenExpired: 'This period could be reopened until {date}; it is final now.',
+      periodOpenHint: 'Plans, targets and scores can be changed.',
+      periodClosedReopenable:
+        'Nothing can be changed. If it was closed by mistake, you can reopen it until {date}.',
+      periodClosedFinal: 'Final: nothing can be changed and it cannot be reopened.',
+      periodPlans: '{count} plans',
+      periodMissingTargets: '{count} plans are missing targets',
+      deletePlan: 'Delete the plan of {name}',
+      deleted: 'The plan of {name} was deleted.',
       closed: 'The {period} period is closed.',
       assign: 'Assign template',
       assignTitle: 'Assign template',
@@ -1326,7 +1612,6 @@ export const translations: Record<Locale, TranslationShape> = {
       copyConfirm: 'Copy the plans of {period} with their targets?',
       copied: '{created} plans copied, {skipped} employees skipped.',
       copiedNone: 'No plan could be copied.',
-      noPreviousPeriod: 'No earlier period',
       loading: 'Loading…',
       errorLoading: 'Could not load the plans.',
       empty: 'No plans in this period yet.',
@@ -1341,7 +1626,13 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Actions',
       openPlan: 'Open the plan of {name}',
       openPlanShort: 'Open',
-      periodClosedHint: 'This period is closed; plans are read-only.',
+      calculateAll: 'Calculate all',
+      calculatingAll: 'Calculating…',
+      calculatedAll: '{count} plans were scored.',
+      calculatedAllIncomplete: '{count} plans were scored; {incomplete} are still incomplete.',
+      columnScore: 'Score',
+      noScore: '—',
+      scoreValue: '{value} pts',
       assignError: 'Could not create the plans.',
       alreadyAssigned: 'These employees already have a plan in this period: {names}',
       ineligible: 'These employees cannot be given this template: {names}',
@@ -1366,6 +1657,7 @@ export const translations: Record<Locale, TranslationShape> = {
       missingTarget: 'No target yet',
       weight: 'Weight {value}%',
       stores: 'Stores',
+      itemGroups: 'Groups',
       currency: 'Currency',
       recommendation: 'Average {average} · Achievable max {max} · Suggested {recommended}',
       recommendationMonths: '{count} months of data',
@@ -1378,16 +1670,109 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm: 'Delete the {period} plan of {name}?',
       deleteError: 'Could not delete the plan.',
       closedNotice: 'The {period} period is closed; targets are read-only.',
+      calculate: 'Calculate',
+      calculating: 'Calculating…',
+      calculated: 'The score was calculated.',
+      calculatedIncomplete: 'The score was calculated; {done}/{total} rows could be scored.',
+      actualLabel: 'Actual',
+      actualPlaceholder: 'Typed in',
+      actualHint: 'Tiger cannot measure this KPI; you enter the value.',
+      calculatedItem: 'This KPI is read from Tiger and cannot be typed in.',
     },
     myKpi: {
       title: 'My KPI',
       loading: 'Loading…',
       errorLoading: 'Could not load your KPI plan.',
-      empty: 'You have no KPI plan for this month.',
+      empty: 'No KPI plan has been assigned to you yet.',
       period: 'Period',
+      periodOption: '{period} · {score} pts',
+      periodOpen: 'Period open; the score is not final yet.',
+      periodClosed: 'Period closed; the score is final.',
       weight: 'Weight',
       target: 'Target',
       noTarget: 'No target yet',
+    },
+    leaderboard: {
+      title: 'Leaderboard',
+      period: 'Period',
+      templateFilter: 'Filter by template',
+      allTemplates: 'All',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the leaderboard.',
+      empty: 'There are no KPI plans in this period yet.',
+      autoEvery: 'Scores update on their own every {minutes} minutes',
+      autoOff: 'Automatic updates are off',
+      periodClosed: 'Period closed; scores are final',
+      updatedAt: 'last updated {at}',
+      notCalculated: 'Score not calculated yet',
+      scoredOf: '{done}/{total} KPIs scored',
+      you: 'You',
+      rank: 'Rank {rank}',
+      unranked: 'Not ranked',
+      colRank: 'Rank',
+      colEmployee: 'Employee',
+      colTemplate: 'Template',
+      colScore: 'Score',
+      myStanding: 'Your place',
+      placeShort: 'place',
+      myNotCalculated: 'Your score has not been calculated yet.',
+      amongCount: 'out of {count} people',
+      gapToNext: '{gap} more points to reach place {rank}',
+      leading: 'You are on top! Keep it up.',
+      podium: 'Top three',
+      others: 'Everyone else',
+    },
+    kpiProgress: {
+      totalScore: 'Total score',
+      outOf: '/ {max}',
+      notCalculated: 'The score has not been calculated yet.',
+      calculatedAt: 'Last calculated: {at}',
+      incomplete: '{done}/{total} KPIs scored; the rest have no target or no actual value.',
+      achievement: 'Achievement',
+      percent: '{value}%',
+      reached: 'Target reached',
+      actualOfTarget: 'Actual {actual} / target {target}',
+      actualOnly: 'Actual {actual}',
+      contribution: 'Contribution {score} / {weight}',
+      noTarget: 'Not scored: there is no target.',
+      noActual: 'Not scored: the actual value has not been entered.',
+      meterLabel: '{name} achievement',
+      scoreMeterLabel: '{name} total score',
+    },
+    visitorCounts: {
+      title: 'Visitor counts',
+      store: 'Store',
+      date: 'Day',
+      count: 'People who came in',
+      countPlaceholder: 'e.g. 184',
+      save: 'Save',
+      update: 'Update',
+      saving: 'Saving…',
+      saved: '{store} · {date}: {count} people saved.',
+      replaceHint: 'Entering the same store and day again replaces the number.',
+      existing: 'Already saved for this day: {count}. Saving replaces it.',
+      readOnly:
+        'You can only view this screen. To enter counts, "Can enter visitor counts" must be on in your employee record.',
+      listAll: 'Latest entries (all stores)',
+      listStore: 'Entries of the selected store',
+      showAll: 'Show all stores',
+      loading: 'Loading…',
+      errorLoading: 'Could not load the entries.',
+      empty: 'No entries yet.',
+      people: 'people',
+      edit: 'Edit',
+      editFor: 'Edit the entry of {store} · {date}',
+      deleteFor: 'Delete the entry of {store} · {date}',
+      deleteConfirm: 'Delete the count of {store} for {date}?',
+      deleted: 'The entry was deleted.',
+      errorUnknownStore: 'The selected store was not found in Tiger.',
+      errorFutureDate: 'A count cannot be entered for a future day.',
+      errorClosed: 'This day belongs to a closed KPI period; its count cannot change.',
+      saveError: 'The count could not be saved.',
+      columnDate: 'Day',
+      columnStore: 'Store',
+      columnCount: 'People',
+      columnActions: 'Actions',
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -1447,6 +1832,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Рейтинг',
       navMyKpi: 'Мои KPI',
       navKpiPlans: 'Планы KPI',
+      navVisitorCounts: 'Посетители',
       navKpiTemplates: 'Шаблоны KPI',
       navSessions: 'Мои сессии',
       navSettings: 'Настройки',
@@ -1574,6 +1960,8 @@ export const translations: Record<Locale, TranslationShape> = {
       phoneLabel: 'Телефон (необязательно)',
       fullAccessLabel: 'Права администратора',
       fullAccessHint: 'Доступ к разделам «Сотрудники» и управлению файлами.',
+      visitorCountsLabel: 'Может вводить число посетителей',
+      visitorCountsHint: 'Вводит на экране «Посетители», сколько человек за день вошло в магазины.',
       erpEmployeeLabel: 'Продавец ERP (необязательно)',
       erpEmployeeNone: 'Не привязан',
       erpEmployeeSearchPlaceholder: 'Поиск по коду или имени',
@@ -1664,6 +2052,14 @@ export const translations: Record<Locale, TranslationShape> = {
       storesNoResults: 'Подходящие магазины не найдены.',
       storesError: 'Не удалось загрузить список магазинов.',
       removeStore: 'Удалить {name}',
+      itemGroupsPlaceholder: 'Найдите и добавьте группу товаров',
+      itemGroupsNoResults: 'Группа не найдена.',
+      itemGroupsError: 'Не удалось загрузить группы товаров.',
+      itemGroupOption: '{code} · товаров: {count}',
+      removeItemGroup: 'Убрать группу {name}',
+      ungroupedHint:
+        'Товары без группы не входят ни в один групповой KPI: {share}% выручки за 12 месяцев. Они будут учитываться, когда карточкам в Tiger назначат группу.',
+      unknownItemGroup: 'KPI {number} содержит несуществующие группы товаров: {codes}.',
       selectPlaceholder: 'Выберите',
       noInputs: 'Для этого KPI нужна только цель.',
       totalWeight: 'Общий вес: {total} % / 100 %',
@@ -1748,6 +2144,7 @@ export const translations: Record<Locale, TranslationShape> = {
           erpEmployeeId: 'Продавец ERP',
           avatarId: 'Фото профиля',
           fullAccess: 'Права администратора',
+          canEnterVisitorCounts: 'Может вводить число посетителей',
           isActive: 'Статус',
           passwordHash: 'Пароль',
         },
@@ -1770,12 +2167,16 @@ export const translations: Record<Locale, TranslationShape> = {
           templateName: 'Название шаблона',
           items: 'KPI',
         },
+        store_visitor_counts: {
+          storeId: 'Магазин',
+          visitDate: 'День',
+          visitorCount: 'Сколько человек вошло',
+        },
       },
     },
     kpiPlans: {
       title: 'Планы KPI',
       periodLabel: 'Период',
-      newPeriod: 'Открыть месяц',
       newPeriodTitle: 'Открыть новый период',
       year: 'Год',
       month: 'Месяц',
@@ -1783,8 +2184,22 @@ export const translations: Record<Locale, TranslationShape> = {
       statusOpen: 'Открыт',
       statusClosed: 'Закрыт',
       closePeriod: 'Закрыть период',
+      newPeriod: 'Новый период',
       closeConfirm:
-        'Закрыть период {period}? После этого планы и цели изменить нельзя, период не открывается заново.',
+        'Закрыть период {period}? Планы, цели и баллы больше нельзя будет изменить. Если закроете по ошибке, период можно открыть заново до {date}.',
+      closeConfirmFinal:
+        'Закрыть период {period}? Срок повторного открытия прошёл, поэтому закрытие окончательное: планы, цели и баллы больше не изменить.',
+      reopenPeriod: 'Открыть период заново',
+      reopened: 'Период {period} снова открыт.',
+      reopenExpired: 'Этот период можно было открыть заново до {date}; теперь он окончательный.',
+      periodOpenHint: 'Планы, цели и баллы можно изменять.',
+      periodClosedReopenable:
+        'Изменения невозможны. Если период закрыт по ошибке, его можно открыть заново до {date}.',
+      periodClosedFinal: 'Окончательно: изменения невозможны, открыть заново нельзя.',
+      periodPlans: 'Планов: {count}',
+      periodMissingTargets: 'Планов с незаполненными целями: {count}',
+      deletePlan: 'Удалить план: {name}',
+      deleted: 'План сотрудника {name} удалён.',
       closed: 'Период {period} закрыт.',
       assign: 'Назначить шаблон',
       assignTitle: 'Назначить шаблон',
@@ -1797,7 +2212,6 @@ export const translations: Record<Locale, TranslationShape> = {
       copyConfirm: 'Скопировать планы периода {period} вместе с целями?',
       copied: 'Скопировано планов: {created}, пропущено сотрудников: {skipped}.',
       copiedNone: 'Подходящих планов для копирования нет.',
-      noPreviousPeriod: 'Нет предыдущего периода',
       loading: 'Загрузка…',
       errorLoading: 'Не удалось загрузить планы.',
       empty: 'В этом периоде пока нет планов.',
@@ -1812,7 +2226,13 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Действие',
       openPlan: 'Открыть план: {name}',
       openPlanShort: 'Открыть',
-      periodClosedHint: 'Период закрыт; планы только для чтения.',
+      calculateAll: 'Рассчитать все',
+      calculatingAll: 'Расчёт…',
+      calculatedAll: 'Рассчитаны баллы {count} планов.',
+      calculatedAllIncomplete: 'Рассчитаны баллы {count} планов; у {incomplete} балл неполный.',
+      columnScore: 'Балл',
+      noScore: '—',
+      scoreValue: '{value} б.',
       assignError: 'Не удалось создать планы.',
       alreadyAssigned: 'У этих сотрудников уже есть план в периоде: {names}',
       ineligible: 'Этим сотрудникам нельзя назначить шаблон: {names}',
@@ -1837,6 +2257,7 @@ export const translations: Record<Locale, TranslationShape> = {
       missingTarget: 'Цель не задана',
       weight: 'Вес {value}%',
       stores: 'Магазины',
+      itemGroups: 'Группы',
       currency: 'Валюта',
       recommendation: 'Среднее {average} · Достижимый максимум {max} · Рекомендуется {recommended}',
       recommendationMonths: 'данных за {count} мес.',
@@ -1849,16 +2270,109 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm: 'Удалить план {period} сотрудника {name}?',
       deleteError: 'Не удалось удалить план.',
       closedNotice: 'Период {period} закрыт; цели только для чтения.',
+      calculate: 'Рассчитать',
+      calculating: 'Расчёт…',
+      calculated: 'Балл рассчитан.',
+      calculatedIncomplete: 'Балл рассчитан; оценено строк: {done}/{total}.',
+      actualLabel: 'Факт',
+      actualPlaceholder: 'Вводится вручную',
+      actualHint: 'Этот KPI не рассчитывается из Tiger; значение вводите вы.',
+      calculatedItem: 'Этот KPI читается из Tiger и не вводится вручную.',
     },
     myKpi: {
       title: 'Мои KPI',
       loading: 'Загрузка…',
       errorLoading: 'Не удалось загрузить ваш план KPI.',
-      empty: 'На этот месяц у вас нет плана KPI.',
+      empty: 'Вам ещё не назначен план KPI.',
       period: 'Период',
+      periodOption: '{period} · {score} б.',
+      periodOpen: 'Период открыт; балл ещё не окончательный.',
+      periodClosed: 'Период закрыт; балл окончательный.',
       weight: 'Вес',
       target: 'Цель',
       noTarget: 'Цель ещё не задана',
+    },
+    leaderboard: {
+      title: 'Рейтинг',
+      period: 'Период',
+      templateFilter: 'Фильтр по шаблону',
+      allTemplates: 'Все',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить рейтинг.',
+      empty: 'В этом периоде пока нет KPI-планов.',
+      autoEvery: 'Баллы обновляются автоматически каждые {minutes} мин',
+      autoOff: 'Автообновление выключено',
+      periodClosed: 'Период закрыт; баллы окончательные',
+      updatedAt: 'обновлено {at}',
+      notCalculated: 'Балл ещё не рассчитан',
+      scoredOf: 'Оценено KPI: {done}/{total}',
+      you: 'Вы',
+      rank: '{rank}-е место',
+      unranked: 'Без места',
+      colRank: 'Место',
+      colEmployee: 'Сотрудник',
+      colTemplate: 'Шаблон',
+      colScore: 'Балл',
+      myStanding: 'Ваше место',
+      placeShort: 'место',
+      myNotCalculated: 'Ваш балл ещё не рассчитан.',
+      amongCount: 'из {count} человек',
+      gapToNext: 'Ещё {gap} балла до {rank}-го места',
+      leading: 'Вы на первом месте! Так держать.',
+      podium: 'Тройка лидеров',
+      others: 'Остальные места',
+    },
+    kpiProgress: {
+      totalScore: 'Итоговый балл',
+      outOf: '/ {max}',
+      notCalculated: 'Балл ещё не рассчитан.',
+      calculatedAt: 'Последний расчёт: {at}',
+      incomplete: 'Оценено {done}/{total} KPI; у остальных нет цели или факта.',
+      achievement: 'Выполнение',
+      percent: '{value}%',
+      reached: 'Цель достигнута',
+      actualOfTarget: 'Факт {actual} / цель {target}',
+      actualOnly: 'Факт {actual}',
+      contribution: 'Вклад {score} / {weight}',
+      noTarget: 'Не оценено: цель не задана.',
+      noActual: 'Не оценено: факт не введён.',
+      meterLabel: 'Выполнение: {name}',
+      scoreMeterLabel: 'Итоговый балл: {name}',
+    },
+    visitorCounts: {
+      title: 'Посетители',
+      store: 'Магазин',
+      date: 'День',
+      count: 'Сколько человек вошло',
+      countPlaceholder: 'Напр. 184',
+      save: 'Сохранить',
+      update: 'Обновить',
+      saving: 'Сохранение…',
+      saved: '{store} · {date}: сохранено, {count} чел.',
+      replaceHint: 'Если снова ввести тот же магазин и день, число заменится.',
+      existing: 'На этот день уже сохранено: {count}. Сохранение заменит число.',
+      readOnly:
+        'Этот экран доступен только для просмотра. Чтобы вводить данные, в карточке сотрудника должно быть включено «Может вводить число посетителей».',
+      listAll: 'Последние записи (все магазины)',
+      listStore: 'Записи выбранного магазина',
+      showAll: 'Показать все магазины',
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить записи.',
+      empty: 'Записей пока нет.',
+      people: 'чел.',
+      edit: 'Изменить',
+      editFor: 'Изменить запись: {store} · {date}',
+      deleteFor: 'Удалить запись: {store} · {date}',
+      deleteConfirm: 'Удалить число посетителей магазина {store} за {date}?',
+      deleted: 'Запись удалена.',
+      errorUnknownStore: 'Выбранный магазин не найден в Tiger.',
+      errorFutureDate: 'Нельзя вводить число за будущий день.',
+      errorClosed: 'Этот день относится к закрытому периоду KPI; число изменить нельзя.',
+      saveError: 'Не удалось сохранить число.',
+      columnDate: 'День',
+      columnStore: 'Магазин',
+      columnCount: 'Посетители',
+      columnActions: 'Действие',
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -1918,6 +2432,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navLeaderboard: 'Reýting tablisasy',
       navMyKpi: 'Meniň KPI-larym',
       navKpiPlans: 'KPI meýilnamalary',
+      navVisitorCounts: 'Gelýänleriň sany',
       navKpiTemplates: 'KPI şablonlary',
       navSessions: 'Meniň sessiýalarym',
       navSettings: 'Sazlamalar',
@@ -2044,6 +2559,9 @@ export const translations: Record<Locale, TranslationShape> = {
       phoneLabel: 'Telefon (hökman däl)',
       fullAccessLabel: 'Admin hukugy',
       fullAccessHint: 'Işgärler we faýl dolandyryşy ýaly ekranlara girip bilýär.',
+      visitorCountsLabel: 'Gelýänleriň sanyny girizip biler',
+      visitorCountsHint:
+        'Dükanlara her gün giren adam sanyny "Gelýänleriň sany" ekranynda girizýär.',
       erpEmployeeLabel: 'ERP satyjysy (hökman däl)',
       erpEmployeeNone: 'Baglanmadyk',
       erpEmployeeSearchPlaceholder: 'Kod ýa-da at boýunça gözläň',
@@ -2133,6 +2651,15 @@ export const translations: Record<Locale, TranslationShape> = {
       storesNoResults: 'Laýyk dükan tapylmady.',
       storesError: 'Dükanlaryň sanawy ýüklenip bilinmedi.',
       removeStore: '{name} dükanyny aýyr',
+      itemGroupsPlaceholder: 'Haryt toparyny gözläň we goşuň',
+      itemGroupsNoResults: 'Topar tapylmady.',
+      itemGroupsError: 'Haryt toparlary ýüklenip bilinmedi.',
+      itemGroupOption: '{code} · {count} haryt',
+      removeItemGroup: '{name} toparyny aýyr',
+      ungroupedHint:
+        'Topary bolmadyk harytlar hiç bir topar KPI-syna girmeýär: soňky 12 aýda satuwyň %{share}-i. Tiger-de haryt kartlaryna topar berlende hasaba alynýar.',
+      unknownItemGroup:
+        '{number}-nji KPI indi ýok bolan haryt toparlaryny öz içine alýar: {codes}.',
       selectPlaceholder: 'Saýlaň',
       noInputs: 'Bu KPI üçin maksatdan başga maglumat gerek däl.',
       totalWeight: 'Jemi agram: {total}% / 100%',
@@ -2219,6 +2746,7 @@ export const translations: Record<Locale, TranslationShape> = {
           erpEmployeeId: 'ERP satyjysy',
           avatarId: 'Profil suraty',
           fullAccess: 'Admin hukugy',
+          canEnterVisitorCounts: 'Gelýänleriň sanyny girizip biler',
           isActive: 'Ýagdaýy',
           passwordHash: 'Parol',
         },
@@ -2241,12 +2769,16 @@ export const translations: Record<Locale, TranslationShape> = {
           templateName: 'Şablonyň ady',
           items: 'KPI-lar',
         },
+        store_visitor_counts: {
+          storeId: 'Dükan',
+          visitDate: 'Gün',
+          visitorCount: 'Giren adam sany',
+        },
       },
     },
     kpiPlans: {
       title: 'KPI meýilnamalary',
       periodLabel: 'Döwür',
-      newPeriod: 'Aý aç',
       newPeriodTitle: 'Täze döwür aç',
       year: 'Ýyl',
       month: 'Aý',
@@ -2254,8 +2786,22 @@ export const translations: Record<Locale, TranslationShape> = {
       statusOpen: 'Açyk',
       statusClosed: 'Ýapyk',
       closePeriod: 'Döwri ýap',
+      newPeriod: 'Täze döwür',
       closeConfirm:
-        '{period} döwri ýapylsynmy? Ýapyk döwürde meýilnama we maksat üýtgedilip bilinmeýär, döwür gaýtadan açylmaýar.',
+        '{period} döwri ýapylsynmy? Ýapyk döwürde meýilnama, maksat we bal üýtgedilip bilinmeýär. Ýalňyşlyk bilen ýapsaňyz, {date} senesine çenli gaýtadan açyp bilersiňiz.',
+      closeConfirmFinal:
+        '{period} döwri ýapylsynmy? Gaýtadan açmak möhleti geçdi, şonuň üçin ýapmak kesgitli bolar: meýilnama, maksat we bal indi üýtgedilip bilinmez.',
+      reopenPeriod: 'Döwri gaýtadan aç',
+      reopened: '{period} döwri gaýtadan açyldy.',
+      reopenExpired: 'Bu döwri {date} senesine çenli gaýtadan açyp bolýardy; indi kesgitlendi.',
+      periodOpenHint: 'Meýilnamalar, maksatlar we ballar üýtgedilip bilner.',
+      periodClosedReopenable:
+        'Üýtgeşme girizip bolmaýar. Ýalňyşlyk bilen ýapylan bolsa, {date} senesine çenli gaýtadan açyp bilersiňiz.',
+      periodClosedFinal: 'Kesgitlendi: üýtgeşme girizip bolmaýar, gaýtadan açylmaýar.',
+      periodPlans: '{count} meýilnama',
+      periodMissingTargets: '{count} meýilnamanyň maksady doly däl',
+      deletePlan: '{name} işgäriniň meýilnamasyny poz',
+      deleted: '{name} işgäriniň meýilnamasy pozuldy.',
       closed: '{period} döwri ýapyldy.',
       assign: 'Şablon belle',
       assignTitle: 'Şablon belle',
@@ -2268,7 +2814,6 @@ export const translations: Record<Locale, TranslationShape> = {
       copyConfirm: '{period} döwrüniň meýilnamalary maksatlary bilen göçürilsinmi?',
       copied: '{created} meýilnama göçürildi, {skipped} işgär geçildi.',
       copiedNone: 'Göçürmäge amatly meýilnama tapylmady.',
-      noPreviousPeriod: 'Öňki döwür ýok',
       loading: 'Ýüklenýär…',
       errorLoading: 'Meýilnamalar ýüklenmedi.',
       empty: 'Bu döwürde entek meýilnama ýok.',
@@ -2283,7 +2828,14 @@ export const translations: Record<Locale, TranslationShape> = {
       columnActions: 'Amal',
       openPlan: '{name} meýilnamasyny aç',
       openPlanShort: 'Aç',
-      periodClosedHint: 'Bu döwür ýapyk; meýilnamalar diňe okalýar.',
+      calculateAll: 'Hemmesini hasapla',
+      calculatingAll: 'Hasaplanýar…',
+      calculatedAll: '{count} meýilnamanyň baly hasaplandy.',
+      calculatedAllIncomplete:
+        '{count} meýilnamanyň baly hasaplandy; {incomplete} sanysy doly däl.',
+      columnScore: 'Bal',
+      noScore: '—',
+      scoreValue: '{value} bal',
       assignError: 'Meýilnama döredilmedi.',
       alreadyAssigned: 'Bu işgärleriň bu döwürde eýýäm meýilnamasy bar: {names}',
       ineligible: 'Bu işgärlere şablon berip bolmaýar: {names}',
@@ -2307,6 +2859,7 @@ export const translations: Record<Locale, TranslationShape> = {
       missingTarget: 'Maksat girizilmedi',
       weight: 'Agram {value}%',
       stores: 'Dükanlar',
+      itemGroups: 'Toparlar',
       currency: 'Walýuta',
       recommendation: 'Ortaça {average} · Ýetip boljak iň ýokary {max} · Teklip {recommended}',
       recommendationMonths: '{count} aýlyk maglumat',
@@ -2319,16 +2872,109 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm: '{name} işgäriniň {period} meýilnamasy pozulsynmy?',
       deleteError: 'Meýilnama pozulmady.',
       closedNotice: '{period} döwri ýapyk; maksatlar diňe okalýar.',
+      calculate: 'Hasapla',
+      calculating: 'Hasaplanýar…',
+      calculated: 'Bal hasaplandy.',
+      calculatedIncomplete: 'Bal hasaplandy; {done}/{total} setir bahalandy.',
+      actualLabel: 'Hakyky',
+      actualPlaceholder: 'El bilen girizilýär',
+      actualHint: 'Bu KPI Tiger’dan hasaplanmaýar; bahany siz girizýärsiňiz.',
+      calculatedItem: 'Bu KPI Tiger’dan okalýar, el bilen girizilmeýär.',
     },
     myKpi: {
       title: 'Meniň KPI-larym',
       loading: 'Ýüklenýär…',
       errorLoading: 'KPI meýilnamaňyz ýüklenmedi.',
-      empty: 'Bu aý üçin size berlen KPI meýilnamasy ýok.',
+      empty: 'Size entek KPI meýilnamasy berilmedi.',
       period: 'Döwür',
+      periodOption: '{period} · {score} bal',
+      periodOpen: 'Döwür açyk; bal entek kesgitlenmedi.',
+      periodClosed: 'Döwür ýapyldy; bal kesgitlendi.',
       weight: 'Agram',
       target: 'Maksat',
       noTarget: 'Maksat entek girizilmedi',
+    },
+    leaderboard: {
+      title: 'Reýting tablisasy',
+      period: 'Döwür',
+      templateFilter: 'Şablon boýunça süzgüç',
+      allTemplates: 'Hemmesi',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Reýting ýüklenip bilmedi.',
+      empty: 'Bu döwürde entek KPI meýilnamasy ýok.',
+      autoEvery: 'Ballar her {minutes} minutda özbaşdak täzelenýär',
+      autoOff: 'Awtomatik täzelenme öçük',
+      periodClosed: 'Döwür ýapyldy; ballar gutarnykly',
+      updatedAt: 'soňky täzelenme {at}',
+      notCalculated: 'Bal entek hasaplanmady',
+      scoredOf: '{done}/{total} KPI bahalandyryldy',
+      you: 'Siz',
+      rank: '{rank}-nji orun',
+      unranked: 'Orny ýok',
+      colRank: 'Orun',
+      colEmployee: 'Işgär',
+      colTemplate: 'Şablon',
+      colScore: 'Bal',
+      myStanding: 'Siziň orunyňyz',
+      placeShort: 'orun',
+      myNotCalculated: 'Balyňyz entek hasaplanmady.',
+      amongCount: '{count} adamyň arasynda',
+      gapToNext: '{rank}-nji orna çykmak üçin ýene {gap} bal',
+      leading: 'Siz birinji! Şeýle dowam ediň.',
+      podium: 'Ilkinji üçlük',
+      others: 'Beýleki orunlar',
+    },
+    kpiProgress: {
+      totalScore: 'Jemi bal',
+      outOf: '/ {max}',
+      notCalculated: 'Bal entek hasaplanmady.',
+      calculatedAt: 'Soňky hasaplama: {at}',
+      incomplete: '{done}/{total} KPI bahalandy; galanlarynyň maksady ýa-da hakykaty ýok.',
+      achievement: 'Ýerine ýetiriş',
+      percent: '{value}%',
+      reached: 'Maksada ýetildi',
+      actualOfTarget: 'Hakyky {actual} / maksat {target}',
+      actualOnly: 'Hakyky {actual}',
+      contribution: 'Goşandy {score} / {weight}',
+      noTarget: 'Maksat girizilmedi, şonuň üçin bahalanmady.',
+      noActual: 'Hakyky baha girizilmedi, şonuň üçin bahalanmady.',
+      meterLabel: '{name}: ýerine ýetiriş',
+      scoreMeterLabel: '{name}: jemi bal',
+    },
+    visitorCounts: {
+      title: 'Gelýänleriň sany',
+      store: 'Dükan',
+      date: 'Gün',
+      count: 'Giren adam sany',
+      countPlaceholder: 'Mysal üçin, 184',
+      save: 'Sakla',
+      update: 'Täzele',
+      saving: 'Saklanýar…',
+      saved: '{store} · {date}: {count} adam saklandy.',
+      replaceHint: 'Şol bir dükan we gün gaýtadan girizilse, san täzelenýär.',
+      existing: 'Bu gün üçin saklanan san: {count}. Saklasaňyz üýtgär.',
+      readOnly:
+        'Bu ekrany diňe görüp bilersiňiz. San girizmek üçin işgär kartyňyzda "Gelýänleriň sanyny girizip biler" açyk bolmaly.',
+      listAll: 'Soňky girizmeler (ähli dükanlar)',
+      listStore: 'Saýlanan dükanyň girizmeleri',
+      showAll: 'Ähli dükanlary görkez',
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Girizmeler ýüklenmedi.',
+      empty: 'Entek girizme ýok.',
+      people: 'adam',
+      edit: 'Üýtget',
+      editFor: '{store} · {date} girizmesini üýtget',
+      deleteFor: '{store} · {date} girizmesini poz',
+      deleteConfirm: '{store} dükanynyň {date} günki sany pozulsynmy?',
+      deleted: 'Girizme pozuldy.',
+      errorUnknownStore: 'Saýlanan dükan Tiger-da tapylmady.',
+      errorFutureDate: 'Geljekdäki gün üçin san girizip bolmaýar.',
+      errorClosed: 'Bu gün ýapyk KPI döwrüne degişli; sany üýtgedip bolmaýar.',
+      saveError: 'San saklanmady.',
+      columnDate: 'Gün',
+      columnStore: 'Dükan',
+      columnCount: 'Adam',
+      columnActions: 'Amal',
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

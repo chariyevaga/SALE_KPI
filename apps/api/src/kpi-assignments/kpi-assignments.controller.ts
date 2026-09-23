@@ -33,7 +33,11 @@ import { AccessTokenGuard } from '../auth/access-token.guard.js';
 import type { AuthenticatedRequest } from '../auth/auth.types.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
 import { KpiPeriodErrorResponse } from '../kpi-periods/kpi-period-response.js';
-import { ListKpiAssignmentsQueryDto, MyKpiPlanQueryDto } from './dto/kpi-assignment-query.dto.js';
+import {
+  ListKpiAssignmentsQueryDto,
+  ListMyKpiPeriodsQueryDto,
+  MyKpiPlanQueryDto,
+} from './dto/kpi-assignment-query.dto.js';
 import {
   AssignKpiTemplateDto,
   CopyKpiAssignmentsDto,
@@ -46,6 +50,7 @@ import {
   KpiAssignmentRecommendationsResponse,
   KpiAssignmentResponse,
   KpiAssignmentSummaryResponse,
+  KpiMyPeriodListResponse,
   KpiMyPlanResponse,
 } from './kpi-assignment-response.js';
 import { KpiAssignmentsService } from './kpi-assignments.service.js';
@@ -130,7 +135,7 @@ export class KpiAssignmentsController {
     return this.kpiAssignmentsService.copyFrom(periodId, dto);
   }
 
-  // Declared before ':id' so that "me" is not parsed as a GUID.
+  // The two "me" routes are declared before ':id' so that "me" is not parsed as a GUID.
   @Get('kpi-assignments/me')
   @ApiOperation({
     summary: 'Oturum sahibinin kendi planını döner.',
@@ -143,6 +148,20 @@ export class KpiAssignmentsController {
     @Query() query: MyKpiPlanQueryDto,
   ): Promise<KpiMyPlanResponse> {
     return { plan: await this.kpiAssignmentsService.getMine(request.employee.id, query) };
+  }
+
+  @Get('kpi-assignments/me/periods')
+  @ApiOperation({
+    summary: 'Oturum sahibinin planı olan dönemleri yeniden eskiye, sayfalı listeler.',
+    description:
+      'Yönetici yetkisi gerektirmez. "KPI’larım" ekranının dönem seçicisini besler; her satırda planın kimliği, dönemi, şablon adı ve toplam puanı döner.',
+  })
+  @ApiOkResponse({ type: KpiMyPeriodListResponse })
+  listMyPeriods(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: ListMyKpiPeriodsQueryDto,
+  ): Promise<KpiMyPeriodListResponse> {
+    return this.kpiAssignmentsService.listMyPeriods(request.employee.id, query);
   }
 
   @Get('kpi-assignments/:id')
