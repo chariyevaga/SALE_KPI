@@ -31,6 +31,8 @@ interface EmployeeKpiViewProps {
    * page URL. For views inside a modal, whose page has its own `?period=`.
    */
   localPeriod?: string | undefined;
+  /** Show salary amounts plainly: the employee form, which only full_access users reach. */
+  salaryVisible?: boolean;
 }
 
 /**
@@ -40,7 +42,11 @@ interface EmployeeKpiViewProps {
  * `?tab=kpi` are kept), or from component state with `localPeriod`; without one this month is
  * shown, or the newest month with a plan when this month has none.
  */
-export function EmployeeKpiView({ employeeId, localPeriod }: EmployeeKpiViewProps) {
+export function EmployeeKpiView({
+  employeeId,
+  localPeriod,
+  salaryVisible = false,
+}: EmployeeKpiViewProps) {
   const { t, locale } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [statePeriod, setStatePeriod] = useState(localPeriod);
@@ -98,7 +104,7 @@ export function EmployeeKpiView({ employeeId, localPeriod }: EmployeeKpiViewProp
   const salary = planResults?.salary ?? null;
 
   return (
-    <SalaryRevealProvider>
+    <SalaryRevealProvider alwaysVisible={salaryVisible}>
       {periods.length > 0 ? (
         <div className="mb-3 flex items-center gap-3">
           <label

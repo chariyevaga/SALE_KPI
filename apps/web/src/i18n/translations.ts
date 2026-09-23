@@ -598,7 +598,6 @@ interface TranslationShape {
     itemEarned: string;
     noSalary: string;
     kpiEarnedShort: string;
-    planListHint: string;
   };
   kpiProgress: {
     totalScore: string;
@@ -1285,7 +1284,6 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'Bu çalışanın bu ay için geçerli maaşı yok; maaş, çalışanın Maaş sekmesinden girilir.',
       kpiEarnedShort: "KPI'dan kazanılan",
-      planListHint: 'Maaş tutarları gizli; göstermek için dokunun.',
     },
     kpiProgress: {
       totalScore: 'Toplam puan',
@@ -1969,7 +1967,6 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         "This employee has no salary in force for this month; enter one on the employee's Salary tab.",
       kpiEarnedShort: 'Earned from KPIs',
-      planListHint: 'Salary amounts are hidden; tap to show.',
     },
     kpiProgress: {
       totalScore: 'Total score',
@@ -2655,7 +2652,6 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'У сотрудника нет действующей зарплаты за этот месяц; её вводят на вкладке «Зарплата».',
       kpiEarnedShort: 'Заработано по KPI',
-      planListHint: 'Суммы зарплаты скрыты; нажмите, чтобы показать.',
     },
     kpiProgress: {
       totalScore: 'Итоговый балл',
@@ -3344,7 +3340,6 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'Bu işgäriň bu aý üçin güýjündäki aýlygy ýok; aýlyk işgäriň Aýlyk bölüminden girizilýär.',
       kpiEarnedShort: 'KPI-dan gazanylan',
-      planListHint: 'Aýlyk mukdarlary gizlin; görmek üçin basyň.',
     },
     kpiProgress: {
       totalScore: 'Jemi bal',

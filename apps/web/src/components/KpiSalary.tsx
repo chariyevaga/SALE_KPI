@@ -21,6 +21,8 @@ const REVEAL_MS = 20_000;
 
 interface RevealState {
   revealed: boolean;
+  /** Screens only full_access users reach show the money plainly, with no switch. */
+  alwaysVisible: boolean;
   secondsLeft: number;
   reveal: () => void;
   hide: () => void;
@@ -33,7 +35,14 @@ const RevealContext = createContext<RevealState | null>(null);
  * shows every figure inside this provider for twenty seconds, then they blur again on their
  * own. While hidden the real numbers are not in the page at all.
  */
-export function SalaryRevealProvider({ children }: { children: ReactNode }) {
+export function SalaryRevealProvider({
+  children,
+  alwaysVisible = false,
+}: {
+  children: ReactNode;
+  /** The employee form's tabs: only full_access users reach them, so nothing is hidden. */
+  alwaysVisible?: boolean;
+}) {
   const [revealedUntil, setRevealedUntil] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -60,15 +69,19 @@ export function SalaryRevealProvider({ children }: { children: ReactNode }) {
     setRevealedUntil(current + REVEAL_MS);
   }, []);
   const hide = useCallback(() => setRevealedUntil(null), []);
-  const revealed = revealedUntil !== null && now < revealedUntil;
+  const revealed = alwaysVisible || (revealedUntil !== null && now < revealedUntil);
   const value = useMemo(
     () => ({
       revealed,
-      secondsLeft: revealed ? Math.max(1, Math.ceil((revealedUntil - now) / 1000)) : 0,
+      alwaysVisible,
+      secondsLeft:
+        revealed && revealedUntil !== null
+          ? Math.max(1, Math.ceil((revealedUntil - now) / 1000))
+          : 0,
       reveal,
       hide,
     }),
-    [revealed, revealedUntil, now, reveal, hide],
+    [revealed, alwaysVisible, revealedUntil, now, reveal, hide],
   );
 
   return <RevealContext.Provider value={value}>{children}</RevealContext.Provider>;
@@ -146,7 +159,11 @@ function EyeIcon({ open }: { open: boolean }) {
 /** "Show" / "Hide · 4": the explicit switch next to the salary title. */
 export function RevealToggle() {
   const { t } = useTranslation();
-  const { revealed, secondsLeft, reveal, hide } = useReveal();
+  const { revealed, alwaysVisible, secondsLeft, reveal, hide } = useReveal();
+
+  if (alwaysVisible) {
+    return null;
+  }
 
   return (
     <button

@@ -234,7 +234,9 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         <EmployeeSessionsPanel employeeId={id} />
       ) : null}
 
-      {mode === 'edit' && id && activeTab === 'kpi' ? <EmployeeKpiView employeeId={id} /> : null}
+      {mode === 'edit' && id && activeTab === 'kpi' ? (
+        <EmployeeKpiView employeeId={id} salaryVisible />
+      ) : null}
 
       {mode === 'edit' && id && activeTab === 'kpi-plans' ? (
         <EmployeeKpiPlansPanel employeeId={id} />

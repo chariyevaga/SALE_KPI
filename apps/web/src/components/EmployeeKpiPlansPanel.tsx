@@ -5,7 +5,7 @@ import { listEmployeeKpiPeriods } from '../api/kpi-plans';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
 import type { KpiPlanSalary } from '../types/api';
-import { RevealToggle, SalaryRevealProvider, SecretAmount } from './KpiSalary';
+import { SalaryRevealProvider, SecretAmount } from './KpiSalary';
 import { ProgressMeter } from './ProgressMeter';
 
 function ChevronIcon() {
@@ -69,18 +69,8 @@ export function EmployeeKpiPlansPanel({ employeeId }: { employeeId: string }) {
     );
   }
 
-  const withSalary = plans.some((plan) => plan.salary !== null);
-
   return (
-    <SalaryRevealProvider>
-      {withSalary ? (
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t('kpiSalary.planListHint')}
-          </p>
-          <RevealToggle />
-        </div>
-      ) : null}
+    <SalaryRevealProvider alwaysVisible>
       <ul className="flex flex-col gap-2">
         {plans.map((plan) => {
           const isOpen = plan.period.status === 'open';
