@@ -1,14 +1,6 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+import { AuditedEntity } from '../../audit/audited-entity.js';
 import { FileEntity } from '../../files/entities/file.entity.js';
 
 @Entity({ name: 'employees', schema: 'dbo' })
@@ -20,7 +12,7 @@ import { FileEntity } from '../../files/entities/file.entity.js';
   unique: true,
   where: '[avatar_id] IS NOT NULL',
 })
-export class EmployeeEntity {
+export class EmployeeEntity extends AuditedEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
@@ -68,9 +60,7 @@ export class EmployeeEntity {
   @Column({ name: 'full_access', type: 'bit', default: false })
   fullAccess: boolean;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime2', precision: 3 })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime2', precision: 3 })
-  updatedAt: Date;
+  /** May enter the daily store visitor counts of the conversion KPI (ADR-043). */
+  @Column({ name: 'can_enter_visitor_counts', type: 'bit', default: false })
+  canEnterVisitorCounts: boolean;
 }

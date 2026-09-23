@@ -6,7 +6,10 @@ const DEFAULT_FILE_STORAGE_ROOT = './var/uploads';
 const DEFAULT_FILE_CLEANUP_TIME_ZONE = 'Asia/Ashgabat';
 const DEFAULT_ACCESS_TOKEN_TTL = '15m';
 const DEFAULT_REFRESH_TOKEN_TTL = '30d';
-const DEFAULT_SHORT_SESSION_TTL = '2h';
+const DEFAULT_SHORT_SESSION_TTL = '20m';
+const DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 10;
+/** One day; a longer pause is the same as switching the job off. */
+const MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 24 * 60;
 
 function getRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();
@@ -23,6 +26,20 @@ function getIntegerEnvironmentVariable(name: string, defaultValue: number): numb
 
   if (!Number.isInteger(value) || value < 1) {
     throw new Error(`${name} must be a positive integer.`);
+  }
+
+  return value;
+}
+
+function getBoundedIntegerEnvironmentVariable(
+  name: string,
+  defaultValue: number,
+  max: number,
+): number {
+  const value = getIntegerEnvironmentVariable(name, defaultValue);
+
+  if (value > max) {
+    throw new Error(`${name} must be an integer between 1 and ${max}.`);
   }
 
   return value;
@@ -54,6 +71,16 @@ export function getApiPort(): number {
   }
 
   return configuredPort;
+}
+
+/**
+ * Origins the browser may call the API from. In development (`NODE_ENV=development`) every
+ * origin is allowed, so any local web port works without editing `CORS_ORIGINS`; the API
+ * reads no cookies (tokens travel in the Authorization header), so this opens nothing a
+ * page could abuse. Any other NODE_ENV, production included, uses the list.
+ */
+export function getCorsOrigin(): true | string[] {
+  return process.env.NODE_ENV === 'development' ? true : getCorsOrigins();
 }
 
 export function getCorsOrigins(): string[] {
@@ -114,8 +141,38 @@ export function getTigerDatabaseConfig(): TigerDatabaseConfig {
   };
 }
 
+/** Logo Tiger firm number: tables of firm 3 are `LG_003_…` (ADR-037). */
 export function getFirmNumber(): number {
-  return getIntegerEnvironmentVariable('FIRM_NR', 1);
+  return getBoundedIntegerEnvironmentVariable('FIRM_NR', 1, 999);
+}
+
+/** Logo Tiger period of that firm: period 1 of firm 3 is `LG_003_01_…` (ADR-037). */
+export function getTigerPeriodNumber(): number {
+  return getBoundedIntegerEnvironmentVariable('TIGER_PERIOD_NR', 1, 99);
+}
+
+/** Tiger's `LG_xxx_CLCARD.CODE` is varchar(17). */
+const MAX_TIGER_CUSTOMER_CODE_LENGTH = 17;
+
+/**
+ * Customer (CLCARD) codes of shared/anonymous cash accounts, comma-separated in
+ * TIGER_SHARED_CUSTOMER_CODES. No customer KPI counts them (business decision 17).
+ */
+export function getTigerSharedCustomerCodes(): string[] {
+  const codes = (process.env.TIGER_SHARED_CUSTOMER_CODES ?? '')
+    .split(',')
+    .map((code) => code.trim())
+    .filter(Boolean);
+
+  for (const code of codes) {
+    if (code.length > MAX_TIGER_CUSTOMER_CODE_LENGTH) {
+      throw new Error(
+        `TIGER_SHARED_CUSTOMER_CODES entries must be at most ${MAX_TIGER_CUSTOMER_CODE_LENGTH} characters ("${code}").`,
+      );
+    }
+  }
+
+  return [...new Set(codes)];
 }
 
 export function getFileStorageRoot(): string {
@@ -136,6 +193,23 @@ export function getFileCleanupTimeZone(): string {
   }
 
   return timeZone;
+}
+
+/**
+ * Minutes between two automatic calculations of the open KPI periods; 0 switches the job
+ * off (ADR-047). Every run reads each open month from Tiger once.
+ */
+export function getKpiAutoCalculationIntervalMinutes(): number {
+  const name = 'KPI_AUTO_CALCULATION_INTERVAL_MINUTES';
+  const value = Number(process.env[name] ?? DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES);
+
+  if (!Number.isInteger(value) || value < 0 || value > MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES) {
+    throw new Error(
+      `${name} must be an integer between 0 (off) and ${MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES}.`,
+    );
+  }
+
+  return value;
 }
 
 export interface TokenConfig {

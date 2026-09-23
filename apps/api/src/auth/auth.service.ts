@@ -2,8 +2,10 @@ import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, MoreThan, Not, Repository } from 'typeorm';
+import { DataSource, type FindOptionsWhere, IsNull, MoreThan, Not, Repository } from 'typeorm';
 
+import { AuditService } from '../audit/audit.service.js';
+import { setRequestActor } from '../common/request-context.js';
 import { DeviceSessionEntity } from '../device-sessions/entities/device-session.entity.js';
 import { toEmployeeResponse } from '../employees/employee-response.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
@@ -19,6 +21,15 @@ interface LoginMetadata {
   userAgent: string | null;
 }
 
+/**
+ * SQL Server returns `uniqueidentifier` columns upper-cased, while the values minted here with
+ * randomUUID() — and signed into the refresh token — are lower-case. Comparing those two spellings
+ * with `!==` rejects every refresh, so GUIDs are matched without regard to case.
+ */
+function equalsGuid(left: string, right: string): boolean {
+  return left.toLowerCase() === right.toLowerCase();
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,6 +40,7 @@ export class AuthService {
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(PasswordService) private readonly passwordService: PasswordService,
     @Inject(TokenService) private readonly tokenService: TokenService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async login(dto: LoginDto, metadata: LoginMetadata): Promise<AuthResponse> {
@@ -47,22 +59,24 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password.');
     }
 
+    // The session row written below is attributed to the employee signing in (ADR-036).
+    setRequestActor(employee.id);
+
     return this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(DeviceSessionEntity);
-      let session = await repository
+      const existing = await repository
         .createQueryBuilder('session')
         .setLock('pessimistic_write')
         .where('session.employeeId = :employeeId', { employeeId: employee.id })
         .andWhere('session.deviceId = :deviceId', { deviceId: dto.deviceId })
         .getOne();
-
-      if (!session) {
-        session = repository.create({
+      const session =
+        existing ??
+        repository.create({
           id: randomUUID(),
           employeeId: employee.id,
           deviceId: dto.deviceId,
         });
-      }
 
       session.deviceName = dto.deviceName?.trim() || null;
       session.ipAddress = metadata.ipAddress;
@@ -75,9 +89,31 @@ export class AuthService {
       session.rememberMe = dto.rememberMe ?? false;
 
       const response = this.issueTokens(employee, session);
-      session.refreshTokenHash = this.hashRefreshToken(response.refreshToken);
-      session.expiresAt = new Date(response.refreshTokenExpiresAt);
-      await repository.save(session);
+      const values = {
+        deviceName: session.deviceName,
+        ipAddress: session.ipAddress,
+        userAgent: session.userAgent,
+        lastSeenAt: session.lastSeenAt,
+        revokedAt: null,
+        revocationReason: null,
+        tokenFamilyId: session.tokenFamilyId,
+        tokenVersion: session.tokenVersion,
+        rememberMe: session.rememberMe,
+        refreshTokenHash: this.hashRefreshToken(response.refreshToken),
+        expiresAt: new Date(response.refreshTokenExpiresAt),
+      };
+      const options = { context: { event: 'login' } };
+
+      if (existing) {
+        await this.audit.update(manager, DeviceSessionEntity, { id: existing.id }, values, options);
+      } else {
+        await this.audit.insert(
+          manager,
+          DeviceSessionEntity,
+          { id: session.id, employeeId: employee.id, deviceId: dto.deviceId, ...values },
+          options,
+        );
+      }
 
       return response;
     });
@@ -106,9 +142,9 @@ export class AuthService {
         !session.employee.isActive ||
         session.revokedAt ||
         session.expiresAt.getTime() <= Date.now() ||
-        session.employeeId !== payload.sub ||
+        !equalsGuid(session.employeeId, payload.sub) ||
         session.deviceId !== payload.deviceId ||
-        session.tokenFamilyId !== payload.familyId
+        !equalsGuid(session.tokenFamilyId, payload.familyId)
       ) {
         return null;
       }
@@ -117,18 +153,33 @@ export class AuthService {
         session.tokenVersion !== payload.version ||
         !this.matchesRefreshToken(dto.refreshToken, session.refreshTokenHash)
       ) {
-        session.revokedAt = new Date();
-        session.revocationReason = 'refresh_token_reuse';
-        await repository.save(session);
+        // Nobody is signed in on this path: the system revokes the reused token family.
+        await this.audit.update(
+          manager,
+          DeviceSessionEntity,
+          { id: session.id },
+          { revokedAt: new Date(), revocationReason: 'refresh_token_reuse' },
+        );
         return null;
       }
 
+      setRequestActor(session.employeeId);
       session.tokenVersion += 1;
       session.lastSeenAt = new Date();
       const nextResponse = this.issueTokens(session.employee, session);
-      session.refreshTokenHash = this.hashRefreshToken(nextResponse.refreshToken);
-      session.expiresAt = new Date(nextResponse.refreshTokenExpiresAt);
-      await repository.save(session);
+      // Rotation happens on every refresh, so it is stamped but not logged (ADR-036).
+      await this.audit.update(
+        manager,
+        DeviceSessionEntity,
+        { id: session.id },
+        {
+          tokenVersion: session.tokenVersion,
+          lastSeenAt: session.lastSeenAt,
+          refreshTokenHash: this.hashRefreshToken(nextResponse.refreshToken),
+          expiresAt: new Date(nextResponse.refreshTokenExpiresAt),
+        },
+        { log: false },
+      );
 
       return nextResponse;
     });
@@ -170,27 +221,28 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect.');
     }
 
-    employee.passwordHash = await this.passwordService.hash(dto.newPassword);
-    await this.employeeRepository.save(employee);
+    const passwordHash = await this.passwordService.hash(dto.newPassword);
 
-    await this.sessionRepository.update(
-      { employeeId, id: Not(currentSessionId), revokedAt: IsNull() },
-      { revokedAt: new Date(), revocationReason: 'password_changed' },
-    );
+    await this.dataSource.transaction(async (manager) => {
+      await this.audit.update(manager, EmployeeEntity, { id: employee.id }, { passwordHash });
+      await this.audit.update(
+        manager,
+        DeviceSessionEntity,
+        { employeeId, id: Not(currentSessionId), revokedAt: IsNull() },
+        { revokedAt: new Date(), revocationReason: 'password_changed' },
+      );
+    });
   }
 
   async logoutCurrent(employeeId: string, sessionId: string): Promise<void> {
-    await this.sessionRepository.update(
+    await this.revokeSessions(
       { id: sessionId, employeeId, revokedAt: IsNull() },
-      { revokedAt: new Date(), revocationReason: 'logout' },
+      'logout',
     );
   }
 
   async logoutAll(employeeId: string): Promise<void> {
-    await this.sessionRepository.update(
-      { employeeId, revokedAt: IsNull() },
-      { revokedAt: new Date(), revocationReason: 'logout_all' },
-    );
+    await this.revokeSessions({ employeeId, revokedAt: IsNull() }, 'logout_all');
   }
 
   async listActiveDevices(employeeId: string): Promise<DeviceSessionResponse[]> {
@@ -216,10 +268,20 @@ export class AuthService {
   }
 
   async revokeDevice(employeeId: string, sessionId: string): Promise<void> {
-    await this.sessionRepository.update(
+    await this.revokeSessions(
       { id: sessionId, employeeId, revokedAt: IsNull() },
-      { revokedAt: new Date(), revocationReason: 'device_revoked' },
+      'device_revoked',
     );
+  }
+
+  private async revokeSessions(
+    where: FindOptionsWhere<DeviceSessionEntity>,
+    revocationReason: string,
+  ): Promise<void> {
+    await this.audit.update(this.dataSource.manager, DeviceSessionEntity, where, {
+      revokedAt: new Date(),
+      revocationReason,
+    });
   }
 
   private issueTokens(

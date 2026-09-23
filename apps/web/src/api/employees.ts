@@ -1,6 +1,8 @@
 import type { DeviceSessionResponse } from './auth';
 import { apiFetch } from '../lib/api-client';
+import { chunkIds } from '../lib/bulk';
 import type {
+  BulkUpdateResponse,
   CreateEmployeeInput,
   EmployeeListResponse,
   EmployeeResponse,
@@ -55,6 +57,24 @@ export function updateOwnProfile(input: { avatarId?: string | null }): Promise<E
 
 export function deactivateEmployee(id: string): Promise<void> {
   return apiFetch<void>(`/employees/${id}`, { method: 'DELETE' });
+}
+
+/** Bulk (de)activation from the list screen (ADR-035); `updated` counts rows that changed. */
+export async function bulkSetEmployeesActive(
+  ids: string[],
+  isActive: boolean,
+): Promise<BulkUpdateResponse> {
+  let updated = 0;
+
+  for (const chunk of chunkIds(ids)) {
+    const result = await apiFetch<BulkUpdateResponse>('/employees/bulk-status', {
+      method: 'POST',
+      body: { ids: chunk, isActive },
+    });
+    updated += result.updated;
+  }
+
+  return { updated };
 }
 
 export function listEmployeeSessions(employeeId: string): Promise<DeviceSessionResponse[]> {

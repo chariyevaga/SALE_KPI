@@ -14,6 +14,14 @@ interface DrawerProps {
    * that must open/close on desktop too, not turn into a permanent column.
    */
   variant?: 'sidebar' | 'overlay';
+  /** `aside` for panels that are not navigation, e.g. the record info panel. */
+  as?: 'nav' | 'aside';
+  /** Accessible name of the panel. */
+  label?: string;
+  /** Accessible name of the backdrop button; defaults to the menu wording. */
+  closeLabel?: string;
+  /** Width classes of the sliding panel. */
+  panelClassName?: string;
 }
 
 export function Drawer({
@@ -22,6 +30,10 @@ export function Drawer({
   children,
   side = 'left',
   variant = 'sidebar',
+  as: Panel = 'nav',
+  label,
+  closeLabel,
+  panelClassName = 'w-[82vw] max-w-xs',
 }: DrawerProps) {
   const { t } = useTranslation();
   const isOverlay = variant === 'overlay';
@@ -35,15 +47,16 @@ export function Drawer({
     >
       <button
         type="button"
-        aria-label={t('appShell.closeMenu')}
+        aria-label={closeLabel ?? t('appShell.closeMenu')}
         tabIndex={open ? 0 : -1}
         onClick={onClose}
         className={`absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-200 ${isOverlay ? '' : 'lg:hidden'} ${
           open ? 'opacity-100' : 'opacity-0'
         }`}
       />
-      <nav
-        className={`absolute inset-y-0 flex w-[82vw] max-w-xs flex-col bg-white pt-[env(safe-area-inset-top)] shadow-2xl transition-transform duration-200 ease-out dark:bg-slate-950 ${
+      <Panel
+        aria-label={label}
+        className={`absolute inset-y-0 flex ${panelClassName} flex-col bg-white pt-[env(safe-area-inset-top)] shadow-2xl transition-transform duration-200 ease-out dark:bg-slate-950 ${
           isOverlay
             ? ''
             : 'lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:max-w-none lg:translate-x-0 lg:pt-0 lg:shadow-none'
@@ -54,7 +67,7 @@ export function Drawer({
         }`}
       >
         {children}
-      </nav>
+      </Panel>
     </div>
   );
 }

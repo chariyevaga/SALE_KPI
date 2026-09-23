@@ -26,6 +26,12 @@ export class EmployeeResponse {
   @ApiProperty({ type: () => EmployeeAvatarResponse, nullable: true })
   avatar: EmployeeAvatarResponse | null;
 
+  @ApiProperty({
+    type: Boolean,
+    description: 'true ise mağazaların günlük ziyaretçi sayısını girebilir (ADR-043).',
+  })
+  canEnterVisitorCounts: boolean;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt: string;
 
@@ -97,6 +103,7 @@ export function toEmployeeResponse(
             : null,
         }
       : null,
+    canEnterVisitorCounts: employee.canEnterVisitorCounts,
     createdAt: employee.createdAt.toISOString(),
     email: options.includeContact ? employee.email : null,
     erpEmployeeCode: options.erpEmployeeCode ?? null,

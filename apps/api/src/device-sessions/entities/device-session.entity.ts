@@ -1,14 +1,6 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+import { AuditedEntity } from '../../audit/audited-entity.js';
 import { EmployeeEntity } from '../../employees/entities/employee.entity.js';
 
 @Entity({ name: 'device_sessions', schema: 'dbo' })
@@ -16,7 +8,7 @@ import { EmployeeEntity } from '../../employees/entities/employee.entity.js';
 @Index('IX_device_sessions_active_employee', ['employeeId', 'expiresAt'], {
   where: '[revoked_at] IS NULL',
 })
-export class DeviceSessionEntity {
+export class DeviceSessionEntity extends AuditedEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
@@ -62,10 +54,4 @@ export class DeviceSessionEntity {
 
   @Column({ name: 'revocation_reason', type: 'nvarchar', length: 255, nullable: true })
   revocationReason: string | null;
-
-  @CreateDateColumn({ name: 'created_at', type: 'datetime2', precision: 3 })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime2', precision: 3 })
-  updatedAt: Date;
 }

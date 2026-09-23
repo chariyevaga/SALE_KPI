@@ -53,13 +53,18 @@ flowchart LR
 
 ## Hazır özellikler
 
-- Access ve refresh token tabanlı kimlik doğrulama
-- Refresh token rotation ve cihaz bazlı oturum yönetimi
-- Mevcut cihazdan veya bütün cihazlardan çıkış
-- `full_access` yetkisiyle çalışan yönetimi
-- Logo Tiger satış personeliyle opsiyonel çalışan eşlemesi
-- JPEG, PNG ve WEBP avatar yükleme; WEBP dönüşümü ve boyut varyantları
-- Sahipsiz dosyalar için zamanlanmış temizlik
+- Access ve refresh token tabanlı kimlik doğrulama (reuse tespitiyle refresh rotation)
+- Cihaz bazlı oturum yönetimi; mevcut cihazdan veya bütün cihazlardan çıkış
+- Kullanıcının kendi parolasını değiştirmesi; yöneticinin parola sıfırlaması
+- Yöneticinin bir çalışanın cihaz oturumlarını görüntüleyip iptal etmesi
+- `full_access` yetkisiyle çalışan yönetimi: aksan duyarsız arama, filtreler, sıralama, sonsuz kaydırma, soft delete ve yeniden etkinleştirme
+- Kullanıcının kendi profil fotoğrafını kırpıp güncellemesi (`PATCH /employees/me`)
+- Logo Tiger satış personeliyle opsiyonel çalışan eşlemesi ve ERP koduna dayalı QR'lı çalışan kartı
+- KPI kataloğu: 14 mağaza/personel bazlı KPI tanımı ve hedef formu tarifleri (`GET /kpi-definitions`), Tiger mağaza listesi (`GET /stores`)
+- KPI hedef öneri raporları: her hesaplanan KPI için mağaza/personel bazında son 12 ay, ortalama, ulaşılabilir max ve önerilen hedef veren `dbo.report_<KPI kodu>` SQL view'ları; `EXEC dbo.show_report N'STORE_SALES'` ay sütunlarını gerçek ay adıyla verir
+- JPEG, PNG ve WEBP avatar yükleme; imza doğrulaması, WEBP dönüşümü, boyut varyantları ve BlurHash
+- Sahipsiz dosyalar için zamanlanmış gece temizliği
+- Mobil öncelikli arayüz: tr/en/ru/tk yerelleştirme, açık/koyu/sistem teması
 - Swagger / OpenAPI dokümantasyonu
 - n8n external JavaScript task runner
 - Playwright ve QuickChart entegrasyon altyapısı
@@ -118,19 +123,19 @@ cp .env.example .env
 
 Özellikle doldurulması gereken alanlar:
 
-| Değişken                 | Açıklama                                                                          |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı                         |
-| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                                                 |
-| `FIRM_NR`                | Logo Tiger firma numarası                                                         |
-| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                                        |
-| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı                   |
-| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                                    |
-| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token                                 |
-| `API_PORT`               | API'nin host üzerinde yayımlanacağı port; web varsayılan olarak bu portu kullanır |
-| `API_BASE_URL`           | İsteğe bağlı tam API adresi override'ı; yalnız domain/reverse proxy için          |
-| `WEB_PORT`               | Web uygulamasının host üzerinde yayımlanacağı port                                |
-| `CORS_ORIGINS`           | Web uygulamasının browser origin'i                                                |
+| Değişken                 | Açıklama                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `KPI_DB_*`               | Uygulamanın sahip olduğu SQL Server veritabanı bağlantısı                                             |
+| `TIGER_DB_*`             | Salt okunur Logo Tiger bağlantısı                                                                     |
+| `FIRM_NR`                | Logo Tiger firma numarası                                                                             |
+| `ACCESS_TOKEN_SECRET`    | En az 32 karakterlik access token secret'ı                                                            |
+| `REFRESH_TOKEN_SECRET`   | Access secret'tan farklı, en az 32 karakterlik refresh secret'ı                                       |
+| `N8N_WEBHOOK_SECRET`     | n8n webhook doğrulama secret'ı                                                                        |
+| `N8N_RUNNERS_AUTH_TOKEN` | n8n ile external runner arasındaki bağımsız token                                                     |
+| `API_PORT`               | API'nin host üzerinde yayımlanacağı port; web varsayılan olarak bu portu kullanır                     |
+| `API_BASE_URL`           | İsteğe bağlı tam API adresi override'ı; yalnız domain/reverse proxy için                              |
+| `WEB_PORT`               | Web uygulamasının host üzerinde yayımlanacağı port                                                    |
+| `CORS_ORIGINS`           | Web uygulamasının browser origin'i (`NODE_ENV=development` iken yok sayılır, her origin kabul edilir) |
 
 Güçlü secret üretmek için her secret alanında ayrı bir çıktı kullanın:
 
@@ -166,7 +171,7 @@ pnpm migration:show
 pnpm migration:run
 ```
 
-Migration yalnızca `KPI_DB` üzerinde şema değişikliği yapar. ERP view'ları `TIGERDB` verisini cross-database ve salt okunur biçimde sunar; Tiger iş tablolarına yazılmaz.
+Migration yalnızca `KPI_DB` üzerinde şema değişikliği yapar. ERP ve KPI rapor view'ları `TIGERDB` verisini cross-database ve salt okunur biçimde sunar; Tiger iş tablolarına yazılmaz.
 
 ### 5. Uygulamayı başlatın
 
@@ -198,7 +203,7 @@ Kullanıcı adı: admin
 Parola: admin
 ```
 
-İlk girişten hemen sonra parolayı uygulamanın Ayarlar ekranından değiştirin. Yeni parola en az 8 karakter olmalıdır. Bu başlangıç parolasıyla üretim kullanımı yapmayın.
+İlk girişten hemen sonra parolayı uygulamanın Ayarlar ekranından değiştirin (`PATCH /auth/password`). Yeni parola en az 6 karakter olmalıdır. Bu başlangıç parolasıyla üretim kullanımı yapmayın.
 
 ## n8n çalışma ortamı
 
@@ -318,6 +323,16 @@ docker compose up -d --build web
 
 Yerel Vite geliştirme sunucusu çalışıyorsa yeni `.env` değerlerini okuması için onu da yeniden başlatın.
 
+### `pnpm` komutu `Cannot find module .../corepack/v1/pnpm/...` hatası veriyor
+
+Corepack, `package.json` içindeki `packageManager` sürümünü kendi önbelleğinden çalıştırır. Önbellek temizlendiyse sürümü yeniden indirin:
+
+```bash
+corepack prepare pnpm@12.3.4 --activate
+```
+
+Ağ erişimi yoksa geçici olarak `npm --prefix apps/api run <script>` biçiminde çalışabilirsiniz; `pnpm -r` komutları (`pnpm lint`, `pnpm test`) corepack olmadan çalışmaz.
+
 ### n8n logunda Confluence credential uyarısı görünüyor
 
 n8n `2.35.7` sürümünde yerleşik Confluence node metadata'sına ilişkin non-fatal bir uyarı görülebilir. n8n readiness kontrolü başarılıysa ve runner kayıt olduysa bu uyarı servisin çalışmasını engellemez.
@@ -329,12 +344,12 @@ apps/
   api/                  NestJS API
   web/                  React/Vite web uygulaması
 packages/
-  shared-types/         Paylaşılan TypeScript tipleri
+  shared-types/         Boş yer tutucu workspace (henüz tip içermiyor)
 docker/
   api/                  API image tanımı
   web/                  Web image ve Nginx yapılandırması
   n8n/                  n8n, runner ve Playwright image'ları
-docs/                   Yerel/iç proje belgeleri (remote'a yayımlanmaz)
+docs/                   Yerel/iç proje belgeleri (`.gitignore` gereği remote'a yayımlanmaz)
 docker-compose.yml      Yerel/production-benzeri çalışma ortamı
 .env.example            Secret içermeyen ortam şablonu
 ```

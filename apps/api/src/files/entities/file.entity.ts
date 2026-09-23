@@ -1,11 +1,6 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+
+import { AuditedEntity } from '../../audit/audited-entity.js';
 
 @Entity({ name: 'files', schema: 'dbo' })
 @Index('UX_files_big_image', ['bigImage'], {
@@ -20,7 +15,7 @@ import {
   unique: true,
   where: '[small_image] IS NOT NULL',
 })
-export class FileEntity {
+export class FileEntity extends AuditedEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
@@ -56,10 +51,4 @@ export class FileEntity {
 
   @Column({ name: 'source_table_id', type: 'nvarchar', length: 128, nullable: true })
   sourceTableId: string | null;
-
-  @CreateDateColumn({ name: 'created_at', type: 'datetime2', precision: 3 })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime2', precision: 3 })
-  updatedAt: Date;
 }

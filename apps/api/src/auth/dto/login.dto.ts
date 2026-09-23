@@ -37,7 +37,7 @@ export class LoginDto {
     type: Boolean,
     default: false,
     description:
-      'true ise refresh oturumu REFRESH_TOKEN_TTL (varsayılan 30 gün) kadar sürer; aksi hâlde SHORT_SESSION_TTL (varsayılan 2 saat) kullanılır.',
+      'true ise refresh oturumu REFRESH_TOKEN_TTL (varsayılan 30 gün) kadar sürer; aksi hâlde SHORT_SESSION_TTL (varsayılan 20 dakika) kullanılır.',
   })
   @IsOptional()
   @IsBoolean()

@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 
+import { setRequestActor } from '../common/request-context.js';
 import { AuthService } from './auth.service.js';
 import type { AuthenticatedRequest } from './auth.types.js';
 import { TokenService } from './token.service.js';
@@ -22,6 +23,8 @@ export class AccessTokenGuard implements CanActivate {
     const payload = this.tokenService.verifyAccessToken(authorization.slice(7));
     request.employee = await this.authService.getActiveEmployee(payload.sub);
     request.accessTokenPayload = payload;
+    // Audit stamps and log entries of this request are attributed to the caller (ADR-036).
+    setRequestActor(request.employee.id);
 
     return true;
   }

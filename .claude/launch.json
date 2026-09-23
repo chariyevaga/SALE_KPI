@@ -3,15 +3,31 @@
   "configurations": [
     {
       "name": "api",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/api", "run", "dev"],
-      "port": 3000
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "API_PORT=4455",
+        "KPI_AUTO_CALCULATION_INTERVAL_MINUTES=0",
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "dev"
+      ],
+      "port": 4455
     },
     {
       "name": "web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/web", "run", "dev", "--", "--port", "5180", "--strictPort"],
-      "port": 5180
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "WEB_PORT=5182",
+        "VITE_API_BASE_URL=http://localhost:4455",
+        "npm",
+        "--prefix",
+        "apps/web",
+        "run",
+        "dev"
+      ],
+      "port": 5182
     }
   ]
 }

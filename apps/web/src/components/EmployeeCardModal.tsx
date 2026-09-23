@@ -6,6 +6,7 @@ import type { EmployeeResponse } from '../types/api';
 import { AuthenticatedImage } from './AuthenticatedImage';
 import { Modal } from './Modal';
 import { ProfileAvatar } from './ProfileAvatar';
+import { RecordInfoButton } from './RecordInfo';
 
 interface EmployeeCardModalProps {
   open: boolean;
@@ -22,7 +23,18 @@ export function EmployeeCardModal({ open, onClose, employee }: EmployeeCardModal
   const erpCode = employee.erpEmployeeCode;
 
   return (
-    <Modal open={open} onClose={onClose} title={t('employeeCard.title')}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t('employeeCard.title')}
+      headerActions={
+        <RecordInfoButton
+          tableName="employees"
+          recordId={employee.id}
+          title={`${employee.firstname} ${employee.lastname}`}
+        />
+      }
+    >
       <div className="flex flex-col items-center gap-4">
         <div className="flex w-full flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-emerald-400/15 to-emerald-600/5 p-5 text-center">
           {employee.avatar ? (

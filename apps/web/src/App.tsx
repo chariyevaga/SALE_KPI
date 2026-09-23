@@ -3,13 +3,22 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { fetchCurrentEmployee } from './api/auth';
-import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute';
-import { ComingSoonPage } from './pages/ComingSoonPage';
+import { AdminRoute, ProtectedRoute, VisitorCountsRoute } from './components/ProtectedRoute';
+import { ConfirmHost } from './components/ConfirmHost';
+import { RecordInfoHost } from './components/RecordInfo';
+import { useSessionWatchdog } from './lib/session-watchdog';
 import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeesPage } from './pages/EmployeesPage';
+import { KpiPlanFormPage } from './pages/KpiPlanFormPage';
+import { KpiPlansPage } from './pages/KpiPlansPage';
+import { KpiTemplateFormPage } from './pages/KpiTemplateFormPage';
+import { KpiTemplatesPage } from './pages/KpiTemplatesPage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyKpiPage } from './pages/MyKpiPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { VisitorCountsPage } from './pages/VisitorCountsPage';
 import { useAuthStore } from './store/auth-store';
 
 function SessionBootstrap() {
@@ -17,6 +26,8 @@ function SessionBootstrap() {
   const employee = useAuthStore((state) => state.employee);
   const setEmployee = useAuthStore((state) => state.setEmployee);
   const clearSession = useAuthStore((state) => state.clearSession);
+
+  useSessionWatchdog();
 
   const meQuery = useQuery({
     queryKey: ['me'],
@@ -33,7 +44,8 @@ function SessionBootstrap() {
 
   useEffect(() => {
     if (meQuery.isError) {
-      clearSession();
+      // The stored tokens no longer buy access, so treat it as an ended session.
+      clearSession('expired');
     }
   }, [meQuery.isError, clearSession]);
 
@@ -44,6 +56,8 @@ export function App() {
   return (
     <>
       <SessionBootstrap />
+      <RecordInfoHost />
+      <ConfirmHost />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -71,6 +85,30 @@ export function App() {
           }
         />
         <Route
+          path="/kpi-templates"
+          element={
+            <AdminRoute>
+              <KpiTemplatesPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-templates/new"
+          element={
+            <AdminRoute>
+              <KpiTemplateFormPage mode="create" />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-templates/:id"
+          element={
+            <AdminRoute>
+              <KpiTemplateFormPage mode="edit" />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/settings"
           element={
             <ProtectedRoute>
@@ -90,7 +128,7 @@ export function App() {
           path="/leaderboard"
           element={
             <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navLeaderboard" />
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />
@@ -98,16 +136,32 @@ export function App() {
           path="/my-kpi"
           element={
             <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navMyKpi" />
+              <MyKpiPage />
             </ProtectedRoute>
           }
         />
         <Route
           path="/kpi-plans"
           element={
-            <ProtectedRoute>
-              <ComingSoonPage titleKey="appShell.navKpiPlans" />
-            </ProtectedRoute>
+            <AdminRoute>
+              <KpiPlansPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/kpi-plans/:id"
+          element={
+            <AdminRoute>
+              <KpiPlanFormPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/visitor-counts"
+          element={
+            <VisitorCountsRoute>
+              <VisitorCountsPage />
+            </VisitorCountsRoute>
           }
         />
         <Route path="*" element={<Navigate to="/leaderboard" replace />} />

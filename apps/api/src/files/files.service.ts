@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { EntityManager } from 'typeorm';
 import { DataSource, IsNull, Repository } from 'typeorm';
 
+import { AuditService } from '../audit/audit.service.js';
 import { FileEntity } from './entities/file.entity.js';
 import { FileSourceReferenceRegistry } from './file-source-reference.registry.js';
 import { FileStorageService } from './file-storage.service.js';
@@ -32,6 +33,7 @@ export class FilesService {
     @Inject(FileStorageService) private readonly storage: FileStorageService,
     @Inject(FileSourceReferenceRegistry)
     private readonly sourceReferences: FileSourceReferenceRegistry,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   async create(upload: Express.Multer.File): Promise<FileResponse> {
@@ -53,7 +55,19 @@ export class FilesService {
     });
 
     try {
-      const savedFile = await this.filesRepository.save(file);
+      const savedFile = await this.audit.insert(this.dataSource.manager, FileEntity, {
+        originalName: file.originalName,
+        fileName: file.fileName,
+        bigImage: file.bigImage,
+        mediumImage: file.mediumImage,
+        smallImage: file.smallImage,
+        blurhash: file.blurhash,
+        mimeType: file.mimeType,
+        sizeBytes: file.sizeBytes,
+        sourceTable: null,
+        sourceField: null,
+        sourceTableId: null,
+      });
       return this.toResponse(savedFile);
     } catch (error: unknown) {
       await this.storage.delete(file);
@@ -96,7 +110,7 @@ export class FilesService {
     file.sourceTableId = null;
 
     try {
-      await manager.getRepository(FileEntity).save(file);
+      await this.writeSource(manager, file);
     } catch (error: unknown) {
       await this.storage.move(file, previousSource.table);
       file.sourceTable = previousSource.table;
@@ -152,7 +166,7 @@ export class FilesService {
     file.sourceTableId = input.sourceTableId;
 
     try {
-      await manager.getRepository(FileEntity).save(file);
+      await this.writeSource(manager, file);
     } catch (error: unknown) {
       await this.storage.move(file, previousSource.table);
       file.sourceTable = previousSource.table;
@@ -187,9 +201,22 @@ export class FilesService {
       }
 
       await this.storage.delete(file);
-      await repository.remove(file);
+      await this.audit.delete(manager, FileEntity, { id: file.id });
       return true;
     });
+  }
+
+  private async writeSource(manager: EntityManager, file: FileEntity): Promise<void> {
+    await this.audit.update(
+      manager,
+      FileEntity,
+      { id: file.id },
+      {
+        sourceTable: file.sourceTable,
+        sourceField: file.sourceField,
+        sourceTableId: file.sourceTableId,
+      },
+    );
   }
 
   private async findOneOrFail(id: string): Promise<FileEntity> {

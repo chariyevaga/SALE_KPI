@@ -18,6 +18,7 @@ export function LoginPage() {
   const location = useLocation();
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const sessionExpired = useAuthStore((state) => state.sessionExpired);
   const setSession = useAuthStore((state) => state.setSession);
 
   const [username, setUsername] = useState('');
@@ -28,7 +29,7 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (auth) => {
-      setSession(auth);
+      setSession(auth, rememberMe);
       const redirectTo = (location.state as { from?: string } | null)?.from ?? '/leaderboard';
       void navigate(redirectTo, { replace: true });
     },
@@ -148,6 +149,15 @@ export function LoginPage() {
                   {t('login.forgotPassword')}
                 </button>
               </div>
+
+              {sessionExpired && !errorMessage ? (
+                <p
+                  role="status"
+                  className="animate-in fade-in duration-300 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400"
+                >
+                  {t('login.sessionExpired')}
+                </p>
+              ) : null}
 
               {errorMessage ? (
                 <p

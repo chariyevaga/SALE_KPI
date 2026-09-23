@@ -115,6 +115,14 @@ export class UpdateEmployeeDto {
 
   @ApiPropertyOptional({
     type: Boolean,
+    description: 'true ise mağazaların günlük ziyaretçi sayısını girebilir (ADR-043).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  canEnterVisitorCounts?: boolean;
+
+  @ApiPropertyOptional({
+    type: Boolean,
     description: 'false yapmak hesabı devre dışı bırakır; kalıcı silme için DELETE /employees/:id kullanılır.',
   })
   @IsOptional()
