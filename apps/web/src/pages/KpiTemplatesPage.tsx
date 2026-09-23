@@ -21,6 +21,7 @@ import { ApiError } from '../lib/api-client';
 import { isBulkBarVisible, type BulkNotice } from '../lib/bulk';
 import { useSelection } from '../lib/use-selection';
 import type { KpiTemplateSummary } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type BulkTemplateAction = 'copy' | 'activate' | 'deactivate' | 'delete';
@@ -196,21 +197,25 @@ export function KpiTemplatesPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['kpi-templates'] }),
   });
 
-  function runBulk(action: BulkTemplateAction, targets: KpiTemplateSummary[]) {
+  async function runBulk(action: BulkTemplateAction, targets: KpiTemplateSummary[]) {
+    const count = formatNumber(targets.length, locale);
+
     if (
       action === 'deactivate' &&
-      !window.confirm(
-        t('kpiTemplates.bulkDeactivateConfirm', { count: formatNumber(targets.length, locale) }),
-      )
+      !(await confirmAction({
+        message: t('kpiTemplates.bulkDeactivateConfirm', { count }),
+        tone: 'danger',
+      }))
     ) {
       return;
     }
 
     if (
       action === 'delete' &&
-      !window.confirm(
-        t('kpiTemplates.bulkDeleteConfirm', { count: formatNumber(targets.length, locale) }),
-      )
+      !(await confirmAction({
+        message: t('kpiTemplates.bulkDeleteConfirm', { count }),
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -229,7 +234,7 @@ export function KpiTemplatesPage() {
       key: 'copy',
       label: t('kpiTemplates.bulkCopy'),
       tone: 'neutral',
-      onClick: () => runBulk('copy', selectedTemplates),
+      onClick: () => void runBulk('copy', selectedTemplates),
     },
     ...(toActivate.length > 0
       ? [
@@ -237,7 +242,7 @@ export function KpiTemplatesPage() {
             key: 'activate',
             label: withCount(t('kpiTemplates.bulkActivate'), toActivate.length),
             tone: 'primary' as const,
-            onClick: () => runBulk('activate', toActivate),
+            onClick: () => void runBulk('activate', toActivate),
           },
         ]
       : []),
@@ -247,7 +252,7 @@ export function KpiTemplatesPage() {
             key: 'deactivate',
             label: withCount(t('kpiTemplates.bulkDeactivate'), toDeactivate.length),
             tone: 'neutral' as const,
-            onClick: () => runBulk('deactivate', toDeactivate),
+            onClick: () => void runBulk('deactivate', toDeactivate),
           },
         ]
       : []),
@@ -255,7 +260,7 @@ export function KpiTemplatesPage() {
       key: 'delete',
       label: t('kpiTemplates.bulkDelete'),
       tone: 'danger',
-      onClick: () => runBulk('delete', selectedTemplates),
+      onClick: () => void runBulk('delete', selectedTemplates),
     },
   ];
   const bulkBarVisible = isBulkBarVisible(selectedTemplates.length, notice);

@@ -63,6 +63,18 @@ export class EmployeeSalaryListResponse {
   items: EmployeeSalaryResponse[];
 }
 
+export class EmployeeSalaryInForceResponse {
+  @ApiProperty({ type: String, example: '2026-09', description: 'Sorulan ay.' })
+  month: string;
+
+  @ApiProperty({
+    type: () => EmployeeSalaryResponse,
+    nullable: true,
+    description: 'O ay geçerli maaş: ayı o aydan sonra olmayan en yeni kayıt; yoksa `null`.',
+  })
+  salary: EmployeeSalaryResponse | null;
+}
+
 export function toEmployeeSalaryResponse(salary: EmployeeSalaryEntity): EmployeeSalaryResponse {
   return {
     id: salary.id,

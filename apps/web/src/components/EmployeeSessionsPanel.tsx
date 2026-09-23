@@ -8,6 +8,7 @@ import {
 import { localizeApiError } from '../i18n/api-errors';
 import { formatDateTime } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
+import { confirmAction } from '../store/confirm-store';
 import { Spinner } from './Spinner';
 
 /** Admin view of another employee's sessions, with the same actions they have on their own. */
@@ -32,6 +33,20 @@ export function EmployeeSessionsPanel({ employeeId }: { employeeId: string }) {
     mutationFn: () => revokeAllEmployeeSessions(employeeId),
     onSuccess: invalidate,
   });
+
+  async function revoke(sessionId: string) {
+    if (await confirmAction({ message: t('sessions.revokeConfirm'), tone: 'danger' })) {
+      revokeAllMutation.reset();
+      revokeMutation.mutate(sessionId);
+    }
+  }
+
+  async function revokeAll() {
+    if (await confirmAction({ message: t('sessions.logoutAllConfirm'), tone: 'danger' })) {
+      revokeMutation.reset();
+      revokeAllMutation.mutate();
+    }
+  }
 
   const sessions = sessionsQuery.data ?? [];
   const actionError = revokeMutation.isError
@@ -123,12 +138,7 @@ export function EmployeeSessionsPanel({ employeeId }: { employeeId: string }) {
 
             <button
               type="button"
-              onClick={() => {
-                if (window.confirm(t('sessions.revokeConfirm'))) {
-                  revokeAllMutation.reset();
-                  revokeMutation.mutate(session.id);
-                }
-              }}
+              onClick={() => void revoke(session.id)}
               disabled={revokeMutation.isPending}
               className="h-9 flex-shrink-0 rounded-lg border border-slate-300 px-3 text-sm font-medium text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-red-400"
             >
@@ -147,12 +157,7 @@ export function EmployeeSessionsPanel({ employeeId }: { employeeId: string }) {
 
       <button
         type="button"
-        onClick={() => {
-          if (window.confirm(t('sessions.logoutAllConfirm'))) {
-            revokeMutation.reset();
-            revokeAllMutation.mutate();
-          }
-        }}
+        onClick={() => void revokeAll()}
         disabled={revokeAllMutation.isPending}
         className="mt-2 h-11 rounded-lg bg-red-500/10 text-sm font-semibold text-red-600 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400"
       >

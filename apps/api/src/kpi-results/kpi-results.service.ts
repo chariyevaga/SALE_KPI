@@ -1,9 +1,15 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, type EntityManager, In, Repository } from 'typeorm';
+import { DataSource, type EntityManager, In, LessThanOrEqual, Repository } from 'typeorm';
 
 import type { AuditValue } from '../audit/audit-changes.js';
 import { AuditService } from '../audit/audit.service.js';
+import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import {
+  salaryMonthLabel,
+  salaryShare,
+  splitSalary,
+} from '../employee-salaries/employee-salary-rules.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import { KpiAssignmentItemEntity } from '../kpi-assignments/entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
@@ -23,6 +29,7 @@ import { KpiResultEntity, type KpiResultSource } from './entities/kpi-result.ent
 import type {
   KpiPeriodCalculationResponse,
   KpiPlanResultsResponse,
+  KpiPlanSalaryResponse,
   KpiResultResponse,
 } from './kpi-result-response.js';
 import { isCalculableKpi, planScore, sameResults, scoreRow } from './kpi-result-rules.js';
@@ -91,6 +98,8 @@ export class KpiResultsService {
     private readonly periodRepository: Repository<KpiPeriodEntity>,
     @InjectRepository(StoreEntity)
     private readonly storeRepository: Repository<StoreEntity>,
+    @InjectRepository(EmployeeSalaryEntity)
+    private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DataSource) private readonly dataSource: DataSource,
   ) {}
@@ -112,8 +121,15 @@ export class KpiResultsService {
     const results = await this.resultRepository.find({
       where: { assignmentId: plan.assignment.id },
     });
+    const salary = await this.salaryRepository.findOne({
+      where: {
+        employeeId: plan.assignment.employeeId,
+        effectiveMonth: LessThanOrEqual(monthStart(plan.period)),
+      },
+      order: { effectiveMonth: 'DESC' },
+    });
 
-    return this.toResponse(plan, results);
+    return this.toResponse(plan, results, salary);
   }
 
   /** Reads the month from Tiger and writes the plan's results. Only in an open period. */
@@ -447,7 +463,13 @@ export class KpiResultsService {
     );
   }
 
-  private toResponse(plan: PlanData, results: KpiResultEntity[]): KpiPlanResultsResponse {
+  private toResponse(
+    plan: PlanData,
+    results: KpiResultEntity[],
+    salary: EmployeeSalaryEntity | null,
+  ): KpiPlanResultsResponse {
+    const kpiAmount = salary ? splitSalary(salary.amount, salary.fixedPercent).kpiAmount : null;
+
     const byItem = new Map(
       results.map((result) => [result.assignmentItemId.toLowerCase(), result]),
     );
@@ -478,19 +500,47 @@ export class KpiResultsService {
           cappedAchievement: result.cappedAchievement,
           weightedScore: result.weightedScore,
           calculatedAt: result.calculatedAt,
+          salaryValue: kpiAmount === null ? null : salaryShare(kpiAmount, result.weight),
+          salaryEarned:
+            kpiAmount === null || result.weightedScore === null
+              ? null
+              : salaryShare(kpiAmount, result.weightedScore),
         },
       ];
     });
+    const totalScore = results.length === 0 ? null : plan.assignment.totalScore;
 
     return {
       assignmentId: plan.assignment.id,
-      totalScore: results.length === 0 ? null : plan.assignment.totalScore,
+      totalScore,
       scoredItemCount: items.filter((item) => item.weightedScore !== null).length,
       itemCount: plan.items.length,
       calculatedAt: plan.assignment.scoreCalculatedAt,
       items,
+      salary: salary ? toPlanSalary(salary, totalScore) : null,
     };
   }
+}
+
+/** The salary of the plan's month and what the score earns of its KPI part (ADR-049). */
+function toPlanSalary(
+  salary: EmployeeSalaryEntity,
+  totalScore: number | null,
+): KpiPlanSalaryResponse {
+  const { fixedAmount, kpiAmount } = splitSalary(salary.amount, salary.fixedPercent);
+  const kpiEarned = totalScore === null ? null : salaryShare(kpiAmount, totalScore);
+
+  return {
+    effectiveMonth: salaryMonthLabel(salary.effectiveMonth),
+    amount: salary.amount,
+    currency: salary.currency,
+    fixedPercent: salary.fixedPercent,
+    kpiPercent: salary.kpiPercent,
+    fixedAmount,
+    kpiAmount,
+    kpiEarned,
+    totalEarned: kpiEarned === null ? null : Math.round((fixedAmount + kpiEarned) * 100) / 100,
+  };
 }
 
 /** The first day of the period's month, as SQL Server's `date` reads it. */

@@ -374,6 +374,25 @@ export interface KpiResult {
   cappedAchievement: number | null;
   weightedScore: number | null;
   calculatedAt: string | null;
+  /** What this KPI is worth of the salary's KPI part (KPI part × weight / 100), ADR-049. */
+  salaryValue: number | null;
+  /** What it earned (KPI part × weighted score / 100); null when not scored. */
+  salaryEarned: number | null;
+}
+
+/** The salary of the plan's month and what the score earns of it (ADR-049). */
+export interface KpiPlanSalary {
+  effectiveMonth: string;
+  amount: number;
+  currency: SalaryCurrency;
+  fixedPercent: number;
+  kpiPercent: number;
+  fixedAmount: number;
+  kpiAmount: number;
+  /** KPI part × total score / 100; null before the first calculation. */
+  kpiEarned: number | null;
+  /** Fixed part + earned KPI part; an interim figure while the period is open. */
+  totalEarned: number | null;
 }
 
 export interface KpiPlanResults {
@@ -383,6 +402,8 @@ export interface KpiPlanResults {
   itemCount: number;
   calculatedAt: string | null;
   items: KpiResult[];
+  /** Only the plan's owner and full_access users receive it; null when no salary applies. */
+  salary: KpiPlanSalary | null;
 }
 
 export interface KpiPeriodCalculation {

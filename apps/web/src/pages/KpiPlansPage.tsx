@@ -27,6 +27,7 @@ import { useTranslation, type Translate } from '../i18n/locale-store';
 import type { Locale } from '../i18n/translations';
 import { ApiError } from '../lib/api-client';
 import type { EmployeeResponse, KpiPeriod, KpiPlanSkipReason, KpiPlanSummary } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 
@@ -516,7 +517,7 @@ export function KpiPlansPage() {
     onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
   });
 
-  function closePeriod() {
+  async function closePeriod() {
     if (!period) return;
 
     // Closing before the reopen window ends can be undone; after it, closing is final.
@@ -528,25 +529,34 @@ export function KpiPlansPage() {
           })
         : t('kpiPlans.closeConfirmFinal', { period: period.label });
 
-    if (window.confirm(message)) {
+    if (await confirmAction({ message, tone: 'danger' })) {
       closeMutation.mutate(period.id);
     }
   }
 
-  function copyFromPrevious() {
+  async function copyFromPrevious() {
     if (!period || !previousPeriod) return;
 
-    if (window.confirm(t('kpiPlans.copyConfirm', { period: previousPeriod.label }))) {
+    if (
+      await confirmAction({
+        message: t('kpiPlans.copyConfirm', { period: previousPeriod.label }),
+        tone: 'default',
+      })
+    ) {
       copyMutation.mutate({ target: period.id, source: previousPeriod.id });
     }
   }
 
-  function removePlan(plan: KpiPlanSummary) {
+  async function removePlan(plan: KpiPlanSummary) {
     if (!period) return;
 
-    const confirmed = window.confirm(
-      t('kpiPlanForm.deleteConfirm', { name: employeeName(plan.employee), period: period.label }),
-    );
+    const confirmed = await confirmAction({
+      message: t('kpiPlanForm.deleteConfirm', {
+        name: employeeName(plan.employee),
+        period: period.label,
+      }),
+      tone: 'danger',
+    });
 
     if (confirmed) {
       deleteMutation.mutate(plan);
@@ -595,8 +605,8 @@ export function KpiPlansPage() {
           onSelect={selectPeriod}
           onNewPeriod={() => setNewPeriodOpen(true)}
           onCalculate={() => calculateMutation.mutate(period.id)}
-          onCopy={copyFromPrevious}
-          onClose={closePeriod}
+          onCopy={() => void copyFromPrevious()}
+          onClose={() => void closePeriod()}
           onReopen={() => reopenMutation.mutate(period.id)}
           calculating={calculateMutation.isPending}
           copying={copyMutation.isPending}
@@ -659,7 +669,7 @@ export function KpiPlansPage() {
               <PlanCard
                 key={plan.id}
                 plan={plan}
-                onDelete={isOpenPeriod ? () => removePlan(plan) : undefined}
+                onDelete={isOpenPeriod ? () => void removePlan(plan) : undefined}
                 deleting={deleteMutation.isPending}
               />
             ))}
@@ -738,7 +748,7 @@ export function KpiPlansPage() {
                         {isOpenPeriod ? (
                           <DeletePlanButton
                             name={employeeName(plan.employee)}
-                            onDelete={() => removePlan(plan)}
+                            onDelete={() => void removePlan(plan)}
                             disabled={deleteMutation.isPending}
                           />
                         ) : null}

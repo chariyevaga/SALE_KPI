@@ -10,6 +10,8 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -24,14 +26,21 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 
 import { AccessTokenGuard } from '../auth/access-token.guard.js';
+import type { AuthenticatedRequest } from '../auth/auth.types.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
+import { SalaryMonthQueryDto } from './dto/salary-month-query.dto.js';
 import { SaveEmployeeSalaryDto } from './dto/save-employee-salary.dto.js';
 import { EmployeeSalaryErrorResponse } from './employee-salary-errors.js';
-import { EmployeeSalaryListResponse, EmployeeSalaryResponse } from './employee-salary-response.js';
+import {
+  EmployeeSalaryInForceResponse,
+  EmployeeSalaryListResponse,
+  EmployeeSalaryResponse,
+} from './employee-salary-response.js';
 import { EmployeeSalariesService } from './employee-salaries.service.js';
 
 const FORBIDDEN =
@@ -43,13 +52,44 @@ const MONTH_EXISTS = '`EMPLOYEE_SALARY_MONTH_EXISTS`: çalışanın o ay için z
 @ApiTags('employee-salaries')
 @ApiBearerAuth('access-token')
 @Controller()
-@UseGuards(AccessTokenGuard, FullAccessGuard)
+@UseGuards(AccessTokenGuard)
 export class EmployeeSalariesController {
   constructor(
     @Inject(EmployeeSalariesService) private readonly salariesService: EmployeeSalariesService,
   ) {}
 
+  // Declared before the ':employeeId' routes of the same prefix so "me" is never a GUID.
+  @Get('employee-salaries/me/in-force')
+  @ApiOperation({
+    summary: 'Oturum sahibinin o ay geçerli maaşı (herkes, yalnız kendisininki).',
+    description:
+      '"KPI’larım" ekranı maaşın KPI kısmının ne kadar ettiğini göstermek için okur. Çalışan yalnız kendi maaşını görür; başka birinin maaşı yalnız `full_access` ile `GET /employees/:employeeId/salaries/in-force` üzerinden okunur. Yazma yine yalnız `full_access` (ADR-048).',
+  })
+  @ApiQuery({ name: 'month', required: false, type: String, example: '2026-09' })
+  @ApiOkResponse({ type: EmployeeSalaryInForceResponse })
+  mine(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: SalaryMonthQueryDto,
+  ): Promise<EmployeeSalaryInForceResponse> {
+    return this.salariesService.inForce(request.employee.id, query.month);
+  }
+
+  @Get('employees/:employeeId/salaries/in-force')
+  @UseGuards(FullAccessGuard)
+  @ApiOperation({ summary: 'Bir çalışanın o ay geçerli maaşı (yalnız full_access).' })
+  @ApiParam({ name: 'employeeId', type: String, format: 'uuid' })
+  @ApiQuery({ name: 'month', required: false, type: String, example: '2026-09' })
+  @ApiOkResponse({ type: EmployeeSalaryInForceResponse })
+  @ApiForbiddenResponse({ description: FORBIDDEN })
+  inForce(
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Query() query: SalaryMonthQueryDto,
+  ): Promise<EmployeeSalaryInForceResponse> {
+    return this.salariesService.inForce(employeeId, query.month);
+  }
+
   @Get('employees/:employeeId/salaries')
+  @UseGuards(FullAccessGuard)
   @ApiOperation({
     summary: 'Çalışanın maaşlarını ve bu ay geçerli olanı döner (yalnız full_access).',
     description:
@@ -66,6 +106,7 @@ export class EmployeeSalariesController {
   }
 
   @Post('employees/:employeeId/salaries')
+  @UseGuards(FullAccessGuard)
   @ApiOperation({ summary: 'Çalışana bir aydan itibaren geçerli maaş ekler (yalnız full_access).' })
   @ApiParam({ name: 'employeeId', type: String, format: 'uuid' })
   @ApiBody({ type: SaveEmployeeSalaryDto })
@@ -82,6 +123,7 @@ export class EmployeeSalariesController {
   }
 
   @Put('employee-salaries/:id')
+  @UseGuards(FullAccessGuard)
   @ApiOperation({ summary: 'Bir maaş kaydını düzeltir (yalnız full_access).' })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiBody({ type: SaveEmployeeSalaryDto })
@@ -98,6 +140,7 @@ export class EmployeeSalariesController {
   }
 
   @Delete('employee-salaries/:id')
+  @UseGuards(FullAccessGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Bir maaş kaydını siler (yalnız full_access).',

@@ -20,6 +20,7 @@ import { useTranslation, type Translate } from '../i18n/locale-store';
 import { ApiError } from '../lib/api-client';
 import { useAuthStore } from '../store/auth-store';
 import type { StoreVisitorCount } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 
@@ -428,13 +429,14 @@ export function VisitorCountsPage() {
     await queryClient.invalidateQueries({ queryKey: ['store-visitor-counts'] });
   }
 
-  function remove(entry: StoreVisitorCount) {
-    const confirmed = window.confirm(
-      t('visitorCounts.deleteConfirm', {
+  async function remove(entry: StoreVisitorCount) {
+    const confirmed = await confirmAction({
+      message: t('visitorCounts.deleteConfirm', {
         store: storeText(entry),
         date: formatDate(entry.date, locale),
       }),
-    );
+      tone: 'danger',
+    });
 
     if (confirmed) {
       setNotice(null);
@@ -704,7 +706,7 @@ export function VisitorCountsPage() {
                     {canEnter ? (
                       <button
                         type="button"
-                        onClick={() => remove(entry)}
+                        onClick={() => void remove(entry)}
                         disabled={deleteMutation.isPending}
                         aria-label={t('visitorCounts.deleteFor', {
                           store: storeText(entry),
@@ -781,7 +783,7 @@ export function VisitorCountsPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => remove(entry)}
+                                  onClick={() => void remove(entry)}
                                   disabled={deleteMutation.isPending}
                                   aria-label={t('visitorCounts.deleteFor', {
                                     store: storeText(entry),

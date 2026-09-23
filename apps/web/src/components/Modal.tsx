@@ -14,9 +14,19 @@ interface ModalProps {
    * scrolls under a fixed header. `sm` does not scroll, so dropdowns inside it are not cut off.
    */
   size?: 'sm' | 'lg';
+  /** Above every other modal: the app-wide confirmation dialog. */
+  stacked?: boolean;
 }
 
-export function Modal({ open, onClose, title, children, headerActions, size = 'sm' }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  headerActions,
+  size = 'sm',
+  stacked = false,
+}: ModalProps) {
   const isLarge = size === 'lg';
   const { t } = useTranslation();
 
@@ -25,7 +35,11 @@ export function Modal({ open, onClose, title, children, headerActions, size = 's
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center sm:items-center">
+    <div
+      className={`fixed inset-0 flex items-end justify-center sm:items-center ${
+        stacked ? 'z-50' : 'z-30'
+      }`}
+    >
       <button
         type="button"
         aria-label={t('common.closeDialog', { title })}

@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Not, Repository } from 'typeorm';
+import { DataSource, LessThanOrEqual, Not, Repository } from 'typeorm';
 
 import { AuditService } from '../audit/audit.service.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
@@ -8,6 +8,7 @@ import type { SaveEmployeeSalaryDto } from './dto/save-employee-salary.dto.js';
 import { EmployeeSalaryEntity } from './entities/employee-salary.entity.js';
 import { salaryMonthExists, salaryPercentTotal } from './employee-salary-errors.js';
 import {
+  type EmployeeSalaryInForceResponse,
   type EmployeeSalaryListResponse,
   type EmployeeSalaryResponse,
   toEmployeeSalaryResponse,
@@ -56,6 +57,23 @@ export class EmployeeSalariesService {
       current: current ? toEmployeeSalaryResponse(current) : null,
       items: rows.map(toEmployeeSalaryResponse),
     };
+  }
+
+  /**
+   * The salary in force in `month` (default this month, UTC). Used by the KPI screens to show
+   * what the KPI part of the salary is worth; the controller decides who may ask for whom.
+   */
+  async inForce(
+    employeeId: string,
+    month: string | undefined,
+  ): Promise<EmployeeSalaryInForceResponse> {
+    const target = month ?? monthOf(new Date());
+    const salary = await this.salaryRepository.findOne({
+      where: { employeeId, effectiveMonth: LessThanOrEqual(salaryMonthStart(target)) },
+      order: { effectiveMonth: 'DESC' },
+    });
+
+    return { month: target, salary: salary ? toEmployeeSalaryResponse(salary) : null };
   }
 
   async create(employeeId: string, dto: SaveEmployeeSalaryDto): Promise<EmployeeSalaryResponse> {

@@ -17,6 +17,8 @@ interface TranslationShape {
     closeDialog: string;
     breadcrumb: string;
     cancel: string;
+    confirm: string;
+    confirmTitle: string;
     apply: string;
     clear: string;
     home: string;
@@ -557,6 +559,7 @@ interface TranslationShape {
     deleteFor: string;
     deleteConfirm: string;
     deleteError: string;
+    delete: string;
     effectiveMonth: string;
     effectiveHint: string;
     amount: string;
@@ -570,6 +573,26 @@ interface TranslationShape {
     saveError: string;
     errorMonthExists: string;
     errorPercentTotal: string;
+  };
+  kpiSalary: {
+    title: string;
+    since: string;
+    show: string;
+    hide: string;
+    hidden: string;
+    payable: string;
+    fixedOnly: string;
+    barLabel: string;
+    fixedPart: string;
+    kpiPart: string;
+    byScore: string;
+    fullSalary: string;
+    interim: string;
+    final: string;
+    notCalculated: string;
+    itemValue: string;
+    itemEarned: string;
+    noSalary: string;
   };
   kpiProgress: {
     totalScore: string;
@@ -654,6 +677,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeDialog: '{title} penceresini kapat',
       breadcrumb: 'Gezinme yolu',
       cancel: 'Vazgeç',
+      confirm: 'Onayla',
+      confirmTitle: 'Emin misiniz?',
       apply: 'Uygula',
       clear: 'Temizle',
       home: 'Ana sayfa',
@@ -1212,6 +1237,7 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm:
         '{month} ayından itibaren geçerli maaş silinsin mi? O aydan sonra bir önceki maaş geçerli olur.',
       deleteError: 'Maaş silinemedi.',
+      delete: 'Sil',
       effectiveMonth: 'Geçerli olduğu ay',
       effectiveHint: 'Bu aydan itibaren, yeni bir maaş girilene kadar geçerlidir.',
       amount: 'Maaş',
@@ -1225,6 +1251,27 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Maaş kaydedilemedi.',
       errorMonthExists: 'Bu çalışanın bu ay için zaten bir maaşı var.',
       errorPercentTotal: 'Sabit ve KPI yüzdelerinin toplamı 100 olmalı.',
+    },
+    kpiSalary: {
+      title: 'Maaş',
+      since: '{month} ayından beri geçerli maaş',
+      show: 'Göster',
+      hide: 'Gizle · {seconds}',
+      hidden: 'Gizli tutar; göstermek için dokunun',
+      payable: 'Bu dönem alınacak',
+      fixedOnly: 'Sabit kısım (KPI henüz hesaplanmadı)',
+      barLabel: 'Sabit %{fixed}, KPI %{kpi}, puan {score}',
+      fixedPart: 'Sabit %{percent}',
+      kpiPart: 'KPI %{percent}',
+      byScore: 'Puan {score} üzerinden',
+      fullSalary: 'Toplam maaş',
+      interim: 'Dönem açık: puan değiştikçe tutar da değişir.',
+      final: 'Dönem kapandı; tutar kesin.',
+      notCalculated: 'KPI kısmı, puan hesaplanınca eklenecek.',
+      itemValue: 'Maaştaki değeri',
+      itemEarned: 'Kazanılan',
+      noSalary:
+        'Bu çalışanın bu ay için geçerli maaşı yok; maaş, çalışanın Maaş sekmesinden girilir.',
     },
     kpiProgress: {
       totalScore: 'Toplam puan',
@@ -1307,6 +1354,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeDialog: 'Close {title}',
       breadcrumb: 'Breadcrumb',
       cancel: 'Cancel',
+      confirm: 'Confirm',
+      confirmTitle: 'Are you sure?',
       apply: 'Apply',
       clear: 'Clear',
       home: 'Home',
@@ -1865,6 +1914,7 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm:
         'Delete the salary in force from {month}? The previous salary will apply from that month on.',
       deleteError: 'Could not delete the salary.',
+      delete: 'Delete',
       effectiveMonth: 'Effective from',
       effectiveHint: 'Applies from this month until a newer salary is entered.',
       amount: 'Salary',
@@ -1878,6 +1928,27 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Could not save the salary.',
       errorMonthExists: 'This employee already has a salary for this month.',
       errorPercentTotal: 'Fixed and KPI percentages must add up to 100.',
+    },
+    kpiSalary: {
+      title: 'Salary',
+      since: 'Salary in force since {month}',
+      show: 'Show',
+      hide: 'Hide · {seconds}',
+      hidden: 'Hidden amount; tap to show',
+      payable: 'Payable for this period',
+      fixedOnly: 'Fixed part (KPIs not calculated yet)',
+      barLabel: 'Fixed {fixed}%, KPI {kpi}%, score {score}',
+      fixedPart: 'Fixed {percent}%',
+      kpiPart: 'KPI {percent}%',
+      byScore: 'At a score of {score}',
+      fullSalary: 'Full salary',
+      interim: 'Period open: the amount changes as the score does.',
+      final: 'Period closed; the amount is final.',
+      notCalculated: 'The KPI part is added once the score is calculated.',
+      itemValue: 'Worth of salary',
+      itemEarned: 'Earned',
+      noSalary:
+        "This employee has no salary in force for this month; enter one on the employee's Salary tab.",
     },
     kpiProgress: {
       totalScore: 'Total score',
@@ -1960,6 +2031,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeDialog: 'Закрыть окно «{title}»',
       breadcrumb: 'Навигационная цепочка',
       cancel: 'Отмена',
+      confirm: 'Подтвердить',
+      confirmTitle: 'Вы уверены?',
       apply: 'Применить',
       clear: 'Сбросить',
       home: 'Главная',
@@ -2520,6 +2593,7 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm:
         'Удалить зарплату, действующую с {month}? С этого месяца будет действовать предыдущая.',
       deleteError: 'Не удалось удалить зарплату.',
+      delete: 'Удалить',
       effectiveMonth: 'Действует с месяца',
       effectiveHint: 'Действует с этого месяца, пока не введена новая зарплата.',
       amount: 'Зарплата',
@@ -2533,6 +2607,27 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Не удалось сохранить зарплату.',
       errorMonthExists: 'У сотрудника уже есть зарплата за этот месяц.',
       errorPercentTotal: 'Сумма фиксированной доли и доли KPI должна быть 100.',
+    },
+    kpiSalary: {
+      title: 'Зарплата',
+      since: 'Действует с {month}',
+      show: 'Показать',
+      hide: 'Скрыть · {seconds}',
+      hidden: 'Сумма скрыта; нажмите, чтобы показать',
+      payable: 'К выплате за период',
+      fixedOnly: 'Фиксированная часть (KPI ещё не рассчитаны)',
+      barLabel: 'Фикс. {fixed}%, KPI {kpi}%, балл {score}',
+      fixedPart: 'Фикс. {percent}%',
+      kpiPart: 'KPI {percent}%',
+      byScore: 'При балле {score}',
+      fullSalary: 'Полная зарплата',
+      interim: 'Период открыт: сумма меняется вместе с баллом.',
+      final: 'Период закрыт; сумма окончательная.',
+      notCalculated: 'Часть KPI добавится после расчёта балла.',
+      itemValue: 'Доля в зарплате',
+      itemEarned: 'Заработано',
+      noSalary:
+        'У сотрудника нет действующей зарплаты за этот месяц; её вводят на вкладке «Зарплата».',
     },
     kpiProgress: {
       totalScore: 'Итоговый балл',
@@ -2615,6 +2710,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeDialog: '{title} penjiresini ýap',
       breadcrumb: 'Nawigasiýa ýoly',
       cancel: 'Ýatyr',
+      confirm: 'Tassykla',
+      confirmTitle: 'Ynamyňyz barmy?',
       apply: 'Ulan',
       clear: 'Arassala',
       home: 'Baş sahypa',
@@ -3177,6 +3274,7 @@ export const translations: Record<Locale, TranslationShape> = {
       deleteConfirm:
         '{month} aýyndan başlap güýjündäki aýlyk pozulsynmy? Şol aýdan soň öňki aýlyk güýje girer.',
       deleteError: 'Aýlyk pozulyp bilmedi.',
+      delete: 'Poz',
       effectiveMonth: 'Güýje girýän aýy',
       effectiveHint: 'Şu aýdan başlap, täze aýlyk girizilýänçä güýjünde bolýar.',
       amount: 'Aýlyk',
@@ -3190,6 +3288,27 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Aýlyk ýatda saklanyp bilmedi.',
       errorMonthExists: 'Bu işgäriň bu aý üçin eýýäm aýlygy bar.',
       errorPercentTotal: 'Hemişelik we KPI göterimleriniň jemi 100 bolmaly.',
+    },
+    kpiSalary: {
+      title: 'Aýlyk',
+      since: '{month} aýyndan bäri güýjündäki aýlyk',
+      show: 'Görkez',
+      hide: 'Gizle · {seconds}',
+      hidden: 'Gizlin mukdar; görmek üçin basyň',
+      payable: 'Bu döwür üçin alynjak',
+      fixedOnly: 'Hemişelik bölek (KPI entek hasaplanmady)',
+      barLabel: 'Hemişelik %{fixed}, KPI %{kpi}, bal {score}',
+      fixedPart: 'Hemişelik %{percent}',
+      kpiPart: 'KPI %{percent}',
+      byScore: '{score} bal boýunça',
+      fullSalary: 'Doly aýlyk',
+      interim: 'Döwür açyk: bal üýtgedigiçe mukdar hem üýtgeýär.',
+      final: 'Döwür ýapyldy; mukdar gutarnykly.',
+      notCalculated: 'KPI bölegi bal hasaplanandan soň goşular.',
+      itemValue: 'Aýlykdaky gymmaty',
+      itemEarned: 'Gazanylan',
+      noSalary:
+        'Bu işgäriň bu aý üçin güýjündäki aýlygy ýok; aýlyk işgäriň Aýlyk bölüminden girizilýär.',
     },
     kpiProgress: {
       totalScore: 'Jemi bal',

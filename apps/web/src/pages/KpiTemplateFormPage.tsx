@@ -33,6 +33,7 @@ import {
   validateDraft,
 } from '../lib/kpi-template-form';
 import type { KpiTemplate, SaveKpiTemplateInput } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 function describeDraftError(error: DraftError, t: Translate, locale: Locale): string {
   const params = { ...error.params };
@@ -210,6 +211,15 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
     deleteMutation.reset();
     reactivateMutation.reset();
     copyMutation.reset();
+  }
+  async function removeTemplate(name: string) {
+    resetFeedback();
+
+    if (
+      await confirmAction({ message: t('kpiTemplateForm.deleteConfirm', { name }), tone: 'danger' })
+    ) {
+      deleteMutation.mutate();
+    }
   }
 
   function updateItem(index: number, item: TemplateItemDraft) {
@@ -469,13 +479,7 @@ function KpiTemplateForm({ mode, id }: { mode: 'create' | 'edit'; id: string | u
               <button
                 type="button"
                 disabled={deleteMutation.isPending}
-                onClick={() => {
-                  resetFeedback();
-
-                  if (window.confirm(t('kpiTemplateForm.deleteConfirm', { name: template.name }))) {
-                    deleteMutation.mutate();
-                  }
-                }}
+                onClick={() => void removeTemplate(template.name)}
                 className="mt-2 h-12 w-full rounded-xl bg-red-500/10 text-base font-semibold text-red-600 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
               >
                 {deleteMutation.isPending

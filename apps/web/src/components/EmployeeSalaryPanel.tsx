@@ -15,6 +15,7 @@ import type { EmployeeSalary, SalaryCurrency } from '../types/api';
 import { FormField, formInputClassName } from './FormField';
 import { Modal } from './Modal';
 import { RecordInfoButton } from './RecordInfo';
+import { confirmAction } from '../store/confirm-store';
 
 const CURRENCIES: SalaryCurrency[] = ['TMT', 'USD'];
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -423,12 +424,14 @@ export function EmployeeSalaryPanel({ employeeId }: { employeeId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
-  function remove(salary: EmployeeSalary) {
-    if (
-      window.confirm(
-        t('salary.deleteConfirm', { month: formatMonth(salary.effectiveMonth, locale) }),
-      )
-    ) {
+  async function remove(salary: EmployeeSalary) {
+    const confirmed = await confirmAction({
+      message: t('salary.deleteConfirm', { month: formatMonth(salary.effectiveMonth, locale) }),
+      confirmLabel: t('salary.delete'),
+      tone: 'danger',
+    });
+
+    if (confirmed) {
       deleteMutation.mutate(salary);
     }
   }
@@ -548,7 +551,7 @@ export function EmployeeSalaryPanel({ employeeId }: { employeeId: string }) {
                   <div className="flex flex-col items-center py-1 pr-1">
                     <button
                       type="button"
-                      onClick={() => remove(salary)}
+                      onClick={() => void remove(salary)}
                       disabled={deleteMutation.isPending}
                       aria-label={t('salary.deleteFor', { range })}
                       title={t('salary.deleteFor', { range })}

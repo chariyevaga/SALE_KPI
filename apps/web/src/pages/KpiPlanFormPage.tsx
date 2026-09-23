@@ -15,6 +15,7 @@ import { listStores } from '../api/stores';
 import { AppShell } from '../components/AppShell';
 import { formInputDenseClassName } from '../components/FormField';
 import { KpiAchievement, KpiScoreSummary } from '../components/KpiProgress';
+import { KpiItemSalary, KpiSalaryCard, SalaryRevealProvider } from '../components/KpiSalary';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
@@ -27,6 +28,7 @@ import type {
   KpiResult,
   StoreOption,
 } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 
@@ -238,14 +240,15 @@ export function KpiPlanFormPage() {
     });
   }
 
-  function removePlan() {
+  async function removePlan() {
     if (!plan) return;
 
-    if (
-      window.confirm(
-        t('kpiPlanForm.deleteConfirm', { name: employeeName, period: plan.period.label }),
-      )
-    ) {
+    const confirmed = await confirmAction({
+      message: t('kpiPlanForm.deleteConfirm', { name: employeeName, period: plan.period.label }),
+      tone: 'danger',
+    });
+
+    if (confirmed) {
       deleteMutation.mutate();
     }
   }
@@ -262,244 +265,257 @@ export function KpiPlanFormPage() {
         plan ? { tableName: 'kpi_assignments', recordId: plan.id, title: employeeName } : undefined
       }
     >
-      {planQuery.isLoading ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          {t('kpiPlanForm.loading')}
-        </p>
-      ) : null}
+      <SalaryRevealProvider>
+        {planQuery.isLoading ? (
+          <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+            {t('kpiPlanForm.loading')}
+          </p>
+        ) : null}
 
-      {planQuery.isError ? (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400"
-        >
-          {t('kpiPlanForm.errorLoading')}
-        </p>
-      ) : null}
+        {planQuery.isError ? (
+          <p
+            role="alert"
+            className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400"
+          >
+            {t('kpiPlanForm.errorLoading')}
+          </p>
+        ) : null}
 
-      {plan ? (
-        <div className="flex flex-col gap-4 pb-28">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              {plan.templateName}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {plan.period.label} · @{plan.employee.username} ·{' '}
-              {t('kpiPlanForm.weight', { value: formatNumber(plan.totalWeight, locale) })}
-            </p>
+        {plan ? (
+          <div className="flex flex-col gap-4 pb-28">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {plan.templateName}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {plan.period.label} · @{plan.employee.username} ·{' '}
+                {t('kpiPlanForm.weight', { value: formatNumber(plan.totalWeight, locale) })}
+              </p>
 
-            {planResults ? (
-              <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                <KpiScoreSummary
-                  totalScore={planResults.totalScore}
-                  scoredItemCount={planResults.scoredItemCount}
-                  itemCount={planResults.itemCount}
-                  calculatedAt={planResults.calculatedAt}
-                />
+              {planResults ? (
+                <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <KpiScoreSummary
+                    totalScore={planResults.totalScore}
+                    scoredItemCount={planResults.scoredItemCount}
+                    itemCount={planResults.itemCount}
+                    calculatedAt={planResults.calculatedAt}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {planResults?.salary ? (
+              <KpiSalaryCard
+                salary={planResults.salary}
+                totalScore={planResults.totalScore}
+                periodOpen={isOpen}
+              />
+            ) : null}
+
+            {!isOpen ? (
+              <p className="rounded-lg bg-slate-500/10 px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
+                {t('kpiPlanForm.closedNotice', { period: plan.period.label })}
+              </p>
+            ) : null}
+
+            {notice ? (
+              <p
+                role="status"
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  notice.tone === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                }`}
+              >
+                {notice.text}
+              </p>
+            ) : null}
+
+            {isOpen && recommendations.size > 0 ? (
+              <button
+                type="button"
+                onClick={applyAll}
+                className="self-start rounded-lg border border-emerald-400/60 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
+              >
+                {t('kpiPlanForm.applyAll')}
+              </button>
+            ) : null}
+
+            <div className="flex flex-col gap-3">
+              {plan.items.map((item) => {
+                const recommendation = recommendations.get(item.id);
+                const summary = inputSummary(item, stores, t);
+                const result = results.get(item.id);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {pickLocalizedText(item.definition.name, locale)}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('kpiPlanForm.weight', { value: formatNumber(item.weight, locale) })}
+                          {summary ? ` · ${summary}` : ''}
+                        </p>
+                      </div>
+                      <span className="flex-shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        {item.definition.code}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <label
+                          htmlFor={`target-${item.id}`}
+                          className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
+                        >
+                          {t('kpiPlanForm.targetLabel')}
+                        </label>
+                        <input
+                          id={`target-${item.id}`}
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="any"
+                          disabled={!isOpen}
+                          value={draft[item.id] ?? ''}
+                          onChange={(event) =>
+                            setDraft((previous) => ({ ...previous, [item.id]: event.target.value }))
+                          }
+                          placeholder={t('kpiPlanForm.missingTarget')}
+                          className={`${formInputDenseClassName} disabled:opacity-60`}
+                        />
+                      </div>
+                      {isOpen && recommendation?.recommended !== null && recommendation ? (
+                        <button
+                          type="button"
+                          onClick={() => applyRecommendation(item, recommendation)}
+                          className="h-11 flex-shrink-0 rounded-lg border border-emerald-400/60 px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
+                        >
+                          {t('kpiPlanForm.applyRecommendation')}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {recommendation ? (
+                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        {t('kpiPlanForm.recommendation', {
+                          average:
+                            recommendation.average === null
+                              ? '—'
+                              : formatNumber(recommendation.average, locale),
+                          max:
+                            recommendation.achievableMax === null
+                              ? '—'
+                              : formatNumber(recommendation.achievableMax, locale),
+                          recommended:
+                            recommendation.recommended === null
+                              ? '—'
+                              : formatNumber(recommendation.recommended, locale),
+                        })}
+                        {' · '}
+                        {t('kpiPlanForm.recommendationMonths', {
+                          count: formatNumber(recommendation.monthCount, locale),
+                        })}
+                        {recommendation.combined ? ` · ${t('kpiPlanForm.combinedHint')}` : ''}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                        {item.definition.inputMode === 'manual'
+                          ? t('kpiPlanForm.manualHint')
+                          : t('kpiPlanForm.noRecommendation')}
+                      </p>
+                    )}
+
+                    {!item.calculable ? (
+                      <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                        <label
+                          htmlFor={`actual-${item.id}`}
+                          className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
+                        >
+                          {t('kpiPlanForm.actualLabel')}
+                        </label>
+                        <input
+                          id={`actual-${item.id}`}
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="any"
+                          disabled={!isOpen}
+                          value={actualDraft[item.id] ?? ''}
+                          onChange={(event) =>
+                            setActualDraft((previous) => ({
+                              ...previous,
+                              [item.id]: event.target.value,
+                            }))
+                          }
+                          placeholder={t('kpiPlanForm.actualPlaceholder')}
+                          className={`${formInputDenseClassName} disabled:opacity-60`}
+                        />
+                        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                          {t('kpiPlanForm.actualHint')}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {result ? (
+                      <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                        <KpiAchievement
+                          result={result}
+                          name={pickLocalizedText(item.definition.name, locale)}
+                          currency={
+                            typeof item.inputValues.currency === 'string'
+                              ? item.inputValues.currency
+                              : undefined
+                          }
+                        />
+                        {planResults?.salary ? (
+                          <KpiItemSalary result={result} currency={planResults.salary.currency} />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {isOpen ? (
+              <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:left-72 dark:border-slate-800 dark:bg-slate-950/95">
+                <button
+                  type="button"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending || hasInvalidNumber}
+                  className="h-12 flex-1 rounded-xl bg-emerald-400 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-40"
+                >
+                  {t('kpiPlanForm.save')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => calculateMutation.mutate()}
+                  disabled={calculateMutation.isPending}
+                  className="h-12 rounded-xl border border-emerald-400/60 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 dark:text-emerald-400"
+                >
+                  {calculateMutation.isPending
+                    ? t('kpiPlanForm.calculating')
+                    : t('kpiPlanForm.calculate')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void removePlan()}
+                  disabled={deleteMutation.isPending}
+                  className="h-12 rounded-xl border border-red-300 px-4 text-sm font-medium text-red-600 transition hover:bg-red-500/10 disabled:opacity-40 dark:border-red-500/40 dark:text-red-400"
+                >
+                  {t('kpiPlanForm.deletePlan')}
+                </button>
               </div>
             ) : null}
           </div>
-
-          {!isOpen ? (
-            <p className="rounded-lg bg-slate-500/10 px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
-              {t('kpiPlanForm.closedNotice', { period: plan.period.label })}
-            </p>
-          ) : null}
-
-          {notice ? (
-            <p
-              role="status"
-              className={`rounded-lg px-3 py-2 text-sm ${
-                notice.tone === 'success'
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-red-500/10 text-red-600 dark:text-red-400'
-              }`}
-            >
-              {notice.text}
-            </p>
-          ) : null}
-
-          {isOpen && recommendations.size > 0 ? (
-            <button
-              type="button"
-              onClick={applyAll}
-              className="self-start rounded-lg border border-emerald-400/60 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
-            >
-              {t('kpiPlanForm.applyAll')}
-            </button>
-          ) : null}
-
-          <div className="flex flex-col gap-3">
-            {plan.items.map((item) => {
-              const recommendation = recommendations.get(item.id);
-              const summary = inputSummary(item, stores, t);
-              const result = results.get(item.id);
-
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {pickLocalizedText(item.definition.name, locale)}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {t('kpiPlanForm.weight', { value: formatNumber(item.weight, locale) })}
-                        {summary ? ` · ${summary}` : ''}
-                      </p>
-                    </div>
-                    <span className="flex-shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                      {item.definition.code}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex items-end gap-2">
-                    <div className="min-w-0 flex-1">
-                      <label
-                        htmlFor={`target-${item.id}`}
-                        className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-                      >
-                        {t('kpiPlanForm.targetLabel')}
-                      </label>
-                      <input
-                        id={`target-${item.id}`}
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="any"
-                        disabled={!isOpen}
-                        value={draft[item.id] ?? ''}
-                        onChange={(event) =>
-                          setDraft((previous) => ({ ...previous, [item.id]: event.target.value }))
-                        }
-                        placeholder={t('kpiPlanForm.missingTarget')}
-                        className={`${formInputDenseClassName} disabled:opacity-60`}
-                      />
-                    </div>
-                    {isOpen && recommendation?.recommended !== null && recommendation ? (
-                      <button
-                        type="button"
-                        onClick={() => applyRecommendation(item, recommendation)}
-                        className="h-11 flex-shrink-0 rounded-lg border border-emerald-400/60 px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
-                      >
-                        {t('kpiPlanForm.applyRecommendation')}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {recommendation ? (
-                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      {t('kpiPlanForm.recommendation', {
-                        average:
-                          recommendation.average === null
-                            ? '—'
-                            : formatNumber(recommendation.average, locale),
-                        max:
-                          recommendation.achievableMax === null
-                            ? '—'
-                            : formatNumber(recommendation.achievableMax, locale),
-                        recommended:
-                          recommendation.recommended === null
-                            ? '—'
-                            : formatNumber(recommendation.recommended, locale),
-                      })}
-                      {' · '}
-                      {t('kpiPlanForm.recommendationMonths', {
-                        count: formatNumber(recommendation.monthCount, locale),
-                      })}
-                      {recommendation.combined ? ` · ${t('kpiPlanForm.combinedHint')}` : ''}
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                      {item.definition.inputMode === 'manual'
-                        ? t('kpiPlanForm.manualHint')
-                        : t('kpiPlanForm.noRecommendation')}
-                    </p>
-                  )}
-
-                  {!item.calculable ? (
-                    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                      <label
-                        htmlFor={`actual-${item.id}`}
-                        className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300"
-                      >
-                        {t('kpiPlanForm.actualLabel')}
-                      </label>
-                      <input
-                        id={`actual-${item.id}`}
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="any"
-                        disabled={!isOpen}
-                        value={actualDraft[item.id] ?? ''}
-                        onChange={(event) =>
-                          setActualDraft((previous) => ({
-                            ...previous,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                        placeholder={t('kpiPlanForm.actualPlaceholder')}
-                        className={`${formInputDenseClassName} disabled:opacity-60`}
-                      />
-                      <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                        {t('kpiPlanForm.actualHint')}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {result ? (
-                    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                      <KpiAchievement
-                        result={result}
-                        name={pickLocalizedText(item.definition.name, locale)}
-                        currency={
-                          typeof item.inputValues.currency === 'string'
-                            ? item.inputValues.currency
-                            : undefined
-                        }
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-
-          {isOpen ? (
-            <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:left-72 dark:border-slate-800 dark:bg-slate-950/95">
-              <button
-                type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || hasInvalidNumber}
-                className="h-12 flex-1 rounded-xl bg-emerald-400 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-40"
-              >
-                {t('kpiPlanForm.save')}
-              </button>
-              <button
-                type="button"
-                onClick={() => calculateMutation.mutate()}
-                disabled={calculateMutation.isPending}
-                className="h-12 rounded-xl border border-emerald-400/60 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 dark:text-emerald-400"
-              >
-                {calculateMutation.isPending
-                  ? t('kpiPlanForm.calculating')
-                  : t('kpiPlanForm.calculate')}
-              </button>
-              <button
-                type="button"
-                onClick={removePlan}
-                disabled={deleteMutation.isPending}
-                className="h-12 rounded-xl border border-red-300 px-4 text-sm font-medium text-red-600 transition hover:bg-red-500/10 disabled:opacity-40 dark:border-red-500/40 dark:text-red-400"
-              >
-                {t('kpiPlanForm.deletePlan')}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </SalaryRevealProvider>
     </AppShell>
   );
 }

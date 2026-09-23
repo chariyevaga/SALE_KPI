@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { fetchCurrentEmployee } from './api/auth';
 import { AdminRoute, ProtectedRoute, VisitorCountsRoute } from './components/ProtectedRoute';
+import { ConfirmHost } from './components/ConfirmHost';
 import { RecordInfoHost } from './components/RecordInfo';
 import { useSessionWatchdog } from './lib/session-watchdog';
 import { EmployeeFormPage } from './pages/EmployeeFormPage';
@@ -56,6 +57,7 @@ export function App() {
     <>
       <SessionBootstrap />
       <RecordInfoHost />
+      <ConfirmHost />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route

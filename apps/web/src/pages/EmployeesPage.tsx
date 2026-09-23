@@ -23,6 +23,7 @@ import { isBulkBarVisible, type BulkNotice } from '../lib/bulk';
 import { useSelection } from '../lib/use-selection';
 import { useAuthStore } from '../store/auth-store';
 import type { EmployeeResponse } from '../types/api';
+import { confirmAction } from '../store/confirm-store';
 
 /** Checkbox state for one row; `disabledReason` locks the box (the signed-in user's row). */
 interface RowSelection {
@@ -430,12 +431,15 @@ export function EmployeesPage() {
     },
   });
 
-  function runBulkStatus(action: BulkStatusAction, targets: EmployeeResponse[]) {
+  async function runBulkStatus(action: BulkStatusAction, targets: EmployeeResponse[]) {
     if (
       action === 'deactivate' &&
-      !window.confirm(
-        t('employees.bulkDeactivateConfirm', { count: formatNumber(targets.length, locale) }),
-      )
+      !(await confirmAction({
+        message: t('employees.bulkDeactivateConfirm', {
+          count: formatNumber(targets.length, locale),
+        }),
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -455,7 +459,7 @@ export function EmployeesPage() {
             key: 'activate',
             label: withCount(t('employees.bulkActivate'), toActivate.length),
             tone: 'primary' as const,
-            onClick: () => runBulkStatus('activate', toActivate),
+            onClick: () => void runBulkStatus('activate', toActivate),
           },
         ]
       : []),
@@ -465,7 +469,7 @@ export function EmployeesPage() {
             key: 'deactivate',
             label: withCount(t('employees.bulkDeactivate'), toDeactivate.length),
             tone: 'danger' as const,
-            onClick: () => runBulkStatus('deactivate', toDeactivate),
+            onClick: () => void runBulkStatus('deactivate', toDeactivate),
           },
         ]
       : []),

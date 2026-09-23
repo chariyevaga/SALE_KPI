@@ -9,6 +9,7 @@ import { formatDateTime } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
 import { getDeviceId } from '../lib/device-id';
 import { useAuthStore } from '../store/auth-store';
+import { confirmAction } from '../store/confirm-store';
 
 export function SessionsPage() {
   const { t, locale } = useTranslation();
@@ -35,15 +36,15 @@ export function SessionsPage() {
     },
   });
 
-  function handleRevoke(session: DeviceSessionResponse) {
-    if (window.confirm(t('sessions.revokeConfirm'))) {
+  async function handleRevoke(session: DeviceSessionResponse) {
+    if (await confirmAction({ message: t('sessions.revokeConfirm'), tone: 'danger' })) {
       logoutAllMutation.reset();
       revokeMutation.mutate(session.id);
     }
   }
 
-  function handleLogoutAll() {
-    if (window.confirm(t('sessions.logoutAllConfirm'))) {
+  async function handleLogoutAll() {
+    if (await confirmAction({ message: t('sessions.logoutAllConfirm'), tone: 'danger' })) {
       revokeMutation.reset();
       logoutAllMutation.mutate();
     }
@@ -155,7 +156,7 @@ export function SessionsPage() {
 
                   <button
                     type="button"
-                    onClick={() => handleRevoke(session)}
+                    onClick={() => void handleRevoke(session)}
                     disabled={revokeMutation.isPending}
                     className="h-9 flex-shrink-0 rounded-lg border border-slate-300 px-3 text-sm font-medium text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-red-400"
                   >
@@ -175,7 +176,7 @@ export function SessionsPage() {
 
           <button
             type="button"
-            onClick={handleLogoutAll}
+            onClick={() => void handleLogoutAll()}
             disabled={logoutAllMutation.isPending}
             className="mt-2 h-11 rounded-lg bg-red-500/10 text-sm font-semibold text-red-600 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400"
           >

@@ -64,3 +64,14 @@ export function splitSalary(
 
   return { fixedAmount, kpiAmount: Math.round((amount - fixedAmount) * 100) / 100 };
 }
+
+/**
+ * The part of the KPI money that `points` earn, points being on the 0–100 score scale of
+ * docs/BUSINESS_RULES.md "Puan hesabı" (ADR-049). A KPI row with weight 40 is worth
+ * `kpiAmount × 40 / 100`; its weighted score (achievement capped at 100 × weight / 100)
+ * earns `kpiAmount × weightedScore / 100`; the plan's total score earns
+ * `kpiAmount × totalScore / 100`. The score is already capped, so nothing pays above 100%.
+ */
+export function salaryShare(kpiAmount: number, points: number): number {
+  return Math.round(kpiAmount * points) / 100;
+}
