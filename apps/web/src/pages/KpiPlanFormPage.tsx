@@ -218,26 +218,82 @@ export function KpiPlanFormPage() {
     (value) => value.trim() !== '' && Number.isNaN(Number(value)),
   );
 
-  function applyRecommendation(item: KpiPlanItem, recommendation: KpiPlanRecommendation) {
-    if (recommendation.recommended === null) {
+  /** "4,000 → 4,600" for one plan row, or null when the suggestion changes nothing. */
+  function describeChange(itemId: string, recommended: number): string | null {
+    const current = draft[itemId]?.trim() ?? '';
+
+    if (current !== '' && Number(current) === recommended) {
+      return null;
+    }
+
+    const from =
+      current === '' ? t('kpiPlanForm.emptyTarget') : formatNumber(Number(current), locale);
+
+    return `${from} → ${formatNumber(recommended, locale)}`;
+  }
+
+  function itemName(itemId: string): string {
+    const item = plan?.items.find((entry) => entry.id === itemId);
+
+    return item ? pickLocalizedText(item.definition.name, locale) : '';
+  }
+
+  /** Suggestions only fill the form; the confirmation says what changes and that Save keeps it. */
+  async function applyRecommendation(item: KpiPlanItem, recommendation: KpiPlanRecommendation) {
+    const recommended = recommendation.recommended;
+
+    if (recommended === null) {
       return;
     }
 
-    setDraft((previous) => ({ ...previous, [item.id]: String(recommendation.recommended) }));
+    const change = describeChange(item.id, recommended);
+
+    if (change === null) {
+      return;
+    }
+
+    const confirmed = await confirmAction({
+      message: t('kpiPlanForm.applyConfirmOne', { name: itemName(item.id), change }),
+      confirmLabel: t('kpiPlanForm.applyConfirmButton'),
+      tone: 'default',
+    });
+
+    if (confirmed) {
+      setDraft((previous) => ({ ...previous, [item.id]: String(recommended) }));
+    }
   }
 
-  function applyAll() {
-    setDraft((previous) => {
-      const next = { ...previous };
+  async function applyAll() {
+    const changes = [...recommendations].flatMap(([itemId, recommendation]) => {
+      const recommended = recommendation.recommended;
+      const change = recommended === null ? null : describeChange(itemId, recommended);
 
-      for (const [itemId, recommendation] of recommendations) {
-        if (recommendation.recommended !== null) {
-          next[itemId] = String(recommendation.recommended);
-        }
-      }
-
-      return next;
+      return recommended === null || change === null ? [] : [{ itemId, recommended, change }];
     });
+
+    if (changes.length === 0) {
+      return;
+    }
+
+    const confirmed = await confirmAction({
+      message: t('kpiPlanForm.applyConfirmAll', {
+        changes: changes.map((entry) => `• ${itemName(entry.itemId)}: ${entry.change}`).join('\n'),
+      }),
+      confirmLabel: t('kpiPlanForm.applyConfirmButton'),
+      tone: 'default',
+    });
+
+    if (confirmed) {
+      setDraft((previous) => {
+        const next = { ...previous };
+
+        for (const entry of changes) {
+          next[entry.itemId] = String(entry.recommended);
+        }
+
+        return next;
+      });
+    }
   }
 
   async function removePlan() {
@@ -334,7 +390,7 @@ export function KpiPlanFormPage() {
             {isOpen && recommendations.size > 0 ? (
               <button
                 type="button"
-                onClick={applyAll}
+                onClick={() => void applyAll()}
                 className="self-start rounded-lg border border-emerald-400/60 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
               >
                 {t('kpiPlanForm.applyAll')}
@@ -393,7 +449,7 @@ export function KpiPlanFormPage() {
                       {isOpen && recommendation?.recommended !== null && recommendation ? (
                         <button
                           type="button"
-                          onClick={() => applyRecommendation(item, recommendation)}
+                          onClick={() => void applyRecommendation(item, recommendation)}
                           className="h-11 flex-shrink-0 rounded-lg border border-emerald-400/60 px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-400/10 dark:text-emerald-400"
                         >
                           {t('kpiPlanForm.applyRecommendation')}

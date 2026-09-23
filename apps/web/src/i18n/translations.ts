@@ -477,6 +477,10 @@ interface TranslationShape {
     recommendationMonths: string;
     applyRecommendation: string;
     applyAll: string;
+    applyConfirmOne: string;
+    applyConfirmAll: string;
+    applyConfirmButton: string;
+    emptyTarget: string;
     combinedHint: string;
     manualHint: string;
     noRecommendation: string;
@@ -1154,8 +1158,14 @@ export const translations: Record<Locale, TranslationShape> = {
       currency: 'Para birimi',
       recommendation: 'Ortalama {average} · Ulaşılabilir max {max} · Önerilen {recommended}',
       recommendationMonths: '{count} aylık veri',
-      applyRecommendation: 'Uygula',
+      applyRecommendation: 'Öneriyi uygula',
       applyAll: 'Bütün önerileri uygula',
+      applyConfirmOne:
+        "{name}: hedef {change} olacak.\nKaydet'e basınca kalıcı olur. Emin misiniz?",
+      applyConfirmAll:
+        "Şu hedefler değişecek:\n{changes}\nKaydet'e basınca kalıcı olur. Emin misiniz?",
+      applyConfirmButton: 'Uygula',
+      emptyTarget: 'boş',
       combinedHint: 'birden fazla mağaza toplandı',
       manualHint: 'Bu KPI elle girilir; raporu yoktur.',
       noRecommendation: 'Bu KPI için rapor verisi yok.',
@@ -1833,8 +1843,13 @@ export const translations: Record<Locale, TranslationShape> = {
       currency: 'Currency',
       recommendation: 'Average {average} · Achievable max {max} · Suggested {recommended}',
       recommendationMonths: '{count} months of data',
-      applyRecommendation: 'Apply',
+      applyRecommendation: 'Apply suggestion',
       applyAll: 'Apply every suggestion',
+      applyConfirmOne: '{name}: target {change}.\nIt is kept once you press Save. Are you sure?',
+      applyConfirmAll:
+        'These targets will change:\n{changes}\nThey are kept once you press Save. Are you sure?',
+      applyConfirmButton: 'Apply',
+      emptyTarget: 'empty',
       combinedHint: 'several stores added up',
       manualHint: 'This KPI is entered by hand; it has no report.',
       noRecommendation: 'No report data for this KPI.',
@@ -2514,8 +2529,13 @@ export const translations: Record<Locale, TranslationShape> = {
       currency: 'Валюта',
       recommendation: 'Среднее {average} · Достижимый максимум {max} · Рекомендуется {recommended}',
       recommendationMonths: 'данных за {count} мес.',
-      applyRecommendation: 'Применить',
+      applyRecommendation: 'Применить рекомендацию',
       applyAll: 'Применить все рекомендации',
+      applyConfirmOne: '{name}: цель {change}.\nСохранится после нажатия «Сохранить». Вы уверены?',
+      applyConfirmAll:
+        'Изменятся цели:\n{changes}\nСохранятся после нажатия «Сохранить». Вы уверены?',
+      applyConfirmButton: 'Применить',
+      emptyTarget: 'пусто',
       combinedHint: 'несколько магазинов суммированы',
       manualHint: 'Этот KPI вводится вручную; отчёта нет.',
       noRecommendation: 'Для этого KPI нет данных отчёта.',
@@ -3197,8 +3217,14 @@ export const translations: Record<Locale, TranslationShape> = {
       currency: 'Walýuta',
       recommendation: 'Ortaça {average} · Ýetip boljak iň ýokary {max} · Teklip {recommended}',
       recommendationMonths: '{count} aýlyk maglumat',
-      applyRecommendation: 'Ulan',
+      applyRecommendation: 'Teklibi ulan',
       applyAll: 'Ähli teklipleri ulan',
+      applyConfirmOne:
+        '{name}: maksat {change} bolar.\nÝatda sakla basylanda hemişelik bolar. Ynamyňyz barmy?',
+      applyConfirmAll:
+        'Şu maksatlar üýtgeýär:\n{changes}\nÝatda sakla basylanda hemişelik bolar. Ynamyňyz barmy?',
+      applyConfirmButton: 'Ulan',
+      emptyTarget: 'boş',
       combinedHint: 'birnäçe dükan jemlendi',
       manualHint: 'Bu KPI el bilen girizilýär; hasabaty ýok.',
       noRecommendation: 'Bu KPI üçin hasabat maglumaty ýok.',
