@@ -7,6 +7,7 @@ import { listErpEmployees } from '../api/erp-employees';
 import { AppShell } from '../components/AppShell';
 import { EmployeeKpiPlansPanel } from '../components/EmployeeKpiPlansPanel';
 import { EmployeeKpiView } from '../components/EmployeeKpiView';
+import { EmployeeSalaryPanel } from '../components/EmployeeSalaryPanel';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
 import { FormField, formInputClassName } from '../components/FormField';
 import { SearchableSelect } from '../components/SearchableSelect';
@@ -58,6 +59,7 @@ const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'details', labelKey: 'employeeForm.tabDetails' },
   { value: 'kpi', labelKey: 'employeeForm.tabKpi' },
   { value: 'kpi-plans', labelKey: 'employeeForm.tabKpiPlans' },
+  { value: 'salary', labelKey: 'employeeForm.tabSalary' },
   { value: 'sessions', labelKey: 'employeeForm.tabSessions' },
 ];
 
@@ -236,6 +238,10 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
       {mode === 'edit' && id && activeTab === 'kpi-plans' ? (
         <EmployeeKpiPlansPanel employeeId={id} />
+      ) : null}
+
+      {mode === 'edit' && id && activeTab === 'salary' ? (
+        <EmployeeSalaryPanel employeeId={id} />
       ) : null}
 
       {activeTab !== 'details' && mode === 'edit' ? null : isLoadingExisting ? (

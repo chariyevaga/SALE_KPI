@@ -161,6 +161,7 @@ interface TranslationShape {
     tabSessions: string;
     tabKpi: string;
     tabKpiPlans: string;
+    tabSalary: string;
     goToKpiPlans: string;
     sessionsRevokeAll: string;
     titleCreate: string;
@@ -379,6 +380,14 @@ interface TranslationShape {
         visitDate: string;
         visitorCount: string;
       };
+      employee_salaries: {
+        employeeId: string;
+        effectiveMonth: string;
+        amount: string;
+        currency: string;
+        fixedPercent: string;
+        kpiPercent: string;
+      };
     };
   };
   kpiPlans: {
@@ -527,6 +536,40 @@ interface TranslationShape {
     podium: string;
     others: string;
     openKpi: string;
+  };
+  salary: {
+    loading: string;
+    errorLoading: string;
+    empty: string;
+    noneYet: string;
+    currentTitle: string;
+    sinceMonth: string;
+    fromMonth: string;
+    inForce: string;
+    history: string;
+    fixedPart: string;
+    kpiPart: string;
+    splitLabel: string;
+    add: string;
+    addTitle: string;
+    editTitle: string;
+    editFor: string;
+    deleteFor: string;
+    deleteConfirm: string;
+    deleteError: string;
+    effectiveMonth: string;
+    effectiveHint: string;
+    amount: string;
+    amountPlaceholder: string;
+    currency: string;
+    fixedPercent: string;
+    kpiPercent: string;
+    preview: string;
+    save: string;
+    saving: string;
+    saveError: string;
+    errorMonthExists: string;
+    errorPercentTotal: string;
   };
   kpiProgress: {
     totalScore: string;
@@ -758,6 +801,7 @@ export const translations: Record<Locale, TranslationShape> = {
       tabSessions: 'Oturumlar',
       tabKpi: 'KPI',
       tabKpiPlans: 'KPI planları',
+      tabSalary: 'Maaş',
       goToKpiPlans: 'KPI planları ekranına git',
       sessionsRevokeAll: 'Tüm oturumları kapat',
       titleCreate: 'Yeni çalışan',
@@ -987,6 +1031,14 @@ export const translations: Record<Locale, TranslationShape> = {
           visitDate: 'Gün',
           visitorCount: 'Giren kişi sayısı',
         },
+        employee_salaries: {
+          employeeId: 'Çalışan',
+          effectiveMonth: 'Geçerli olduğu ay',
+          amount: 'Maaş',
+          currency: 'Para birimi',
+          fixedPercent: 'Sabit yüzde',
+          kpiPercent: 'KPI yüzdesi',
+        },
       },
     },
     kpiPlans: {
@@ -1138,6 +1190,41 @@ export const translations: Record<Locale, TranslationShape> = {
       podium: 'İlk üç',
       others: 'Diğer sıralar',
       openKpi: "{name} KPI'larını aç",
+    },
+    salary: {
+      loading: 'Yükleniyor…',
+      errorLoading: 'Maaşlar yüklenemedi.',
+      empty: 'Bu çalışana henüz maaş girilmedi.',
+      noneYet: 'Bu ay için geçerli maaş yok; ilk maaş daha sonraki bir aydan başlıyor.',
+      currentTitle: 'Şu an geçerli maaş',
+      sinceMonth: '{month} ayından beri geçerli',
+      fromMonth: '{month} ayından itibaren',
+      inForce: 'Şu an geçerli',
+      history: 'Maaş geçmişi',
+      fixedPart: 'Sabit %{percent}',
+      kpiPart: 'KPI %{percent}',
+      splitLabel: 'Sabit %{fixed}, KPI %{kpi}',
+      add: 'Maaş ekle',
+      addTitle: 'Maaş ekle',
+      editTitle: 'Maaşı düzelt',
+      editFor: 'Maaşı düzelt: {range}',
+      deleteFor: 'Maaşı sil: {range}',
+      deleteConfirm:
+        '{month} ayından itibaren geçerli maaş silinsin mi? O aydan sonra bir önceki maaş geçerli olur.',
+      deleteError: 'Maaş silinemedi.',
+      effectiveMonth: 'Geçerli olduğu ay',
+      effectiveHint: 'Bu aydan itibaren, yeni bir maaş girilene kadar geçerlidir.',
+      amount: 'Maaş',
+      amountPlaceholder: 'Örn. 12000',
+      currency: 'Para birimi',
+      fixedPercent: 'Sabit (%)',
+      kpiPercent: 'KPI (%)',
+      preview: 'Sabit {fixed} + KPI {kpi}',
+      save: 'Kaydet',
+      saving: 'Kaydediliyor…',
+      saveError: 'Maaş kaydedilemedi.',
+      errorMonthExists: 'Bu çalışanın bu ay için zaten bir maaşı var.',
+      errorPercentTotal: 'Sabit ve KPI yüzdelerinin toplamı 100 olmalı.',
     },
     kpiProgress: {
       totalScore: 'Toplam puan',
@@ -1367,6 +1454,7 @@ export const translations: Record<Locale, TranslationShape> = {
       tabSessions: 'Sessions',
       tabKpi: 'KPI',
       tabKpiPlans: 'KPI plans',
+      tabSalary: 'Salary',
       goToKpiPlans: 'Go to KPI plans',
       sessionsRevokeAll: 'Sign out everywhere',
       titleCreate: 'New employee',
@@ -1595,6 +1683,14 @@ export const translations: Record<Locale, TranslationShape> = {
           visitDate: 'Day',
           visitorCount: 'People who came in',
         },
+        employee_salaries: {
+          employeeId: 'Employee',
+          effectiveMonth: 'Effective from',
+          amount: 'Salary',
+          currency: 'Currency',
+          fixedPercent: 'Fixed percent',
+          kpiPercent: 'KPI percent',
+        },
       },
     },
     kpiPlans: {
@@ -1747,6 +1843,41 @@ export const translations: Record<Locale, TranslationShape> = {
       podium: 'Top three',
       others: 'Everyone else',
       openKpi: "Open {name}'s KPIs",
+    },
+    salary: {
+      loading: 'Loading…',
+      errorLoading: 'Could not load the salaries.',
+      empty: 'No salary has been entered for this employee yet.',
+      noneYet: 'No salary is in force this month; the first one starts in a later month.',
+      currentTitle: 'Salary in force',
+      sinceMonth: 'In force since {month}',
+      fromMonth: 'From {month} on',
+      inForce: 'In force now',
+      history: 'Salary history',
+      fixedPart: 'Fixed {percent}%',
+      kpiPart: 'KPI {percent}%',
+      splitLabel: 'Fixed {fixed}%, KPI {kpi}%',
+      add: 'Add salary',
+      addTitle: 'Add salary',
+      editTitle: 'Correct salary',
+      editFor: 'Correct salary: {range}',
+      deleteFor: 'Delete salary: {range}',
+      deleteConfirm:
+        'Delete the salary in force from {month}? The previous salary will apply from that month on.',
+      deleteError: 'Could not delete the salary.',
+      effectiveMonth: 'Effective from',
+      effectiveHint: 'Applies from this month until a newer salary is entered.',
+      amount: 'Salary',
+      amountPlaceholder: 'e.g. 12000',
+      currency: 'Currency',
+      fixedPercent: 'Fixed (%)',
+      kpiPercent: 'KPI (%)',
+      preview: 'Fixed {fixed} + KPI {kpi}',
+      save: 'Save',
+      saving: 'Saving…',
+      saveError: 'Could not save the salary.',
+      errorMonthExists: 'This employee already has a salary for this month.',
+      errorPercentTotal: 'Fixed and KPI percentages must add up to 100.',
     },
     kpiProgress: {
       totalScore: 'Total score',
@@ -1977,6 +2108,7 @@ export const translations: Record<Locale, TranslationShape> = {
       tabSessions: 'Сессии',
       tabKpi: 'KPI',
       tabKpiPlans: 'KPI-планы',
+      tabSalary: 'Зарплата',
       goToKpiPlans: 'Перейти к KPI-планам',
       sessionsRevokeAll: 'Завершить все сессии',
       titleCreate: 'Новый сотрудник',
@@ -2206,6 +2338,14 @@ export const translations: Record<Locale, TranslationShape> = {
           visitDate: 'День',
           visitorCount: 'Сколько человек вошло',
         },
+        employee_salaries: {
+          employeeId: 'Сотрудник',
+          effectiveMonth: 'Действует с',
+          amount: 'Зарплата',
+          currency: 'Валюта',
+          fixedPercent: 'Фиксированная доля, %',
+          kpiPercent: 'Доля KPI, %',
+        },
       },
     },
     kpiPlans: {
@@ -2358,6 +2498,41 @@ export const translations: Record<Locale, TranslationShape> = {
       podium: 'Тройка лидеров',
       others: 'Остальные места',
       openKpi: 'Открыть KPI: {name}',
+    },
+    salary: {
+      loading: 'Загрузка…',
+      errorLoading: 'Не удалось загрузить зарплаты.',
+      empty: 'Зарплата этому сотруднику ещё не введена.',
+      noneYet: 'В этом месяце зарплата не действует; первая начинается позже.',
+      currentTitle: 'Действующая зарплата',
+      sinceMonth: 'Действует с: {month}',
+      fromMonth: 'С {month}',
+      inForce: 'Действует сейчас',
+      history: 'История зарплаты',
+      fixedPart: 'Фикс. {percent}%',
+      kpiPart: 'KPI {percent}%',
+      splitLabel: 'Фикс. {fixed}%, KPI {kpi}%',
+      add: 'Добавить зарплату',
+      addTitle: 'Добавить зарплату',
+      editTitle: 'Исправить зарплату',
+      editFor: 'Исправить зарплату: {range}',
+      deleteFor: 'Удалить зарплату: {range}',
+      deleteConfirm:
+        'Удалить зарплату, действующую с {month}? С этого месяца будет действовать предыдущая.',
+      deleteError: 'Не удалось удалить зарплату.',
+      effectiveMonth: 'Действует с месяца',
+      effectiveHint: 'Действует с этого месяца, пока не введена новая зарплата.',
+      amount: 'Зарплата',
+      amountPlaceholder: 'Напр. 12000',
+      currency: 'Валюта',
+      fixedPercent: 'Фикс. (%)',
+      kpiPercent: 'KPI (%)',
+      preview: 'Фикс. {fixed} + KPI {kpi}',
+      save: 'Сохранить',
+      saving: 'Сохранение…',
+      saveError: 'Не удалось сохранить зарплату.',
+      errorMonthExists: 'У сотрудника уже есть зарплата за этот месяц.',
+      errorPercentTotal: 'Сумма фиксированной доли и доли KPI должна быть 100.',
     },
     kpiProgress: {
       totalScore: 'Итоговый балл',
@@ -2587,6 +2762,7 @@ export const translations: Record<Locale, TranslationShape> = {
       tabSessions: 'Sessiýalar',
       tabKpi: 'KPI',
       tabKpiPlans: 'KPI meýilnamalary',
+      tabSalary: 'Aýlyk',
       goToKpiPlans: 'KPI meýilnamalaryna geç',
       sessionsRevokeAll: 'Ähli sessiýalary ýap',
       titleCreate: 'Täze işgär',
@@ -2819,6 +2995,14 @@ export const translations: Record<Locale, TranslationShape> = {
           visitDate: 'Gün',
           visitorCount: 'Giren adam sany',
         },
+        employee_salaries: {
+          employeeId: 'Işgär',
+          effectiveMonth: 'Güýje girýän aýy',
+          amount: 'Aýlyk',
+          currency: 'Pul birligi',
+          fixedPercent: 'Hemişelik göterim',
+          kpiPercent: 'KPI göterimi',
+        },
       },
     },
     kpiPlans: {
@@ -2971,6 +3155,41 @@ export const translations: Record<Locale, TranslationShape> = {
       podium: 'Ilkinji üçlük',
       others: 'Beýleki orunlar',
       openKpi: '{name} KPI-laryny aç',
+    },
+    salary: {
+      loading: 'Ýüklenýär…',
+      errorLoading: 'Aýlyklar ýüklenip bilmedi.',
+      empty: 'Bu işgäre entek aýlyk girizilmedi.',
+      noneYet: 'Bu aý üçin güýjünde aýlyk ýok; ilkinji aýlyk has soňky aýdan başlaýar.',
+      currentTitle: 'Häzirki aýlyk',
+      sinceMonth: '{month} aýyndan bäri güýjünde',
+      fromMonth: '{month} aýyndan başlap',
+      inForce: 'Häzir güýjünde',
+      history: 'Aýlyk taryhy',
+      fixedPart: 'Hemişelik %{percent}',
+      kpiPart: 'KPI %{percent}',
+      splitLabel: 'Hemişelik %{fixed}, KPI %{kpi}',
+      add: 'Aýlyk goş',
+      addTitle: 'Aýlyk goş',
+      editTitle: 'Aýlygy düzet',
+      editFor: 'Aýlygy düzet: {range}',
+      deleteFor: 'Aýlygy poz: {range}',
+      deleteConfirm:
+        '{month} aýyndan başlap güýjündäki aýlyk pozulsynmy? Şol aýdan soň öňki aýlyk güýje girer.',
+      deleteError: 'Aýlyk pozulyp bilmedi.',
+      effectiveMonth: 'Güýje girýän aýy',
+      effectiveHint: 'Şu aýdan başlap, täze aýlyk girizilýänçä güýjünde bolýar.',
+      amount: 'Aýlyk',
+      amountPlaceholder: 'Mysal üçin 12000',
+      currency: 'Pul birligi',
+      fixedPercent: 'Hemişelik (%)',
+      kpiPercent: 'KPI (%)',
+      preview: 'Hemişelik {fixed} + KPI {kpi}',
+      save: 'Ýatda sakla',
+      saving: 'Ýatda saklanýar…',
+      saveError: 'Aýlyk ýatda saklanyp bilmedi.',
+      errorMonthExists: 'Bu işgäriň bu aý üçin eýýäm aýlygy bar.',
+      errorPercentTotal: 'Hemişelik we KPI göterimleriniň jemi 100 bolmaly.',
     },
     kpiProgress: {
       totalScore: 'Jemi bal',

@@ -17,6 +17,7 @@ import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
 import { KpiResultEntity } from '../kpi-results/entities/kpi-result.entity.js';
 import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
+import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
 import { StoreVisitorCountEntity } from '../store-visitor-counts/entities/store-visitor-count.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 
@@ -45,6 +46,7 @@ export function getKpiDataSourceOptions(): DataSourceOptions {
       KpiAssignmentEntity,
       KpiAssignmentItemEntity,
       StoreVisitorCountEntity,
+      EmployeeSalaryEntity,
       AuditLogEntity,
     ],
     // Rejects writes to audited tables that bypass AuditService (ADR-036).

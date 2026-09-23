@@ -7,6 +7,7 @@ import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { RequestContextMiddleware } from './common/request-context.middleware.js';
 import { getKpiDataSourceOptions } from './database/kpi-data-source.options.js';
+import { EmployeeSalariesModule } from './employee-salaries/employee-salaries.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { ErpEmployeesModule } from './erp-employees/erp-employees.module.js';
 import { FilesModule } from './files/files.module.js';
@@ -32,6 +33,7 @@ import { TigerModule } from './tiger/tiger.module.js';
     AuthModule,
     FilesModule,
     EmployeesModule,
+    EmployeeSalariesModule,
     ErpEmployeesModule,
     StoresModule,
     ItemGroupsModule,

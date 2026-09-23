@@ -433,7 +433,8 @@ export type AuditedTable =
   | 'kpi_periods'
   | 'kpi_assignments'
   | 'kpi_results'
-  | 'store_visitor_counts';
+  | 'store_visitor_counts'
+  | 'employee_salaries';
 
 export interface AuditActor {
   id: string;
@@ -513,4 +514,37 @@ export interface LeaderboardResponse {
     lastRunAt: string | null;
   };
   entries: LeaderboardEntry[];
+}
+
+export type SalaryCurrency = 'TMT' | 'USD';
+
+/** A salary from a month on (ADR-048); in force until a newer one is entered. */
+export interface EmployeeSalary {
+  id: string;
+  employeeId: string;
+  /** `YYYY-MM`: the first month the salary applies to. */
+  effectiveMonth: string;
+  amount: number;
+  currency: SalaryCurrency;
+  fixedPercent: number;
+  kpiPercent: number;
+  fixedAmount: number;
+  kpiAmount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmployeeSalaryList {
+  /** The salary in force this month, if any. */
+  current: EmployeeSalary | null;
+  /** Newest month first. */
+  items: EmployeeSalary[];
+}
+
+export interface SaveEmployeeSalaryInput {
+  effectiveMonth: string;
+  amount: number;
+  currency: SalaryCurrency;
+  fixedPercent: number;
+  kpiPercent: number;
 }

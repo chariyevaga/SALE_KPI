@@ -134,7 +134,12 @@ function MaybeButton({
   children: ReactNode;
 }) {
   return onOpen ? (
-    <button type="button" onClick={onOpen} aria-label={label} className={`w-full text-left ${className}`}>
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={label}
+      className={`w-full text-left ${className}`}
+    >
       {children}
     </button>
   ) : (
