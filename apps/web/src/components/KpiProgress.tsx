@@ -162,7 +162,9 @@ export function KpiAchievement({ result, name, currency }: KpiAchievementProps) 
             : ''}
           {targetValue === null || targetValue === 0
             ? t('kpiProgress.noTarget')
-            : t('kpiProgress.noActual')}
+            : result.conversion
+              ? t('kpiConversion.notScored')
+              : t('kpiProgress.noActual')}
         </p>
       )}
     </div>

@@ -112,4 +112,8 @@ export class KpiResultEntity extends AuditedEntity {
 
   @Column({ name: 'calculated_at', type: 'datetime2', precision: 3, nullable: true })
   calculatedAt: Date | null;
+
+  /** How the value was reached, JSON (migration 1799704300000, ADR-052): the conversion's days, receipts and visitors. */
+  @Column({ name: 'detail', type: 'nvarchar', length: 'MAX', nullable: true })
+  detail: string | null;
 }

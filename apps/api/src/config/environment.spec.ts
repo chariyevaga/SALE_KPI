@@ -5,6 +5,7 @@ import {
   getCorsOrigin,
   getFirmNumber,
   getKpiAutoCalculationIntervalMinutes,
+  getTigerPeriodNumbers,
   getTigerSharedCustomerCodes,
 } from './environment.js';
 
@@ -93,4 +94,22 @@ void test('allows every origin in development and only the list elsewhere', () =
       assert.deepEqual(getCorsOrigin(), ['http://localhost:5555', 'https://kpi.example.com']);
     });
   }
+});
+
+void test('reads the Logo periods the KPI views union; the current period must be one of them', () => {
+  withEnvironment({ TIGER_PERIOD_NR: '2', TIGER_PERIOD_NRS: undefined }, () => {
+    assert.deepEqual(getTigerPeriodNumbers(), [2]);
+  });
+
+  withEnvironment({ TIGER_PERIOD_NR: '2', TIGER_PERIOD_NRS: ' 2, 1,2 ' }, () => {
+    assert.deepEqual(getTigerPeriodNumbers(), [1, 2]);
+  });
+
+  withEnvironment({ TIGER_PERIOD_NR: '2', TIGER_PERIOD_NRS: '1' }, () => {
+    assert.throws(() => getTigerPeriodNumbers(), /must include TIGER_PERIOD_NR/);
+  });
+
+  withEnvironment({ TIGER_PERIOD_NR: '1', TIGER_PERIOD_NRS: '1,x' }, () => {
+    assert.throws(() => getTigerPeriodNumbers(), /comma-separated list/);
+  });
 });

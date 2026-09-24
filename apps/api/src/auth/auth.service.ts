@@ -1,6 +1,6 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, type FindOptionsWhere, IsNull, MoreThan, Not, Repository } from 'typeorm';
 
@@ -65,6 +65,40 @@ export class AuthService {
   private readonly usernameAttempts = new AttemptLimiter(USERNAME_LIMIT);
   private readonly ipAttempts = new AttemptLimiter(IP_LIMIT);
   private readonly passwordChangeAttempts = new AttemptLimiter(PASSWORD_CHANGE_LIMIT);
+  private readonly confirmationAttempts = new AttemptLimiter(PASSWORD_CHANGE_LIMIT);
+
+  /**
+   * Re-checks the signed-in employee's own password before a sensitive action, e.g. closing
+   * or reopening a KPI period (ADR-053): having full access is not enough on its own. A wrong
+   * password is 400 `AUTH_PASSWORD_CONFIRMATION_FAILED`, not 401, so the client does not
+   * mistake it for an expired session; 5 wrong ones in 15 minutes lock it like a sign-in.
+   */
+  async confirmOwnPassword(employeeId: string, password: string): Promise<void> {
+    const attemptKey = employeeId.toLowerCase();
+    const retryAfter = this.confirmationAttempts.retryAfterSeconds(attemptKey);
+
+    if (retryAfter > 0) {
+      throw tooManyAttempts(retryAfter);
+    }
+
+    const employee = await this.employeeRepository
+      .createQueryBuilder('employee')
+      .addSelect('employee.passwordHash')
+      .where('employee.id = :employeeId', { employeeId })
+      .getOne();
+
+    if (!employee || !(await this.passwordService.verify(password, employee.passwordHash))) {
+      this.confirmationAttempts.recordFailure(attemptKey);
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'The password does not match.',
+        code: 'AUTH_PASSWORD_CONFIRMATION_FAILED',
+      });
+    }
+
+    this.confirmationAttempts.reset(attemptKey);
+  }
 
   async login(dto: LoginDto, metadata: LoginMetadata): Promise<AuthResponse> {
     const usernameKey = dto.username.trim().toLowerCase();

@@ -10,6 +10,7 @@ import {
   listEmployeeKpiPeriods,
   listMyKpiPeriods,
 } from '../api/kpi-plans';
+import { KpiConversionExplanation } from './KpiConversion';
 import { KpiAchievement, KpiScoreSummary } from './KpiProgress';
 import { KpiItemSalary, KpiSalaryCard, SalaryRevealProvider } from './KpiSalary';
 import { formatNumber } from '../i18n/formatters';
@@ -234,6 +235,12 @@ export function EmployeeKpiView({
                 {result ? (
                   <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                     <KpiAchievement result={result} name={name} currency={currency} />
+                    {result.conversion ? (
+                      <KpiConversionExplanation
+                        detail={result.conversion}
+                        value={result.actualValue}
+                      />
+                    ) : null}
                     {salary ? <KpiItemSalary result={result} currency={salary.currency} /> : null}
                   </div>
                 ) : null}

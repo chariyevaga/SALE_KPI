@@ -87,11 +87,12 @@ void test('a plan nothing could be scored in totals zero', () => {
   assert.deepEqual(planScore([]), { totalScore: 0, scoredItemCount: 0, itemCount: 0 });
 });
 
-void test('only the KPIs with a Tiger report are calculated', () => {
+void test('report KPIs and the derived conversion are calculated; unknown codes are not', () => {
   assert.equal(isCalculableKpi('STORE_SALES'), true);
   assert.equal(isCalculableKpi('EMPLOYEE_PRODUCT_VARIETY'), true);
-  // No visitor data yet (docs/BUSINESS_RULES.md).
-  assert.equal(isCalculableKpi('STORE_CONVERSION'), false);
+  // From Tiger receipts and the entered visitor counts since ADR-052.
+  assert.equal(isCalculableKpi('STORE_CONVERSION'), true);
+  assert.equal(isCalculableKpi('EMPLOYEE_DISCIPLINE'), false);
 });
 
 function resultRow(overrides: Partial<ComparableResult> = {}): ComparableResult {

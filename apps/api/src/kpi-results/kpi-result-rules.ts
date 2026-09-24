@@ -84,6 +84,8 @@ export interface ComparableResult extends Score {
   actualValue: number | null;
   source: string;
   weight: number;
+  /** The conversion's explanation; a changed day count is a change even at the same value. */
+  detail?: string | null;
 }
 
 /** `kpi_results` keeps four decimals (decimal(19,4)); Tiger sums can carry more. */
@@ -110,6 +112,7 @@ export function sameResults(
     return (
       previous !== undefined &&
       previous.source === row.source &&
+      (previous.detail ?? null) === (row.detail ?? null) &&
       sameNumber(previous.targetValue, row.targetValue) &&
       sameNumber(previous.actualValue, row.actualValue) &&
       sameNumber(previous.weight, row.weight) &&

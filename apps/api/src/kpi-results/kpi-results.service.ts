@@ -6,11 +6,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, type EntityManager, In, LessThanOrEqual, Repository } from 'typeorm';
+import { Between, DataSource, type EntityManager, In, LessThanOrEqual, Repository } from 'typeorm';
 
 import type { AuditValue } from '../audit/audit-changes.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import { getBusinessTimeZone } from '../config/environment.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { salaryShare, splitSalary } from '../employee-salaries/employee-salary-rules.js';
 import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
@@ -24,18 +25,29 @@ import {
   loadFirmSalespersonIds,
   loadStoreNumbers,
   matchRows,
+  readStoreIds,
 } from '../kpi-assignments/kpi-entity-lookup.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
 import { kpiPeriodClosed } from '../kpi-periods/kpi-period-errors.js';
 import { isPeriodOpen, periodLabel } from '../kpi-periods/kpi-period-rules.js';
+import { StoreVisitorCountEntity } from '../store-visitor-counts/entities/store-visitor-count.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 import type { SaveKpiActualsDto } from './dto/save-kpi-actuals.dto.js';
 import { KpiResultEntity, type KpiResultSource } from './entities/kpi-result.entity.js';
 import type {
   KpiPeriodCalculationResponse,
+  KpiConversionDetailResponse,
   KpiPlanResultsResponse,
   KpiResultResponse,
 } from './kpi-result-response.js';
+import {
+  CONVERSION_KPI_CODE,
+  type ConversionResult,
+  type ConversionStore,
+  calculateConversion,
+  consideredDays,
+  dateInZone,
+} from './conversion-rules.js';
 import { isCalculableKpi, planScore, sameResults, scoreRow } from './kpi-result-rules.js';
 
 /** One row of `dbo.kpi_month_values(@month_start)`. */
@@ -71,6 +83,25 @@ interface ResultValues {
   weightedScore: number | null;
   weight: number;
   calculatedAt: Date | null;
+  /** JSON explanation of the value (ADR-052); the conversion only. */
+  detail: string | null;
+}
+
+/** What the conversion reads for a month (ADR-052). */
+interface ConversionInputs {
+  days: string[];
+  /** `${storeNr}|${date}` → sales receipts. */
+  receipts: Map<string, number>;
+  /** `${storeId}|${date}` → entered visitors. */
+  visitors: Map<string, number>;
+  storeNumbers: Map<number, number>;
+}
+
+/** Everything the calculation reads for one month. */
+interface MonthData {
+  rows: MonthValueRow[];
+  /** Null when none of the plans has a conversion row. */
+  conversion: ConversionInputs | null;
 }
 
 /** The plan and everything the calculation reads from it. */
@@ -106,6 +137,8 @@ export class KpiResultsService {
     private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
     @InjectRepository(ErpEmployeeEntity)
     private readonly erpEmployeeRepository: Repository<ErpEmployeeEntity>,
+    @InjectRepository(StoreVisitorCountEntity)
+    private readonly visitorCountRepository: Repository<StoreVisitorCountEntity>,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DataSource) private readonly dataSource: DataSource,
   ) {}
@@ -144,11 +177,11 @@ export class KpiResultsService {
 
     this.assertOpen(plan.period);
 
-    const monthRows = await this.readMonthValues(monthStart(plan.period));
+    const month = await this.readMonth(plan.period, [plan]);
     const lookups = await this.buildLookups([plan]);
     const existing = await this.loadResults([plan.assignment.id]);
     const calculatedAt = new Date();
-    const values = this.buildResults(plan, lookups, monthRows, existing, calculatedAt);
+    const values = this.buildResults(plan, lookups, month, existing, calculatedAt);
 
     await this.dataSource.transaction(async (manager) => {
       await this.lockOpenPeriod(manager, plan.period);
@@ -190,7 +223,14 @@ export class KpiResultsService {
     }
 
     const existing = await this.loadResults([plan.assignment.id]);
-    const values = this.buildResults(plan, new Map(), [], existing, null, actuals);
+    const values = this.buildResults(
+      plan,
+      new Map(),
+      { rows: [], conversion: null },
+      existing,
+      null,
+      actuals,
+    );
 
     await this.dataSource.transaction(async (manager) => {
       await this.lockOpenPeriod(manager, plan.period);
@@ -263,7 +303,7 @@ export class KpiResultsService {
         (item) => item.assignmentId.toLowerCase() === assignment.id.toLowerCase(),
       ),
     }));
-    const monthRows = await this.readMonthValues(monthStart(period));
+    const month = await this.readMonth(period, plans);
     const lookups = await this.buildLookups(plans);
     const existing = await this.loadResults(assignments.map((assignment) => assignment.id));
     const calculatedAt = new Date();
@@ -274,7 +314,7 @@ export class KpiResultsService {
       await this.lockOpenPeriod(manager, period);
 
       for (const plan of plans) {
-        const values = this.buildResults(plan, lookups, monthRows, existing, calculatedAt);
+        const values = this.buildResults(plan, lookups, month, existing, calculatedAt);
         const score = planScore(values);
 
         if (score.scoredItemCount < score.itemCount) {
@@ -389,6 +429,63 @@ export class KpiResultsService {
     return new Map(lookups.map((lookup) => [lookup.itemId.toLowerCase(), lookup]));
   }
 
+  /** The month's Tiger values and, when a plan measures it, the conversion's inputs. */
+  private async readMonth(period: KpiPeriodEntity, plans: PlanData[]): Promise<MonthData> {
+    const rows = await this.readMonthValues(monthStart(period));
+    const items = plans.flatMap((plan) => plan.items);
+    const conversionItems = items.filter((item) => item.definition?.code === CONVERSION_KPI_CODE);
+
+    if (conversionItems.length === 0) {
+      return { rows, conversion: null };
+    }
+
+    const today = dateInZone(new Date(), getBusinessTimeZone());
+    const days = consideredDays(period.year, period.month, today);
+    const storeNumbers = await loadStoreNumbers(this.storeRepository, conversionItems);
+
+    if (days.length === 0) {
+      return { rows, conversion: { days, receipts: new Map(), visitors: new Map(), storeNumbers } };
+    }
+
+    const first = days[0] ?? '';
+    const last = days.at(-1) ?? '';
+    // Sales receipts only: returns do not change how many customers were served (decision 19).
+    const receiptRows = await this.dataSource.query<
+      Array<{ storeNr: number; day: string; receipts: number }>
+    >(
+      `
+        SELECT
+          [store_nr] AS [storeNr],
+          CONVERT(char(10), [sale_date], 23) AS [day],
+          COUNT(*) AS [receipts]
+        FROM [dbo].[kpi_report_documents]
+        WHERE [month_start] = @0 AND [trcode] = 7 AND [sale_date] BETWEEN @1 AND @2
+        GROUP BY [store_nr], [sale_date]
+      `,
+      [monthStart(period), first, last],
+    );
+    const counts = await this.visitorCountRepository.find({
+      where: { visitDate: Between(first, last) },
+    });
+
+    return {
+      rows,
+      conversion: {
+        days,
+        receipts: new Map(
+          receiptRows.map((row) => [`${String(row.storeNr)}|${row.day}`, Number(row.receipts)]),
+        ),
+        visitors: new Map(
+          counts.map((count) => [
+            `${String(count.storeId)}|${String(count.visitDate).slice(0, 10)}`,
+            count.visitorCount,
+          ]),
+        ),
+        storeNumbers,
+      },
+    };
+  }
+
   /** The month's values of every KPI Tiger measures, the item group ones included. */
   private readMonthValues(month: string): Promise<MonthValueRow[]> {
     return this.dataSource.query<MonthValueRow[]>(
@@ -421,7 +518,7 @@ export class KpiResultsService {
   private buildResults(
     plan: PlanData,
     lookups: Map<string, EntityLookup>,
-    monthRows: MonthValueRow[],
+    month: MonthData,
     existing: Map<string, KpiResultEntity>,
     calculatedAt: Date | null,
     manualActuals: Map<string, number | null> = new Map(),
@@ -434,14 +531,24 @@ export class KpiResultsService {
       let actualValue: number | null;
       let source: KpiResultSource;
       let rowCalculatedAt: Date | null;
+      let detail: string | null = null;
 
       if (calculable && calculatedAt !== null) {
-        // No document for the month means nothing was sold, which is a zero, not a gap.
-        actualValue = lookup ? sumValues(matchRows(lookup, monthRows)) : null;
+        if (item.definition?.code === CONVERSION_KPI_CODE) {
+          const conversion = measureConversion(item.inputValues, month.conversion);
+
+          actualValue = conversion?.value ?? null;
+          detail = conversion ? JSON.stringify(conversion.detail) : null;
+        } else {
+          // No document for the month means nothing was sold, which is a zero, not a gap.
+          actualValue = lookup ? sumValues(matchRows(lookup, month.rows)) : null;
+        }
+
         source = 'calculated';
         rowCalculatedAt = calculatedAt;
       } else if (calculable) {
         actualValue = previous?.actualValue ?? null;
+        detail = previous?.detail ?? null;
         source = 'calculated';
         rowCalculatedAt = previous?.calculatedAt ?? null;
       } else {
@@ -461,6 +568,7 @@ export class KpiResultsService {
         source,
         weight: item.weight,
         calculatedAt: rowCalculatedAt,
+        detail,
         ...scoreRow({
           targetValue: item.targetValue,
           actualValue,
@@ -551,6 +659,10 @@ export class KpiResultsService {
             kpiAmount === null || result.weightedScore === null
               ? null
               : salaryShare(kpiAmount, result.weightedScore),
+          conversion:
+            definition.code === CONVERSION_KPI_CODE && result.detail
+              ? (JSON.parse(result.detail) as KpiConversionDetailResponse)
+              : null,
         },
       ];
     });
@@ -598,4 +710,27 @@ function isPeriodClosedError(error: unknown): boolean {
   const body = error.getResponse();
 
   return typeof body === 'object' && (body as { code?: unknown }).code === 'KPI_PERIOD_CLOSED';
+}
+
+/**
+ * The conversion of one plan row over its stores (ADR-052); null when the row names no
+ * store of the configured firm. Stores that left the firm are left out, like other KPIs.
+ */
+function measureConversion(
+  inputValues: string,
+  inputs: ConversionInputs | null,
+): ConversionResult | null {
+  if (!inputs) {
+    return null;
+  }
+
+  const stores = readStoreIds(inputValues).flatMap((storeId): ConversionStore[] => {
+    const storeNr = inputs.storeNumbers.get(storeId);
+
+    return storeNr === undefined ? [] : [{ storeId, storeNr }];
+  });
+
+  return stores.length === 0
+    ? null
+    : calculateConversion(stores, inputs.days, inputs.receipts, inputs.visitors);
 }

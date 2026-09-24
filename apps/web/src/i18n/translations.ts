@@ -406,6 +406,7 @@ interface TranslationShape {
     closeConfirm: string;
     closeConfirmFinal: string;
     reopenPeriod: string;
+    reopenPasswordMessage: string;
     reopened: string;
     reopenExpired: string;
     periodOpenHint: string;
@@ -599,6 +600,23 @@ interface TranslationShape {
     itemEarned: string;
     noSalary: string;
     kpiEarnedShort: string;
+  };
+  kpiConversion: {
+    title: string;
+    formula: string;
+    counted: string;
+    countedStores: string;
+    result: string;
+    lowCoverage: string;
+    noVisitors: string;
+    noDays: string;
+    rules: string;
+    notScored: string;
+  };
+  passwordConfirm: {
+    label: string;
+    checking: string;
+    wrong: string;
   };
   kpiProgress: {
     totalScore: string;
@@ -1089,6 +1107,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeConfirmFinal:
         '{period} dönemi kapatılsın mı? Yeniden açma süresi geçtiği için kapanış kesin olur; plan, hedef ve puan bir daha değiştirilemez.',
       reopenPeriod: 'Dönemi yeniden aç',
+      reopenPasswordMessage:
+        '{period} dönemi yeniden açılacak; planlar, hedefler ve hesap yeniden değiştirilebilir olacak. Onaylamak için şifrenizi girin.',
       reopened: '{period} dönemi yeniden açıldı.',
       reopenExpired: 'Bu dönem {date} tarihine kadar yeniden açılabilirdi; artık kesinleşti.',
       periodOpenHint: 'Planlar, hedefler ve puanlar değiştirilebilir.',
@@ -1288,6 +1308,28 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'Bu çalışanın bu ay için geçerli maaşı yok; maaş, çalışanın Maaş sekmesinden girilir.',
       kpiEarnedShort: "KPI'dan kazanılan",
+    },
+    kpiConversion: {
+      title: 'Nasıl hesaplandı?',
+      formula: 'Dönüşüm = satış fişi ÷ mağazaya giren kişi × 100.',
+      counted:
+        "{last} tarihine kadar {possible} günün {counted}'inde giren kişi sayısı girildi (kapsama %{coverage}).",
+      countedStores:
+        "{stores} mağazanın {last} tarihine kadarki {possible} mağaza-gününün {counted}'inde giren kişi sayısı girildi (kapsama %{coverage}).",
+      result:
+        'Yalnız bu günler hesaba katıldı: {receipts} satış fişi ÷ {visitors} kişi = %{value}.',
+      lowCoverage:
+        'Puanlanmak için günlerin en az %{required}\'inde sayı girilmiş olmalı. Eksik günlerin sayıları "Ziyaretçi sayıları" ekranından girilince bir sonraki hesapta puanlanır.',
+      noVisitors: 'Sayılan günlerin hepsinde giren kişi 0 girildi; oran hesaplanamaz.',
+      noDays: 'Henüz hesaba girecek gün yok: yalnız bugünden önceki günler sayılır.',
+      rules:
+        'Bugün, gün bitmediği için sayılmaz. Sayısı girilmeyen günler tahmin edilmez, hesaba hiç girmez; 0 girilen gün (kapalı mağaza) sayılır. İade fişleri oranı etkilemez.',
+      notScored: 'Ziyaretçi sayısı yeterli günde girilmediği için puanlanmadı.',
+    },
+    passwordConfirm: {
+      label: 'Şifreniz',
+      checking: 'Kontrol ediliyor…',
+      wrong: 'Şifre yanlış.',
     },
     kpiProgress: {
       totalScore: 'Toplam puan',
@@ -1776,6 +1818,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeConfirmFinal:
         'Close the {period} period? The reopening window has passed, so closing is final: plans, targets and scores can never be changed again.',
       reopenPeriod: 'Reopen period',
+      reopenPasswordMessage:
+        'Period {period} will be reopened; plans, targets and results can change again. Enter your password to confirm.',
       reopened: 'The {period} period is open again.',
       reopenExpired: 'This period could be reopened until {date}; it is final now.',
       periodOpenHint: 'Plans, targets and scores can be changed.',
@@ -1975,6 +2019,27 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         "This employee has no salary in force for this month; enter one on the employee's Salary tab.",
       kpiEarnedShort: 'Earned from KPIs',
+    },
+    kpiConversion: {
+      title: 'How it was calculated',
+      formula: 'Conversion = sales receipts ÷ people who came in × 100.',
+      counted:
+        'Visitor counts were entered for {counted} of the {possible} days up to {last} (coverage {coverage}%).',
+      countedStores:
+        'Visitor counts were entered for {counted} of the {possible} store-days of {stores} stores up to {last} (coverage {coverage}%).',
+      result: 'Only these days count: {receipts} sales receipts ÷ {visitors} people = {value}%.',
+      lowCoverage:
+        'To be scored, at least {required}% of the days need a count. Enter the missing days on the "Visitor counts" screen and the next calculation scores it.',
+      noVisitors: 'Every counted day has 0 visitors, so there is no rate.',
+      noDays: 'No day to count yet: only days before today count.',
+      rules:
+        'Today does not count until it is over. Days without a count are not estimated and do not count at all; a day entered as 0 (store closed) does. Returns do not change the rate.',
+      notScored: 'Not scored: too few days have a visitor count.',
+    },
+    passwordConfirm: {
+      label: 'Your password',
+      checking: 'Checking…',
+      wrong: 'Wrong password.',
     },
     kpiProgress: {
       totalScore: 'Total score',
@@ -2464,6 +2529,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeConfirmFinal:
         'Закрыть период {period}? Срок повторного открытия прошёл, поэтому закрытие окончательное: планы, цели и баллы больше не изменить.',
       reopenPeriod: 'Открыть период заново',
+      reopenPasswordMessage:
+        'Период {period} будет открыт снова; планы, цели и расчёт снова можно будет менять. Введите пароль для подтверждения.',
       reopened: 'Период {period} снова открыт.',
       reopenExpired: 'Этот период можно было открыть заново до {date}; теперь он окончательный.',
       periodOpenHint: 'Планы, цели и баллы можно изменять.',
@@ -2663,6 +2730,27 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'У сотрудника нет действующей зарплаты за этот месяц; её вводят на вкладке «Зарплата».',
       kpiEarnedShort: 'Заработано по KPI',
+    },
+    kpiConversion: {
+      title: 'Как рассчитано',
+      formula: 'Конверсия = чеки продаж ÷ вошедшие посетители × 100.',
+      counted:
+        'Число посетителей введено за {counted} из {possible} дней по {last} (охват {coverage}%).',
+      countedStores:
+        'Число посетителей введено за {counted} из {possible} магазино-дней {stores} магазинов по {last} (охват {coverage}%).',
+      result: 'Учтены только эти дни: {receipts} чеков ÷ {visitors} посетителей = {value}%.',
+      lowCoverage:
+        'Для оценки число посетителей должно быть введено минимум за {required}% дней. Введите недостающие дни на экране «Посетители», и следующий расчёт оценит показатель.',
+      noVisitors: 'Во всех учтённых днях 0 посетителей; конверсию рассчитать нельзя.',
+      noDays: 'Пока нет дней для расчёта: учитываются только дни до сегодняшнего.',
+      rules:
+        'Сегодняшний день не учитывается, пока не закончится. Дни без введённого числа не оцениваются и не учитываются; день с 0 (магазин закрыт) учитывается. Возвраты не влияют на конверсию.',
+      notScored: 'Не оценено: число посетителей введено за слишком малое число дней.',
+    },
+    passwordConfirm: {
+      label: 'Ваш пароль',
+      checking: 'Проверка…',
+      wrong: 'Неверный пароль.',
     },
     kpiProgress: {
       totalScore: 'Итоговый балл',
@@ -3154,6 +3242,8 @@ export const translations: Record<Locale, TranslationShape> = {
       closeConfirmFinal:
         '{period} döwri ýapylsynmy? Gaýtadan açmak möhleti geçdi, şonuň üçin ýapmak kesgitli bolar: meýilnama, maksat we bal indi üýtgedilip bilinmez.',
       reopenPeriod: 'Döwri gaýtadan aç',
+      reopenPasswordMessage:
+        '{period} döwri gaýtadan açylar; meýilnamalar, maksatlar we hasap ýene üýtgedilip bilner. Tassyklamak üçin açar sözüňizi giriziň.',
       reopened: '{period} döwri gaýtadan açyldy.',
       reopenExpired: 'Bu döwri {date} senesine çenli gaýtadan açyp bolýardy; indi kesgitlendi.',
       periodOpenHint: 'Meýilnamalar, maksatlar we ballar üýtgedilip bilner.',
@@ -3354,6 +3444,27 @@ export const translations: Record<Locale, TranslationShape> = {
       noSalary:
         'Bu işgäriň bu aý üçin güýjündäki aýlygy ýok; aýlyk işgäriň Aýlyk bölüminden girizilýär.',
       kpiEarnedShort: 'KPI-dan gazanylan',
+    },
+    kpiConversion: {
+      title: 'Nähili hasaplandy?',
+      formula: 'Konwersiýa = satuw çegi ÷ dükana giren adam × 100.',
+      counted:
+        '{last} senesine çenli {possible} günüň {counted}-sinde giren adam sany girizildi (gurşaw %{coverage}).',
+      countedStores:
+        '{stores} dükanyň {last} senesine çenli {possible} dükan-gününiň {counted}-sinde giren adam sany girizildi (gurşaw %{coverage}).',
+      result: 'Diňe bu günler hasaba alyndy: {receipts} satuw çegi ÷ {visitors} adam = %{value}.',
+      lowCoverage:
+        'Bahalandyrylmak üçin günleriň azyndan %{required}-inde san girizilmeli. Ýetmeýän günleriň sanlary "Gelen adam sanlary" ekranyndan girizilse, indiki hasapda bahalandyrylar.',
+      noVisitors: 'Hasaba alnan günleriň hemmesinde giren adam 0; gatnaşygy hasaplap bolmaýar.',
+      noDays: 'Entek hasaba girjek gün ýok: diňe şu günden öňki günler hasaba alynýar.',
+      rules:
+        'Şu gün, gutarmanka hasaba alynmaýar. San girizilmedik günler çaklanmaýar we hasaba girmeýär; 0 girizilen gün (ýapyk dükan) hasaba alynýar. Yzyna gaýtarmalar gatnaşyga täsir etmeýär.',
+      notScored: 'Bahalandyrylmady: gelen adam sany ýeterlik günde girizilmedi.',
+    },
+    passwordConfirm: {
+      label: 'Siziň açar sözüňiz',
+      checking: 'Barlanýar…',
+      wrong: 'Açar söz nädogry.',
     },
     kpiProgress: {
       totalScore: 'Jemi bal',

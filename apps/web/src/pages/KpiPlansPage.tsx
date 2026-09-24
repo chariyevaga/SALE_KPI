@@ -16,6 +16,7 @@ import {
 } from '../api/kpi-plans';
 import { listKpiTemplates } from '../api/kpi-templates';
 import { AppShell } from '../components/AppShell';
+import { PasswordConfirmModal } from '../components/PasswordConfirmModal';
 import { Drawer } from '../components/Drawer';
 import { FormField, formInputClassName } from '../components/FormField';
 import { ProgressMeter } from '../components/ProgressMeter';
@@ -450,22 +451,49 @@ export function KpiPlansPage() {
     onError: (error) => setNotice({ tone: 'error', text: localizeApiError(error, t) }),
   });
 
+  // Closing and reopening ask for the person's own password first (ADR-053).
+  const [passwordAction, setPasswordAction] = useState<{
+    kind: 'close' | 'reopen';
+    periodId: string;
+    message: string;
+  } | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  /** A wrong password or a lock keeps the dialog open; anything else closes it. */
+  function handlePeriodActionError(error: unknown) {
+    if (isPasswordProblem(error)) {
+      setPasswordError(
+        error instanceof ApiError && error.status === 429
+          ? localizeApiError(error, t)
+          : t('passwordConfirm.wrong'),
+      );
+      return;
+    }
+
+    setPasswordAction(null);
+    setNotice({ tone: 'error', text: describePeriodError(error, t, locale) });
+  }
+
   const closeMutation = useMutation({
-    mutationFn: (id: string) => closeKpiPeriod(id),
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      closeKpiPeriod(id, password),
     onSuccess: async (closed) => {
+      setPasswordAction(null);
       setNotice({ tone: 'success', text: t('kpiPlans.closed', { period: closed.label }) });
       await refresh();
     },
-    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
+    onError: handlePeriodActionError,
   });
 
   const reopenMutation = useMutation({
-    mutationFn: (id: string) => reopenKpiPeriod(id),
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      reopenKpiPeriod(id, password),
     onSuccess: async (reopened) => {
+      setPasswordAction(null);
       setNotice({ tone: 'success', text: t('kpiPlans.reopened', { period: reopened.label }) });
       await refresh();
     },
-    onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
+    onError: handlePeriodActionError,
   });
 
   const copyMutation = useMutation({
@@ -517,7 +545,7 @@ export function KpiPlansPage() {
     onError: (error) => setNotice({ tone: 'error', text: describePeriodError(error, t, locale) }),
   });
 
-  async function closePeriod() {
+  function closePeriod() {
     if (!period) return;
 
     // Closing before the reopen window ends can be undone; after it, closing is final.
@@ -529,9 +557,19 @@ export function KpiPlansPage() {
           })
         : t('kpiPlans.closeConfirmFinal', { period: period.label });
 
-    if (await confirmAction({ message, tone: 'danger' })) {
-      closeMutation.mutate(period.id);
-    }
+    setPasswordError(null);
+    setPasswordAction({ kind: 'close', periodId: period.id, message });
+  }
+
+  function reopenPeriod() {
+    if (!period) return;
+
+    setPasswordError(null);
+    setPasswordAction({
+      kind: 'reopen',
+      periodId: period.id,
+      message: t('kpiPlans.reopenPasswordMessage', { period: period.label }),
+    });
   }
 
   async function copyFromPrevious() {
@@ -606,8 +644,8 @@ export function KpiPlansPage() {
           onNewPeriod={() => setNewPeriodOpen(true)}
           onCalculate={() => calculateMutation.mutate(period.id)}
           onCopy={() => void copyFromPrevious()}
-          onClose={() => void closePeriod()}
-          onReopen={() => reopenMutation.mutate(period.id)}
+          onClose={closePeriod}
+          onReopen={reopenPeriod}
           calculating={calculateMutation.isPending}
           copying={copyMutation.isPending}
           closing={closeMutation.isPending}
@@ -799,6 +837,28 @@ export function KpiPlansPage() {
             await refresh();
           }}
           onError={(text) => setNotice({ tone: 'error', text })}
+        />
+      ) : null}
+      {passwordAction ? (
+        <PasswordConfirmModal
+          title={t(
+            passwordAction.kind === 'close' ? 'kpiPlans.closePeriod' : 'kpiPlans.reopenPeriod',
+          )}
+          message={passwordAction.message}
+          confirmLabel={t(
+            passwordAction.kind === 'close' ? 'kpiPlans.closePeriod' : 'kpiPlans.reopenPeriod',
+          )}
+          pending={closeMutation.isPending || reopenMutation.isPending}
+          error={passwordError}
+          onClose={() => setPasswordAction(null)}
+          onConfirm={(password) => {
+            setPasswordError(null);
+            const input = { id: passwordAction.periodId, password };
+
+            return passwordAction.kind === 'close'
+              ? closeMutation.mutateAsync(input)
+              : reopenMutation.mutateAsync(input);
+          }}
         />
       ) : null}
     </AppShell>
@@ -1014,5 +1074,13 @@ function AssignDrawer({
         </button>
       </div>
     </Drawer>
+  );
+}
+
+/** The password was wrong or is locked after too many tries: the dialog stays open. */
+function isPasswordProblem(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.status === 429 || error.body?.code === 'AUTH_PASSWORD_CONFIRMATION_FAILED')
   );
 }
