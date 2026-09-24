@@ -14,6 +14,7 @@ import {
 import { listStores } from '../api/stores';
 import { AppShell } from '../components/AppShell';
 import { formInputDenseClassName } from '../components/FormField';
+import { KpiConversionExplanation } from '../components/KpiConversion';
 import { KpiAchievement, KpiScoreSummary } from '../components/KpiProgress';
 import { KpiItemSalary, KpiSalaryCard, SalaryRevealProvider } from '../components/KpiSalary';
 import { localizeApiError } from '../i18n/api-errors';
@@ -529,6 +530,12 @@ export function KpiPlanFormPage() {
                               : undefined
                           }
                         />
+                        {result.conversion ? (
+                          <KpiConversionExplanation
+                            detail={result.conversion}
+                            value={result.actualValue}
+                          />
+                        ) : null}
                         {planResults?.salary ? (
                           <KpiItemSalary result={result} currency={planResults.salary.currency} />
                         ) : null}

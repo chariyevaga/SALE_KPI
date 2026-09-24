@@ -1,6 +1,6 @@
 {
   "name": "@retail-kpi/api",
-  "version": "0.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Retail KPI Platform NestJS REST API.",
   "scripts": {

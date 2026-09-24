@@ -47,7 +47,8 @@ const FORBIDDEN =
   '`full_access` yok. Maaşları yalnız full_access kullanıcılar görür ve değiştirir.';
 const PERCENT_TOTAL =
   '`EMPLOYEE_SALARY_PERCENT_TOTAL`: sabit ve KPI yüzdelerinin toplamı 100 değil.';
-const MONTH_EXISTS = '`EMPLOYEE_SALARY_MONTH_EXISTS`: çalışanın o ay için zaten bir maaşı var.';
+const MONTH_EXISTS =
+  '`EMPLOYEE_SALARY_MONTH_EXISTS`: çalışanın o ay için zaten bir maaşı var. `EMPLOYEE_SALARY_PERIOD_CLOSED`: değişiklik, çalışanın planı olan kapanmış bir ayın maaşını değiştirir (`months`); önce dönem yeniden açılır.';
 
 @ApiTags('employee-salaries')
 @ApiBearerAuth('access-token')
@@ -148,6 +149,7 @@ export class EmployeeSalariesController {
   })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiNoContentResponse({ description: 'Silindi.' })
+  @ApiConflictResponse({ type: EmployeeSalaryErrorResponse, description: MONTH_EXISTS })
   @ApiNotFoundResponse({ description: 'Maaş kaydı yok.' })
   @ApiForbiddenResponse({ description: FORBIDDEN })
   remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {

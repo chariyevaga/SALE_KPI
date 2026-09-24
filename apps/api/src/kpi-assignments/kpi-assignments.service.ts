@@ -9,6 +9,7 @@ import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-sal
 import { salaryInForce } from '../employee-salaries/employee-salary-rules.js';
 import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
+import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import type { KpiScope, KpiUnit } from '../kpi-definitions/kpi-definition.types.js';
 import type { LocalizedText } from '../kpi-definitions/kpi-input-schema.js';
@@ -31,6 +32,7 @@ import type {
 import { KpiAssignmentItemEntity } from './entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from './entities/kpi-assignment.entity.js';
 import { kpiAssignmentBadRequest, kpiAssignmentExists } from './kpi-assignment-errors.js';
+import { loadFirmSalespersonIds } from './kpi-entity-lookup.js';
 import {
   type KpiAssignmentCopyResponse,
   type KpiAssignmentItemStats,
@@ -44,6 +46,7 @@ import {
   toKpiMyPeriod,
 } from './kpi-assignment-response.js';
 import {
+  type AssignableEmployee,
   findIneligibleEmployees,
   findTargetProblem,
   planItemsFromTemplate,
@@ -98,6 +101,8 @@ export class KpiAssignmentsService {
     private readonly employeeRepository: Repository<EmployeeEntity>,
     @InjectRepository(EmployeeSalaryEntity)
     private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
+    @InjectRepository(ErpEmployeeEntity)
+    private readonly erpEmployeeRepository: Repository<ErpEmployeeEntity>,
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
@@ -171,7 +176,7 @@ export class KpiAssignmentsService {
     }
 
     const employees = await this.loadEmployeesInOrder(dto.employeeIds);
-    const ineligible = findIneligibleEmployees(employees, {
+    const ineligible = findIneligibleEmployees(await this.withFirmLinks(employees), {
       requiresErpLink: requiresErpLink(templateItems.map((item) => item.scope)),
     });
 
@@ -245,11 +250,15 @@ export class KpiAssignmentsService {
     );
     const skipped: KpiAssignmentSkippedResponse[] = [];
     const copies: Array<{ assignment: KpiAssignmentEntity; items: LoggedItem[] }> = [];
+    const salespeople = await loadFirmSalespersonIds(
+      this.erpEmployeeRepository,
+      sourceAssignments.map((assignment) => assignment.employee?.erpEmployeeId),
+    );
 
     for (const assignment of sourceAssignments) {
       const employee = this.readEmployee(assignment);
       const items = itemsByAssignment.get(assignment.id.toLowerCase()) ?? [];
-      const [problem] = findIneligibleEmployees([employee], {
+      const [problem] = findIneligibleEmployees([firmLinked(employee, salespeople)], {
         requiresErpLink: requiresErpLink(items.map((item) => item.scope)),
       });
 
@@ -607,6 +616,19 @@ export class KpiAssignmentsService {
     return period;
   }
 
+  /**
+   * The employees with their Tiger link kept only when it is a salesperson of the configured
+   * firm, so a link to another firm is refused like a missing one ("missing-erp-link").
+   */
+  private async withFirmLinks(employees: EmployeeEntity[]): Promise<AssignableEmployee[]> {
+    const salespeople = await loadFirmSalespersonIds(
+      this.erpEmployeeRepository,
+      employees.map((employee) => employee.erpEmployeeId),
+    );
+
+    return employees.map((employee) => firmLinked(employee, salespeople));
+  }
+
   private async loadEmployeesInOrder(ids: string[]): Promise<EmployeeEntity[]> {
     const employees = await this.employeeRepository.find({ where: { id: In(ids) } });
     const byId = new Map(employees.map((employee) => [employee.id.toLowerCase(), employee]));
@@ -742,4 +764,15 @@ export class KpiAssignmentsService {
       ]),
     );
   }
+}
+
+function firmLinked(employee: EmployeeEntity, salespeople: Set<number>): AssignableEmployee {
+  return {
+    id: employee.id,
+    isActive: employee.isActive,
+    erpEmployeeId:
+      employee.erpEmployeeId !== null && salespeople.has(employee.erpEmployeeId)
+        ? employee.erpEmployeeId
+        : null,
+  };
 }

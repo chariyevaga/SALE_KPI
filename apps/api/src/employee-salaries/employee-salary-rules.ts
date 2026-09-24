@@ -75,3 +75,41 @@ export function splitSalary(
 export function salaryShare(kpiAmount: number, points: number): number {
   return Math.round(kpiAmount * points) / 100;
 }
+
+/** What decides a month's pay: the salary's figures, not its row id. */
+export interface SalaryFigures {
+  effectiveMonth: string;
+  amount: number;
+  currency: string;
+  fixedPercent: number;
+  kpiPercent: number;
+}
+
+function sameFigures(left: SalaryFigures | null, right: SalaryFigures | null): boolean {
+  if (left === null || right === null) {
+    return left === right;
+  }
+
+  return (
+    salaryMonthLabel(left.effectiveMonth) === salaryMonthLabel(right.effectiveMonth) &&
+    Math.round(left.amount * 100) === Math.round(right.amount * 100) &&
+    left.currency === right.currency &&
+    Math.round(left.fixedPercent * 100) === Math.round(right.fixedPercent * 100) &&
+    Math.round(left.kpiPercent * 100) === Math.round(right.kpiPercent * 100)
+  );
+}
+
+/**
+ * The closed months (`YYYY-MM`) whose salary in force would differ between the employee's
+ * salaries `before` and `after` a change (ADR-049). A closed month's pay is final, so a
+ * change that reaches one is refused; the period is reopened first if it must be corrected.
+ */
+export function closedMonthsChanged(
+  before: readonly SalaryFigures[],
+  after: readonly SalaryFigures[],
+  closedMonths: readonly string[],
+): string[] {
+  return closedMonths
+    .filter((month) => !sameFigures(salaryInForce(before, month), salaryInForce(after, month)))
+    .sort();
+}

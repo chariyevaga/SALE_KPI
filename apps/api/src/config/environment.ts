@@ -151,6 +151,36 @@ export function getTigerPeriodNumber(): number {
   return getBoundedIntegerEnvironmentVariable('TIGER_PERIOD_NR', 1, 99);
 }
 
+/**
+ * Every Logo period the KPI views read, oldest first (ADR-054): `TIGER_PERIOD_NRS=1,2` when a
+ * new fiscal period was opened, so customers of the earlier period are not "new" again.
+ * Without it, only TIGER_PERIOD_NR. TIGER_PERIOD_NR itself must be one of them.
+ */
+export function getTigerPeriodNumbers(): number[] {
+  const raw = process.env.TIGER_PERIOD_NRS?.trim();
+  const current = getTigerPeriodNumber();
+
+  if (!raw) {
+    return [current];
+  }
+
+  const periods = raw.split(',').map((part) => Number(part.trim()));
+
+  if (periods.some((period) => !Number.isInteger(period) || period < 1 || period > 99)) {
+    throw new Error(
+      'TIGER_PERIOD_NRS must be a comma-separated list of integers between 1 and 99.',
+    );
+  }
+
+  const unique = [...new Set(periods)].sort((left, right) => left - right);
+
+  if (!unique.includes(current)) {
+    throw new Error(`TIGER_PERIOD_NRS must include TIGER_PERIOD_NR (${current}).`);
+  }
+
+  return unique;
+}
+
 /** Tiger's `LG_xxx_CLCARD.CODE` is varchar(17). */
 const MAX_TIGER_CUSTOMER_CODE_LENGTH = 17;
 
@@ -181,6 +211,22 @@ export function getFileStorageRoot(): string {
 
 export function getFileMaxUploadBytes(): number {
   return getIntegerEnvironmentVariable('FILE_MAX_UPLOAD_BYTES', DEFAULT_FILE_MAX_UPLOAD_BYTES);
+}
+
+/**
+ * The zone "today" is read in for business days (ADR-052): the conversion counts the days
+ * before today there. Defaults to Asia/Ashgabat; the server itself runs in UTC.
+ */
+export function getBusinessTimeZone(): string {
+  const timeZone = process.env.BUSINESS_TIME_ZONE?.trim() || DEFAULT_FILE_CLEANUP_TIME_ZONE;
+
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone }).format();
+  } catch {
+    throw new Error('BUSINESS_TIME_ZONE must be a valid IANA time-zone name.');
+  }
+
+  return timeZone;
 }
 
 export function getFileCleanupTimeZone(): string {

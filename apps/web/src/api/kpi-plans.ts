@@ -28,13 +28,14 @@ export function ensureKpiPeriod(year: number, month: number): Promise<KpiPeriod>
   return apiFetch<KpiPeriod>('/kpi-periods', { method: 'POST', body: { year, month } });
 }
 
-export function closeKpiPeriod(id: string): Promise<KpiPeriod> {
-  return apiFetch<KpiPeriod>(`/kpi-periods/${id}/close`, { method: 'POST', body: {} });
+/** Closing asks for the signed-in person's own password (ADR-053). */
+export function closeKpiPeriod(id: string, password: string): Promise<KpiPeriod> {
+  return apiFetch<KpiPeriod>(`/kpi-periods/${id}/close`, { method: 'POST', body: { password } });
 }
 
 /** Undoes a closing made too early; allowed until the 10th day after the month (ADR-044). */
-export function reopenKpiPeriod(id: string): Promise<KpiPeriod> {
-  return apiFetch<KpiPeriod>(`/kpi-periods/${id}/reopen`, { method: 'POST', body: {} });
+export function reopenKpiPeriod(id: string, password: string): Promise<KpiPeriod> {
+  return apiFetch<KpiPeriod>(`/kpi-periods/${id}/reopen`, { method: 'POST', body: { password } });
 }
 
 export interface KpiPlanListQuery {

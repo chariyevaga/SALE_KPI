@@ -1,8 +1,48 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { KpiTemplateDefinitionResponse } from '../kpi-templates/kpi-template-response.js';
 import { SalaryPayoutResponse } from '../employee-salaries/salary-payout.js';
+import type { ConversionGap } from './conversion-rules.js';
 import { KPI_RESULT_SOURCES, type KpiResultSource } from './entities/kpi-result.entity.js';
+
+/** How a store conversion was reached (ADR-052); the screens explain the number with it. */
+export class KpiConversionDetailResponse {
+  @ApiProperty({ type: Number, example: 1, description: 'Satırın mağaza sayısı.' })
+  storeCount: number;
+
+  @ApiProperty({ type: Number, example: 20, description: 'Ziyaretçi sayısı girilen mağaza-gün.' })
+  countedDays: number;
+
+  @ApiProperty({ type: Number, example: 23, description: 'Mağaza sayısı × hesaba giren gün.' })
+  possibleDays: number;
+
+  @ApiProperty({ type: Number, example: 86.96, description: 'countedDays / possibleDays × 100.' })
+  coverage: number;
+
+  @ApiProperty({ type: Number, example: 80, description: 'Puanlanmak için gereken kapsama.' })
+  requiredCoverage: number;
+
+  @ApiProperty({ type: Number, example: 412, description: 'Sayılan günlerin satış fişleri.' })
+  receipts: number;
+
+  @ApiProperty({ type: Number, example: 1830, description: 'Sayılan günlerde giren kişi.' })
+  visitors: number;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '2026-09-23',
+    description: 'Hesaba giren son gün (bugünden önceki gün).',
+  })
+  lastDay: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['no-days', 'low-coverage', 'no-visitors'],
+    description: 'Değer yoksa nedeni.',
+  })
+  gap?: ConversionGap;
+}
 
 export class KpiResultResponse {
   @ApiProperty({ type: String, format: 'uuid', description: '`kpi_assignment_items.id`' })
@@ -71,6 +111,13 @@ export class KpiResultResponse {
       'Bu KPI’dan kazanılan: maaşın KPI kısmı × ağırlıklı katkı / 100. Puanlanmadıysa ya da maaş yoksa `null`.',
   })
   salaryEarned: number | null;
+
+  @ApiProperty({
+    type: () => KpiConversionDetailResponse,
+    nullable: true,
+    description: 'Yalnız `STORE_CONVERSION`: hangi günlerin, fişlerin ve ziyaretçilerin sayıldığı.',
+  })
+  conversion: KpiConversionDetailResponse | null;
 }
 
 export class KpiPlanResultsResponse {

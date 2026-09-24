@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import {
   getFirmNumber,
   getTigerDatabaseConfig,
+  getTigerPeriodNumbers,
   getTigerSharedCustomerCodes,
 } from '../config/environment.js';
 import {
@@ -132,6 +133,7 @@ async function checkTigerSource(): Promise<void> {
     database: tigerDatabase,
     tables,
     sharedCustomerCodes: getTigerSharedCustomerCodes(),
+    periods: getTigerPeriodNumbers(),
   });
 
   if (reportSource.errors.length > 0) {
@@ -163,6 +165,14 @@ async function checkTigerSource(): Promise<void> {
     console.log(
       `Tiger source: ${tigerDatabase}, firm ${tables.firm}, period ${tables.period} (${formatDay(period.beginDate)} → ${formatDay(period.endDate)}).`,
     );
+
+    // Every other period the KPI views read must exist too (ADR-054).
+    for (const other of getTigerPeriodNumbers().filter((nr) => nr !== tables.period)) {
+      const earlier = await readTigerPeriod(tiger, new TigerTables(tables.firm, other));
+      console.log(
+        `KPI views also read period ${other} (${formatDay(earlier.beginDate)} → ${formatDay(earlier.endDate)}).`,
+      );
+    }
 
     const sharedCodes = getTigerSharedCustomerCodes();
 

@@ -1,6 +1,6 @@
 import type { DataSource } from 'typeorm';
 
-import type { TigerTables } from '../tiger/tiger-tables.js';
+import { TigerTables } from '../tiger/tiger-tables.js';
 
 /**
  * The KPI report views (`dbo.report_<KPI code>`, ADR-038) read Tiger through synonyms and a
@@ -29,19 +29,29 @@ export const KPI_REPORT_CODES = [
 export const KPI_GROUP_REPORT_CODES = ['STORE_GROUP_SALES', 'EMPLOYEE_GROUP_SALES'] as const;
 
 /**
- * KPIs Tiger can measure. The rest (`STORE_CONVERSION`) are typed in by a manager, in the plan's result rows (ADR-041).
+ * KPIs calculated from other data than a report view: the store conversion, from Tiger's
+ * receipts and the entered daily visitor counts (ADR-052). They have no target report.
+ */
+export const KPI_DERIVED_CODES = ['STORE_CONVERSION'] as const;
+
+/**
+ * KPIs the calculation measures. Anything else would be typed in by a manager in the plan's
+ * result rows (ADR-041); since the conversion became calculated (ADR-052) no such KPI is
+ * left in the catalogue, but the manual path stays for future ones.
  */
 export function isCalculableKpi(code: string): boolean {
   return (
     (KPI_REPORT_CODES as readonly string[]).includes(code) ||
-    (KPI_GROUP_REPORT_CODES as readonly string[]).includes(code)
+    (KPI_GROUP_REPORT_CODES as readonly string[]).includes(code) ||
+    (KPI_DERIVED_CODES as readonly string[]).includes(code)
   );
 }
 
 /** Objects the report migration creates; schema-check requires every one of them. */
 export const KPI_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'SN' | 'V' | 'P' }> = [
-  { name: 'dbo.tiger_invoice', type: 'SN' },
-  { name: 'dbo.tiger_stline', type: 'SN' },
+  // Views over every configured Logo period since ADR-054, synonyms before.
+  { name: 'dbo.tiger_invoice', type: 'V' },
+  { name: 'dbo.tiger_stline', type: 'V' },
   { name: 'dbo.tiger_clcard', type: 'SN' },
   { name: 'dbo.kpi_report_settings', type: 'V' },
   { name: 'dbo.kpi_report_documents', type: 'V' },
@@ -76,12 +86,16 @@ export interface ReportSource {
   }>;
   /** The single row of `dbo.kpi_report_settings`, or null when it returns none. */
   settings: { firm: number; sharedCustomerCodes: string } | null;
+  /** The Tiger tables the period views read (ADR-054), from SQL Server's dependency list. */
+  periodViews: Array<{ view: string; database: string | null; table: string }>;
 }
 
 export interface ExpectedReportSource {
   database: string;
   tables: TigerTables;
   sharedCustomerCodes: readonly string[];
+  /** TIGER_PERIOD_NRS: every Logo period the period views must read (ADR-054). */
+  periods: readonly number[];
 }
 
 export interface ReportSourceProblems {
@@ -105,7 +119,17 @@ export async function readReportSource(kpi: DataSource): Promise<ReportSource> {
     'SELECT [firm_nr] AS [firm], [shared_customer_codes] AS [sharedCustomerCodes] FROM [dbo].[kpi_report_settings]',
   );
 
-  return { synonyms, settings: settings[0] ?? null };
+  const periodViews = await kpi.query<ReportSource['periodViews']>(`
+    SELECT
+      OBJECT_NAME(d.[referencing_id]) AS [view],
+      d.[referenced_database_name] AS [database],
+      d.[referenced_entity_name] AS [table]
+    FROM sys.sql_expression_dependencies d
+    WHERE d.[referencing_id] IN (OBJECT_ID(N'dbo.tiger_invoice'), OBJECT_ID(N'dbo.tiger_stline'))
+      AND d.[referenced_entity_name] IS NOT NULL
+  `);
+
+  return { synonyms, settings: settings[0] ?? null, periodViews };
 }
 
 export function compareReportSource(
@@ -114,9 +138,28 @@ export function compareReportSource(
 ): ReportSourceProblems {
   const errors: string[] = [];
   const warnings: string[] = [];
+  // The period views must read exactly the configured periods' tables (ADR-054).
+  for (const [view, suffix] of [
+    ['tiger_invoice', 'INVOICE'],
+    ['tiger_stline', 'STLINE'],
+  ] as const) {
+    const wanted = expected.periods
+      .map((period) => new TigerTables(expected.tables.firm, period).periodTable(suffix))
+      .map((table) => `${expected.database}.dbo.${table.slice(1, -1)}`.toLowerCase())
+      .sort();
+    const found = actual.periodViews
+      .filter((row) => row.view.toLowerCase() === view)
+      .map((row) => `${row.database ?? '?'}.dbo.${row.table}`.toLowerCase())
+      .sort();
+
+    if (found.length === 0) {
+      errors.push(`dbo.${view} is missing or reads no Tiger table`);
+    } else if (found.join(',') !== wanted.join(',')) {
+      errors.push(`dbo.${view} reads ${found.join(', ')} instead of ${wanted.join(', ')}`);
+    }
+  }
+
   const targets = {
-    tiger_invoice: expected.tables.periodTable('INVOICE'),
-    tiger_stline: expected.tables.periodTable('STLINE'),
     tiger_clcard: expected.tables.firmTable('CLCARD'),
     // Item cards for the item group KPIs (ADR-045).
     tiger_items: expected.tables.firmTable('ITEMS'),

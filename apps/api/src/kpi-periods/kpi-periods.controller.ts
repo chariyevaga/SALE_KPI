@@ -9,9 +9,11 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
@@ -21,9 +23,13 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 
 import { AccessTokenGuard } from '../auth/access-token.guard.js';
+import type { AuthenticatedRequest } from '../auth/auth.types.js';
+import { AuthService } from '../auth/auth.service.js';
+import { ConfirmPasswordDto } from '../auth/dto/confirm-password.dto.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
 import { ListKpiPeriodsQueryDto, SaveKpiPeriodDto } from './dto/save-kpi-period.dto.js';
 import {
@@ -33,12 +39,20 @@ import {
 } from './kpi-period-response.js';
 import { KpiPeriodsService } from './kpi-periods.service.js';
 
+const PASSWORD_REJECTED =
+  '`AUTH_PASSWORD_CONFIRMATION_FAILED`: şifre eşleşmedi (401 değil: oturum geçerlidir).';
+const PASSWORD_LOCKED =
+  '`AUTH_TOO_MANY_ATTEMPTS`: 15 dakikada 5 yanlış şifre; `retryAfterSeconds` kadar beklenir.';
+
 @ApiTags('kpi-periods')
 @ApiBearerAuth('access-token')
 @Controller('kpi-periods')
 @UseGuards(AccessTokenGuard)
 export class KpiPeriodsController {
-  constructor(@Inject(KpiPeriodsService) private readonly kpiPeriodsService: KpiPeriodsService) {}
+  constructor(
+    @Inject(KpiPeriodsService) private readonly kpiPeriodsService: KpiPeriodsService,
+    @Inject(AuthService) private readonly authService: AuthService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -80,14 +94,23 @@ export class KpiPeriodsController {
   @ApiOperation({
     summary: 'Dönemi kapatır (yalnız full_access).',
     description:
-      'Kapalı dönemde plan ve hedef değiştirilemez. Yeniden açma yoktur (açık iş kararı 11).',
+      'Kapalı dönemde plan ve hedef değiştirilemez; ayı bittikten sonraki 10 gün içinde yeniden açılabilir (ADR-044). Gövdede oturum sahibinin kendi şifresi istenir (ADR-053).',
   })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiOkResponse({ type: KpiPeriodResponse })
   @ApiNotFoundResponse({ description: 'Dönem yok.' })
   @ApiConflictResponse({ description: 'Dönem zaten kapalı.', type: KpiPeriodErrorResponse })
   @ApiForbiddenResponse({ description: '`full_access` yok.' })
-  close(@Param('id', new ParseUUIDPipe()) id: string): Promise<KpiPeriodResponse> {
+  @ApiBody({ type: ConfirmPasswordDto })
+  @ApiBadRequestResponse({ description: PASSWORD_REJECTED })
+  @ApiTooManyRequestsResponse({ description: PASSWORD_LOCKED })
+  async close(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ConfirmPasswordDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<KpiPeriodResponse> {
+    await this.authService.confirmOwnPassword(request.employee.id, dto.password);
+
     return this.kpiPeriodsService.close(id);
   }
 
@@ -97,7 +120,7 @@ export class KpiPeriodsController {
   @ApiOperation({
     summary: 'Yanlışlıkla kapatılan dönemi yeniden açar (yalnız full_access, ADR-044).',
     description:
-      'Dönemin ayı bittikten sonraki 10. günün sonuna kadar (UTC) yapılabilir; `reopenableUntil` son günü söyler. Sonrasında kapanış kesindir. Açılan dönemde plan, hedef ve hesaplama yeniden yazılabilir.',
+      'Dönemin ayı bittikten sonraki 10. günün sonuna kadar (UTC) yapılabilir; `reopenableUntil` son günü söyler. Sonrasında kapanış kesindir. Açılan dönemde plan, hedef ve hesaplama yeniden yazılabilir. Gövdede oturum sahibinin kendi şifresi istenir (ADR-053).',
   })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiOkResponse({ type: KpiPeriodResponse })
@@ -108,7 +131,16 @@ export class KpiPeriodsController {
     type: KpiPeriodErrorResponse,
   })
   @ApiForbiddenResponse({ description: '`full_access` yok.' })
-  reopen(@Param('id', new ParseUUIDPipe()) id: string): Promise<KpiPeriodResponse> {
+  @ApiBody({ type: ConfirmPasswordDto })
+  @ApiBadRequestResponse({ description: PASSWORD_REJECTED })
+  @ApiTooManyRequestsResponse({ description: PASSWORD_LOCKED })
+  async reopen(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ConfirmPasswordDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<KpiPeriodResponse> {
+    await this.authService.confirmOwnPassword(request.employee.id, dto.password);
+
     return this.kpiPeriodsService.reopen(id);
   }
 }
