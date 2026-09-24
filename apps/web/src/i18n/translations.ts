@@ -577,6 +577,7 @@ interface TranslationShape {
     saveError: string;
     errorMonthExists: string;
     errorPercentTotal: string;
+    errorPeriodClosed: string;
   };
   kpiSalary: {
     title: string;
@@ -669,6 +670,7 @@ interface TranslationShape {
     conflict: string;
     payloadTooLarge: string;
     tooManyRequests: string;
+    tooManyRequestsWait: string;
     server: string;
   };
 }
@@ -1262,6 +1264,8 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Maaş kaydedilemedi.',
       errorMonthExists: 'Bu çalışanın bu ay için zaten bir maaşı var.',
       errorPercentTotal: 'Sabit ve KPI yüzdelerinin toplamı 100 olmalı.',
+      errorPeriodClosed:
+        'Bu değişiklik kapanmış dönemlerin maaşını değiştirir: {months}. Kapanmış ayın ödemesi kesindir; düzeltmek için önce dönemi yeniden açın.',
     },
     kpiSalary: {
       title: 'Maaş',
@@ -1355,6 +1359,8 @@ export const translations: Record<Locale, TranslationShape> = {
       conflict: 'Bu bilgiler başka bir kayıtla çakışıyor.',
       payloadTooLarge: 'Seçilen dosya izin verilen boyuttan büyük.',
       tooManyRequests: 'Çok fazla deneme yapıldı. Lütfen biraz bekleyin.',
+      tooManyRequestsWait:
+        'Çok fazla hatalı deneme yapıldı. {minutes} dakika sonra tekrar deneyin.',
       server: 'Sunucuda bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
     },
   },
@@ -1945,6 +1951,8 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Could not save the salary.',
       errorMonthExists: 'This employee already has a salary for this month.',
       errorPercentTotal: 'Fixed and KPI percentages must add up to 100.',
+      errorPeriodClosed:
+        "This change would alter the salary of closed periods: {months}. A closed month's pay is final; reopen the period first to correct it.",
     },
     kpiSalary: {
       title: 'Salary',
@@ -2038,6 +2046,7 @@ export const translations: Record<Locale, TranslationShape> = {
       conflict: 'This information conflicts with another record.',
       payloadTooLarge: 'The selected file exceeds the allowed size.',
       tooManyRequests: 'Too many attempts. Please wait a moment.',
+      tooManyRequestsWait: 'Too many failed attempts. Try again in {minutes} minutes.',
       server: 'A server error occurred. Please try again later.',
     },
   },
@@ -2630,6 +2639,8 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Не удалось сохранить зарплату.',
       errorMonthExists: 'У сотрудника уже есть зарплата за этот месяц.',
       errorPercentTotal: 'Сумма фиксированной доли и доли KPI должна быть 100.',
+      errorPeriodClosed:
+        'Изменение затронет зарплату закрытых периодов: {months}. Выплата за закрытый месяц окончательна; сначала откройте период заново.',
     },
     kpiSalary: {
       title: 'Зарплата',
@@ -2723,6 +2734,7 @@ export const translations: Record<Locale, TranslationShape> = {
       conflict: 'Эти данные конфликтуют с другой записью.',
       payloadTooLarge: 'Выбранный файл превышает допустимый размер.',
       tooManyRequests: 'Слишком много попыток. Подождите немного.',
+      tooManyRequestsWait: 'Слишком много неудачных попыток. Повторите через {minutes} мин.',
       server: 'Произошла ошибка сервера. Повторите попытку позже.',
     },
   },
@@ -3318,6 +3330,8 @@ export const translations: Record<Locale, TranslationShape> = {
       saveError: 'Aýlyk ýatda saklanyp bilmedi.',
       errorMonthExists: 'Bu işgäriň bu aý üçin eýýäm aýlygy bar.',
       errorPercentTotal: 'Hemişelik we KPI göterimleriniň jemi 100 bolmaly.',
+      errorPeriodClosed:
+        'Bu üýtgeşme ýapylan döwürleriň aýlygyny üýtgedýär: {months}. Ýapylan aýyň tölegi gutarnykly; düzetmek üçin ilki döwri gaýtadan açyň.',
     },
     kpiSalary: {
       title: 'Aýlyk',
@@ -3411,6 +3425,8 @@ export const translations: Record<Locale, TranslationShape> = {
       conflict: 'Bu maglumatlar başga bir ýazgy bilen gabat gelýär.',
       payloadTooLarge: 'Saýlanan faýl rugsat berlen ölçegden uly.',
       tooManyRequests: 'Gaty köp synanyşyk edildi. Biraz garaşyň.',
+      tooManyRequestsWait:
+        'Gaty köp ýalňyş synanyşyk edildi. {minutes} minutdan soň gaýtadan synanyşyň.',
       server: 'Serwerde ýalňyşlyk ýüze çykdy. Soňrak gaýtadan synanyşyň.',
     },
   },

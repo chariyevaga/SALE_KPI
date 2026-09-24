@@ -14,6 +14,14 @@ export { isCalculableKpi } from '../reports/kpi-report-checks.js';
 /** Two decimals everywhere: the columns are decimal(9,2) and decimal(6,2). */
 const SCORE_DECIMALS = 2;
 
+/**
+ * The widest raw achievement `kpi_results.raw_achievement` (decimal(9,2)) holds. A tiny
+ * target typed by mistake (1 TMT against 200,000 TMT of sales) would otherwise overflow the
+ * column and roll back the calculation of every plan of the period. Only the stored raw
+ * value is bounded; the score is capped at 100 anyway.
+ */
+export const MAX_RAW_ACHIEVEMENT = 9_999_999.99;
+
 export interface ScoreInput {
   targetValue: number | null;
   actualValue: number | null;
@@ -36,7 +44,7 @@ export function scoreRow({ targetValue, actualValue, weight }: ScoreInput): Scor
   const capped = Math.min(Math.max(raw, 0), 100);
 
   return {
-    rawAchievement: round(raw),
+    rawAchievement: round(Math.min(Math.max(raw, -MAX_RAW_ACHIEVEMENT), MAX_RAW_ACHIEVEMENT)),
     cappedAchievement: round(capped),
     weightedScore: round((capped * weight) / 100),
   };

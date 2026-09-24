@@ -1,10 +1,17 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, type EntityManager, In, LessThanOrEqual, Repository } from 'typeorm';
 
 import type { AuditValue } from '../audit/audit-changes.js';
 import { AuditService } from '../audit/audit.service.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { salaryShare, splitSalary } from '../employee-salaries/employee-salary-rules.js';
 import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
@@ -14,6 +21,7 @@ import { kpiAssignmentBadRequest } from '../kpi-assignments/kpi-assignment-error
 import {
   type EntityLookup,
   buildEntityLookups,
+  loadFirmSalespersonIds,
   loadStoreNumbers,
   matchRows,
 } from '../kpi-assignments/kpi-entity-lookup.js';
@@ -96,6 +104,8 @@ export class KpiResultsService {
     private readonly storeRepository: Repository<StoreEntity>,
     @InjectRepository(EmployeeSalaryEntity)
     private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
+    @InjectRepository(ErpEmployeeEntity)
+    private readonly erpEmployeeRepository: Repository<ErpEmployeeEntity>,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DataSource) private readonly dataSource: DataSource,
   ) {}
@@ -141,6 +151,7 @@ export class KpiResultsService {
     const values = this.buildResults(plan, lookups, monthRows, existing, calculatedAt);
 
     await this.dataSource.transaction(async (manager) => {
+      await this.lockOpenPeriod(manager, plan.period);
       await this.writeResults(manager, plan, values, 'calculate');
     });
 
@@ -182,6 +193,7 @@ export class KpiResultsService {
     const values = this.buildResults(plan, new Map(), [], existing, null, actuals);
 
     await this.dataSource.transaction(async (manager) => {
+      await this.lockOpenPeriod(manager, plan.period);
       await this.writeResults(manager, plan, values, 'actuals');
     });
 
@@ -218,7 +230,16 @@ export class KpiResultsService {
       return { calculated: 0, changed: 0, incomplete: 0, calculatedAt: new Date() };
     }
 
-    return this.calculatePlans(current, { via: 'scheduled', skipUnchanged: true });
+    try {
+      return await this.calculatePlans(current, { via: 'scheduled', skipUnchanged: true });
+    } catch (error: unknown) {
+      // Closed while this pass was reading Tiger: nothing was written, which is right.
+      if (isPeriodClosedError(error)) {
+        return { calculated: 0, changed: 0, incomplete: 0, calculatedAt: new Date() };
+      }
+
+      throw error;
+    }
   }
 
   private async calculatePlans(
@@ -250,6 +271,8 @@ export class KpiResultsService {
     let changed = 0;
 
     await this.dataSource.transaction(async (manager) => {
+      await this.lockOpenPeriod(manager, period);
+
       for (const plan of plans) {
         const values = this.buildResults(plan, lookups, monthRows, existing, calculatedAt);
         const score = planScore(values);
@@ -288,6 +311,23 @@ export class KpiResultsService {
       plan.assignment.scoredItemCount === score.scoredItemCount &&
       sameResults(stored, values)
     );
+  }
+
+  /**
+   * Takes the period row's update lock inside the writing transaction and re-checks it is
+   * open. Closing a period takes the same lock (AuditService.update), so a calculation that
+   * started before the closing either commits first or sees the period closed and writes
+   * nothing: a closed month's results are never changed afterwards (ADR-041, ADR-047).
+   */
+  private async lockOpenPeriod(manager: EntityManager, period: KpiPeriodEntity): Promise<void> {
+    const current = await manager.getRepository(KpiPeriodEntity).findOne({
+      where: { id: period.id },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!current || !isPeriodOpen(current)) {
+      throw kpiPeriodClosed(periodLabel(period));
+    }
   }
 
   private assertOpen(period: KpiPeriodEntity): void {
@@ -329,12 +369,22 @@ export class KpiResultsService {
   private async buildLookups(plans: PlanData[]): Promise<Map<string, EntityLookup>> {
     const items = plans.flatMap((plan) => plan.items);
     const storeNumbers = await loadStoreNumbers(this.storeRepository, items);
-    const lookups = plans.flatMap((plan) =>
-      buildEntityLookups(plan.items, {
-        erpEmployeeId: plan.assignment.employee?.erpEmployeeId,
-        storeNumbers,
-      }),
+    const salespeople = await loadFirmSalespersonIds(
+      this.erpEmployeeRepository,
+      plans.map((plan) => plan.assignment.employee?.erpEmployeeId),
     );
+    const lookups = plans.flatMap((plan) => {
+      const erpEmployeeId = plan.assignment.employee?.erpEmployeeId;
+
+      // A link to another firm's salesperson is not measured (null), never scored as 0.
+      return buildEntityLookups(plan.items, {
+        erpEmployeeId:
+          typeof erpEmployeeId === 'number' && salespeople.has(erpEmployeeId)
+            ? erpEmployeeId
+            : null,
+        storeNumbers,
+      });
+    });
 
     return new Map(lookups.map((lookup) => [lookup.itemId.toLowerCase(), lookup]));
   }
@@ -538,4 +588,14 @@ function toResultSnapshots(plan: PlanData, values: ResultValues[]): AuditValue {
     source: value.source,
     score: value.weightedScore,
   }));
+}
+
+function isPeriodClosedError(error: unknown): boolean {
+  if (!(error instanceof ConflictException)) {
+    return false;
+  }
+
+  const body = error.getResponse();
+
+  return typeof body === 'object' && (body as { code?: unknown }).code === 'KPI_PERIOD_CLOSED';
 }

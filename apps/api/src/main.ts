@@ -2,6 +2,7 @@ import './config/load-environment.js';
 import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
+import type { NextFunction, Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -10,6 +11,20 @@ import { getApiPort, getCorsOrigin } from './config/environment.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+
+  // Security headers (review 2026-09-24): no framework banner, no MIME sniffing, no framing,
+  // no referrer, and nothing cached by default: responses carry salaries and personal data.
+  // Swagger UI keeps working because no Content-Security-Policy is set on the API.
+  (app.getHttpAdapter().getInstance() as { disable: (setting: string) => void }).disable(
+    'x-powered-by',
+  );
+  app.use((_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Referrer-Policy', 'no-referrer');
+    response.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   app.enableCors({
     origin: getCorsOrigin(),

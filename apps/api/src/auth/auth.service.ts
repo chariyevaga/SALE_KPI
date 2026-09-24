@@ -12,9 +12,28 @@ import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import type { ChangePasswordDto } from './dto/change-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { RefreshDto } from './dto/refresh.dto.js';
+import { AttemptLimiter, tooManyAttempts } from './attempt-limiter.js';
+import { hashPasswordSync } from './password-hash.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 import type { AuthResponse, DeviceSessionResponse } from './auth.types.js';
+
+const MINUTE = 60_000;
+
+/**
+ * Guessing limits (security review 2026-09-24). A username locks after 5 wrong passwords in
+ * 15 minutes, an IP after 20 (Docker Desktop may show every client as one address, hence
+ * the wider limit), the "current password" of a password change after 5 per employee.
+ */
+const USERNAME_LIMIT = { maxFailures: 5, windowMs: 15 * MINUTE, blockMs: 15 * MINUTE };
+const IP_LIMIT = { maxFailures: 20, windowMs: 15 * MINUTE, blockMs: 15 * MINUTE };
+const PASSWORD_CHANGE_LIMIT = { maxFailures: 5, windowMs: 15 * MINUTE, blockMs: 15 * MINUTE };
+
+/**
+ * Verified against when the username is unknown or inactive, so every failed sign-in costs
+ * one scrypt run and the response time does not tell which usernames exist.
+ */
+const DUMMY_PASSWORD_HASH = hashPasswordSync(randomUUID());
 
 interface LoginMetadata {
   ipAddress: string | null;
@@ -43,7 +62,23 @@ export class AuthService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
+  private readonly usernameAttempts = new AttemptLimiter(USERNAME_LIMIT);
+  private readonly ipAttempts = new AttemptLimiter(IP_LIMIT);
+  private readonly passwordChangeAttempts = new AttemptLimiter(PASSWORD_CHANGE_LIMIT);
+
   async login(dto: LoginDto, metadata: LoginMetadata): Promise<AuthResponse> {
+    const usernameKey = dto.username.trim().toLowerCase();
+    const ipKey = metadata.ipAddress ?? 'unknown';
+    const retryAfter = Math.max(
+      this.usernameAttempts.retryAfterSeconds(usernameKey),
+      this.ipAttempts.retryAfterSeconds(ipKey),
+    );
+
+    // A blocked sign-in is refused before the password is even looked at.
+    if (retryAfter > 0) {
+      throw tooManyAttempts(retryAfter);
+    }
+
     const employee = await this.employeeRepository
       .createQueryBuilder('employee')
       .addSelect('employee.passwordHash')
@@ -51,13 +86,18 @@ export class AuthService {
       .where('employee.username = :username', { username: dto.username })
       .getOne();
 
-    if (
-      !employee ||
-      !employee.isActive ||
-      !(await this.passwordService.verify(dto.password, employee.passwordHash))
-    ) {
+    const passwordMatches = await this.passwordService.verify(
+      dto.password,
+      employee?.isActive ? employee.passwordHash : DUMMY_PASSWORD_HASH,
+    );
+
+    if (!employee?.isActive || !passwordMatches) {
+      this.usernameAttempts.recordFailure(usernameKey);
+      this.ipAttempts.recordFailure(ipKey);
       throw new UnauthorizedException('Invalid username or password.');
     }
+
+    this.usernameAttempts.reset(usernameKey);
 
     // The session row written below is attributed to the employee signing in (ADR-036).
     setRequestActor(employee.id);
@@ -191,6 +231,21 @@ export class AuthService {
     return response;
   }
 
+  /**
+   * The access token's session must still be live: signing out, "sign out everywhere", a
+   * password change, an administrator revoking the device or refresh-token reuse end it at
+   * once, instead of leaving its access token usable until it expires.
+   */
+  async assertSessionActive(sessionId: string, employeeId: string): Promise<void> {
+    const live = await this.sessionRepository.exists({
+      where: { id: sessionId, employeeId, revokedAt: IsNull(), expiresAt: MoreThan(new Date()) },
+    });
+
+    if (!live) {
+      throw new UnauthorizedException('The session has ended.');
+    }
+  }
+
   async getActiveEmployee(employeeId: string): Promise<EmployeeEntity> {
     const employee = await this.employeeRepository.findOne({
       where: { id: employeeId, isActive: true },
@@ -208,6 +263,13 @@ export class AuthService {
     currentSessionId: string,
     dto: ChangePasswordDto,
   ): Promise<void> {
+    const attemptKey = employeeId.toLowerCase();
+    const retryAfter = this.passwordChangeAttempts.retryAfterSeconds(attemptKey);
+
+    if (retryAfter > 0) {
+      throw tooManyAttempts(retryAfter);
+    }
+
     const employee = await this.employeeRepository
       .createQueryBuilder('employee')
       .addSelect('employee.passwordHash')
@@ -218,8 +280,11 @@ export class AuthService {
       !employee ||
       !(await this.passwordService.verify(dto.currentPassword, employee.passwordHash))
     ) {
+      this.passwordChangeAttempts.recordFailure(attemptKey);
       throw new UnauthorizedException('Current password is incorrect.');
     }
+
+    this.passwordChangeAttempts.reset(attemptKey);
 
     const passwordHash = await this.passwordService.hash(dto.newPassword);
 
@@ -235,10 +300,7 @@ export class AuthService {
   }
 
   async logoutCurrent(employeeId: string, sessionId: string): Promise<void> {
-    await this.revokeSessions(
-      { id: sessionId, employeeId, revokedAt: IsNull() },
-      'logout',
-    );
+    await this.revokeSessions({ id: sessionId, employeeId, revokedAt: IsNull() }, 'logout');
   }
 
   async logoutAll(employeeId: string): Promise<void> {
@@ -268,10 +330,7 @@ export class AuthService {
   }
 
   async revokeDevice(employeeId: string, sessionId: string): Promise<void> {
-    await this.revokeSessions(
-      { id: sessionId, employeeId, revokedAt: IsNull() },
-      'device_revoked',
-    );
+    await this.revokeSessions({ id: sessionId, employeeId, revokedAt: IsNull() }, 'device_revoked');
   }
 
   private async revokeSessions(
@@ -284,10 +343,7 @@ export class AuthService {
     });
   }
 
-  private issueTokens(
-    employee: EmployeeEntity,
-    session: DeviceSessionEntity,
-  ): AuthResponse {
+  private issueTokens(employee: EmployeeEntity, session: DeviceSessionEntity): AuthResponse {
     const access = this.tokenService.createAccessToken(employee.id, session.id);
     const refresh = this.tokenService.createRefreshToken(
       employee.id,

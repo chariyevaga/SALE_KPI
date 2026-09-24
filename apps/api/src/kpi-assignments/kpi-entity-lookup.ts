@@ -2,6 +2,7 @@ import { In, type Repository } from 'typeorm';
 
 import { getFirmNumber } from '../config/environment.js';
 import type { KpiScope } from '../kpi-definitions/kpi-definition.types.js';
+import type { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import type { StoreEntity } from '../stores/entities/store.entity.js';
 
 /**
@@ -72,6 +73,29 @@ export async function loadStoreNumbers(
   });
 
   return new Map(stores.map((store) => [store.id, store.nr]));
+}
+
+/**
+ * The Tiger salesperson references among `ids` that belong to the configured firm. An
+ * employee linked to another firm's salesperson has no invoices here; measuring them would
+ * read as "sold nothing" and score 0, so such a link counts as no link at all.
+ */
+export async function loadFirmSalespersonIds(
+  repository: Repository<ErpEmployeeEntity>,
+  ids: readonly (number | null | undefined)[],
+): Promise<Set<number>> {
+  const unique = [...new Set(ids.filter((id): id is number => typeof id === 'number'))];
+
+  if (unique.length === 0) {
+    return new Set();
+  }
+
+  const rows = await repository.find({
+    select: { id: true },
+    where: { id: In(unique), firmNr: getFirmNumber() },
+  });
+
+  return new Set(rows.map((row) => Number(row.id)));
 }
 
 /**

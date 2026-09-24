@@ -21,6 +21,7 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     const payload = this.tokenService.verifyAccessToken(authorization.slice(7));
+    await this.authService.assertSessionActive(payload.sid, payload.sub);
     request.employee = await this.authService.getActiveEmployee(payload.sub);
     request.accessTokenPayload = payload;
     // Audit stamps and log entries of this request are attributed to the caller (ADR-036).

@@ -4,9 +4,15 @@ import { DataSource, LessThanOrEqual, Not, Repository } from 'typeorm';
 
 import { AuditService } from '../audit/audit.service.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
+import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
+import { isPeriodOpen, periodLabel } from '../kpi-periods/kpi-period-rules.js';
 import type { SaveEmployeeSalaryDto } from './dto/save-employee-salary.dto.js';
 import { EmployeeSalaryEntity } from './entities/employee-salary.entity.js';
-import { salaryMonthExists, salaryPercentTotal } from './employee-salary-errors.js';
+import {
+  salaryMonthExists,
+  salaryPercentTotal,
+  salaryPeriodClosed,
+} from './employee-salary-errors.js';
 import {
   type EmployeeSalaryInForceResponse,
   type EmployeeSalaryListResponse,
@@ -14,7 +20,9 @@ import {
   toEmployeeSalaryResponse,
 } from './employee-salary-response.js';
 import {
+  closedMonthsChanged,
   monthOf,
+  type SalaryFigures,
   percentsAddUp,
   salaryInForce,
   salaryMonthStart,
@@ -36,6 +44,8 @@ export class EmployeeSalariesService {
     private readonly salaryRepository: Repository<EmployeeSalaryEntity>,
     @InjectRepository(EmployeeEntity)
     private readonly employeeRepository: Repository<EmployeeEntity>,
+    @InjectRepository(KpiAssignmentEntity)
+    private readonly assignmentRepository: Repository<KpiAssignmentEntity>,
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
@@ -86,6 +96,13 @@ export class EmployeeSalariesService {
       throw salaryMonthExists(dto.effectiveMonth);
     }
 
+    const before = await this.salaryRepository.find({ where: { employeeId } });
+
+    await this.assertClosedMonthsUntouched(employeeId, before, [
+      ...before,
+      { ...dto, effectiveMonth },
+    ]);
+
     try {
       const created = await this.audit.insert(this.dataSource.manager, EmployeeSalaryEntity, {
         employeeId,
@@ -126,6 +143,16 @@ export class EmployeeSalariesService {
       throw salaryMonthExists(dto.effectiveMonth);
     }
 
+    const before = await this.salaryRepository.find({ where: { employeeId: salary.employeeId } });
+
+    await this.assertClosedMonthsUntouched(
+      salary.employeeId,
+      before,
+      before.map((row) =>
+        row.id.toLowerCase() === salary.id.toLowerCase() ? { ...dto, effectiveMonth } : row,
+      ),
+    );
+
     try {
       await this.audit.update(
         this.dataSource.manager,
@@ -152,8 +179,39 @@ export class EmployeeSalariesService {
 
   async remove(id: string): Promise<void> {
     const salary = await this.findSalary(id);
+    const before = await this.salaryRepository.find({ where: { employeeId: salary.employeeId } });
+
+    await this.assertClosedMonthsUntouched(
+      salary.employeeId,
+      before,
+      before.filter((row) => row.id.toLowerCase() !== salary.id.toLowerCase()),
+    );
 
     await this.audit.delete(this.dataSource.manager, EmployeeSalaryEntity, { id: salary.id });
+  }
+
+  /**
+   * Refuses a change that would alter the salary in force in a closed month the employee
+   * has a KPI plan in: that month's pay is final (ADR-049). Reopening the period (within its
+   * grace days, ADR-044) makes the correction possible.
+   */
+  private async assertClosedMonthsUntouched(
+    employeeId: string,
+    before: readonly SalaryFigures[],
+    after: readonly SalaryFigures[],
+  ): Promise<void> {
+    const plans = await this.assignmentRepository.find({
+      where: { employeeId },
+      relations: { period: true },
+    });
+    const closedMonths = plans.flatMap((plan) =>
+      plan.period && !isPeriodOpen(plan.period) ? [periodLabel(plan.period)] : [],
+    );
+    const changed = closedMonthsChanged(before, after, closedMonths);
+
+    if (changed.length > 0) {
+      throw salaryPeriodClosed(changed);
+    }
   }
 
   private async findSalary(id: string): Promise<EmployeeSalaryEntity> {

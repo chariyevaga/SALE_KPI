@@ -18,6 +18,13 @@ export function localizeApiError(
   statusOverrides: Partial<Record<number, TranslationKey>> = {},
 ): string {
   if (error instanceof ApiError) {
+    // Too many wrong passwords: say how long to wait, rounded up to whole minutes.
+    const retryAfter = error.body?.retryAfterSeconds;
+
+    if (error.status === 429 && typeof retryAfter === 'number' && retryAfter > 0) {
+      return t('errors.tooManyRequestsWait', { minutes: String(Math.ceil(retryAfter / 60)) });
+    }
+
     const key =
       statusOverrides[error.status] ??
       STATUS_KEYS[error.status] ??

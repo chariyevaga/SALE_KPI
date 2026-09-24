@@ -57,17 +57,23 @@ function money(
   return `${formatNumber(value, locale)} ${currency}`;
 }
 
-function describeError(error: unknown, t: Translate): string {
+function describeError(
+  error: unknown,
+  t: Translate,
+  fallback: 'salary.saveError' | 'salary.deleteError' = 'salary.saveError',
+): string {
   if (error instanceof ApiError) {
     switch (error.body?.code) {
       case 'EMPLOYEE_SALARY_MONTH_EXISTS':
         return t('salary.errorMonthExists');
       case 'EMPLOYEE_SALARY_PERCENT_TOTAL':
         return t('salary.errorPercentTotal');
+      case 'EMPLOYEE_SALARY_PERIOD_CLOSED':
+        return t('salary.errorPeriodClosed', { months: (error.body.months ?? []).join(', ') });
     }
   }
 
-  return localizeApiError(error, t, 'salary.saveError');
+  return localizeApiError(error, t, fallback);
 }
 
 /**
@@ -577,7 +583,7 @@ export function EmployeeSalaryPanel({ employeeId }: { employeeId: string }) {
           role="alert"
           className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
         >
-          {localizeApiError(deleteMutation.error, t, 'salary.deleteError')}
+          {describeError(deleteMutation.error, t, 'salary.deleteError')}
         </p>
       ) : null}
 

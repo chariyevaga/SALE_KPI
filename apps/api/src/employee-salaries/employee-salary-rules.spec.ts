@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  closedMonthsChanged,
   monthOf,
   percentsAddUp,
   salaryInForce,
@@ -65,4 +66,47 @@ void test('the KPI part pays by score: each KPI its weight, the plan its total (
   assert.equal(salaryShare(kpiAmount, 17.12), 1_438.08);
   assert.equal(salaryShare(kpiAmount, 100), kpiAmount);
   assert.equal(salaryShare(kpiAmount, 0), 0);
+});
+
+void test('a salary change may not reach a closed month (ADR-049)', () => {
+  const june = {
+    effectiveMonth: '2026-06-01',
+    amount: 10_000,
+    currency: 'TMT',
+    fixedPercent: 30,
+    kpiPercent: 70,
+  };
+  const september = { ...june, effectiveMonth: '2026-09-01', amount: 12_000 };
+  const before = [june, september];
+
+  // August is closed and paid on June's salary: correcting June reaches it.
+  assert.deepEqual(
+    closedMonthsChanged(before, [{ ...june, amount: 10_500 }, september], ['2026-08']),
+    ['2026-08'],
+  );
+  // Deleting September makes June's salary apply in closed September.
+  assert.deepEqual(closedMonthsChanged(before, [june], ['2026-09']), ['2026-09']);
+  // A new salary from October leaves closed July to September untouched.
+  assert.deepEqual(
+    closedMonthsChanged(
+      before,
+      [...before, { ...june, effectiveMonth: '2026-10-01', amount: 13_000 }],
+      ['2026-07', '2026-09'],
+    ),
+    [],
+  );
+  // Moving September to October changes closed September.
+  assert.deepEqual(
+    closedMonthsChanged(
+      before,
+      [june, { ...september, effectiveMonth: '2026-10-01' }],
+      ['2026-09'],
+    ),
+    ['2026-09'],
+  );
+  // Saving the same figures again changes nothing.
+  assert.deepEqual(
+    closedMonthsChanged(before, [june, { ...september }], ['2026-06', '2026-09']),
+    [],
+  );
 });

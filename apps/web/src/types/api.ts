@@ -84,6 +84,10 @@ export interface ApiErrorBody {
   storeIds?: number[];
   /** `KPI_TEMPLATE_UNKNOWN_ITEM_GROUP`: item group codes that do not exist. */
   groupCodes?: string[];
+  /** `EMPLOYEE_SALARY_PERIOD_CLOSED`: closed months the change would alter. */
+  months?: string[];
+  /** 429 `AUTH_TOO_MANY_ATTEMPTS`: seconds until the next attempt is allowed. */
+  retryAfterSeconds?: number;
   /** `KPI_TEMPLATE_IN_USE`: templates that KPI plans were built from. */
   templates?: KpiTemplateInUse[];
   /** `KPI_ASSIGNMENT_EXISTS` / `KPI_ASSIGNMENT_INELIGIBLE`: the employees involved. */

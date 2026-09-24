@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from '../auth/auth.module.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { KpiAssignmentItemEntity } from '../kpi-assignments/entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
@@ -21,6 +22,7 @@ import { KpiResultsService } from './kpi-results.service.js';
       KpiPeriodEntity,
       StoreEntity,
       EmployeeSalaryEntity,
+      ErpEmployeeEntity,
     ]),
     AuthModule,
   ],

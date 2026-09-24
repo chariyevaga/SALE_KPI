@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   type ComparableResult,
   isCalculableKpi,
+  MAX_RAW_ACHIEVEMENT,
   planScore,
   sameResults,
   scoreRow,
@@ -132,4 +133,17 @@ void test('sameResults: a moved value, a new row or a first calculation is a cha
   );
   assert.equal(sameResults([], [resultRow()]), false);
   assert.equal(sameResults([], []), true);
+});
+
+void test('a tiny target cannot overflow the stored raw achievement', () => {
+  // 1 TMT typed by mistake against 200,000 TMT of sales: 20,000,000 %.
+  const score = scoreRow({ targetValue: 1, actualValue: 200_000, weight: 40 });
+
+  assert.equal(score.rawAchievement, MAX_RAW_ACHIEVEMENT);
+  assert.equal(score.cappedAchievement, 100);
+  assert.equal(score.weightedScore, 40);
+  assert.equal(
+    scoreRow({ targetValue: 1, actualValue: -200_000, weight: 40 }).rawAchievement,
+    -MAX_RAW_ACHIEVEMENT,
+  );
 });
