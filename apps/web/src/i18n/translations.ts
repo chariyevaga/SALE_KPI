@@ -1,3 +1,5 @@
+import type { VisitorCountImportRowErrorCode } from '../types/api';
+
 export type Locale = 'tr' | 'en' | 'ru' | 'tk';
 
 export const SUPPORTED_LOCALES: Locale[] = ['tr', 'en', 'ru', 'tk'];
@@ -333,6 +335,7 @@ interface TranslationShape {
     actionDeactivate: string;
     viaBulkStatus: string;
     viaBulkCopy: string;
+    viaExcelImport: string;
     copiedFrom: string;
     valueAdded: string;
     valueRemoved: string;
@@ -677,6 +680,79 @@ interface TranslationShape {
     removeFilter: string;
     resultCount: string;
     emptyFiltered: string;
+    excel: string;
+    excelTitle: string;
+    excelStep1: string;
+    excelStep1Hint: string;
+    excelStoreAll: string;
+    excelStoreOne: string;
+    excelDownload: string;
+    excelDownloading: string;
+    excelStep2: string;
+    excelStep2Hint: string;
+    excelChooseFile: string;
+    excelChangeFile: string;
+    excelUpload: string;
+    excelUploading: string;
+    excelResult: string;
+    excelSkipped: string;
+    excelRowsInvalid: string;
+    excelRow: string;
+    excelMoreErrors: string;
+    excelErrorFile: string;
+    excelErrorTooLarge: string;
+    excelErrorEmpty: string;
+    excelErrorRange: string;
+    excelDone: string;
+    excelRowErrors: Record<VisitorCountImportRowErrorCode, string>;
+  };
+  visitorReport: {
+    button: string;
+    title: string;
+    rangeThisWeek: string;
+    rangeLast10: string;
+    rangeThisMonth: string;
+    rangeLastMonth: string;
+    rangeCustom: string;
+    allStores: string;
+    store: string;
+    from: string;
+    to: string;
+    errorRange: string;
+    loading: string;
+    error: string;
+    empty: string;
+    totalVisitors: string;
+    dailyAverage: string;
+    perStoreDay: string;
+    change: string;
+    noChange: string;
+    coverage: string;
+    coverageLow: string;
+    busiestDay: string;
+    dailyTitle: string;
+    dailyHint: string;
+    dayValue: string;
+    dayMissing: string;
+    missing: string;
+    weekdayTitle: string;
+    weekdayHint: string;
+    storesTitle: string;
+    storeDays: string;
+    storeAverage: string;
+    notEntered: string;
+    people: string;
+    chartLabel: string;
+    percent: string;
+    weekdays: {
+      w1: string;
+      w2: string;
+      w3: string;
+      w4: string;
+      w5: string;
+      w6: string;
+      w7: string;
+    };
   };
   errors: {
     generic: string;
@@ -1032,6 +1108,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Pasifleştirildi',
       viaBulkStatus: 'toplu işlemle',
       viaBulkCopy: 'toplu kopyalamayla',
+      viaExcelImport: 'Excel’den',
       copiedFrom: '“{name}” şablonundan kopyalandı',
       valueAdded: 'eklendi',
       valueRemoved: 'kaldırıldı',
@@ -1187,7 +1264,7 @@ export const translations: Record<Locale, TranslationShape> = {
         "Şu hedefler değişecek:\n{changes}\nKaydet'e basınca kalıcı olur. Emin misiniz?",
       applyConfirmButton: 'Uygula',
       emptyTarget: 'boş',
-      combinedHint: 'birden fazla mağaza toplandı',
+      combinedHint: 'birden fazla mağaza birleştirildi',
       manualHint: 'Bu KPI elle girilir; raporu yoktur.',
       noRecommendation: 'Bu KPI için rapor verisi yok.',
       deletePlan: 'Planı sil',
@@ -1390,6 +1467,92 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: '{filter} filtresini kaldır',
       resultCount: '{count} kayıt',
       emptyFiltered: 'Bu filtrelere uyan kayıt yok.',
+      excel: 'Excel',
+      excelTitle: 'Excel ile toplu giriş',
+      excelStep1: 'Şablonu indirin',
+      excelStep1Hint:
+        'Seçtiğiniz günlerde her iş yeri için bir satır hazır gelir; kayıtlı sayılar doludur. Açıklama dosyanın “Açıklama” sayfasındadır.',
+      excelStoreAll: 'Bütün iş yerleri',
+      excelStoreOne: 'Yalnız {store}',
+      excelDownload: 'Şablonu indir',
+      excelDownloading: 'Hazırlanıyor…',
+      excelStep2: 'Doldurup yükleyin',
+      excelStep2Hint:
+        'Sayıları D sütununa yazın; boş bıraktığınız satır değişmez. Aynı iş yeri ve gün için sayı varsa yenisi eskisinin yerine geçer ve kayıt izine yazılır. Bir satır bile hatalıysa hiçbir şey kaydedilmez.',
+      excelChooseFile: 'Excel dosyası seç (.xlsx)',
+      excelChangeFile: 'Başka dosya seç',
+      excelUpload: 'Yükle',
+      excelUploading: 'Yükleniyor…',
+      excelResult:
+        '{created} yeni sayı eklendi, {updated} sayı güncellendi, {unchanged} sayı zaten aynıydı.',
+      excelSkipped: '{count} satırda sayı yazılı değildi, atlandı.',
+      excelRowsInvalid:
+        '{count} satır hatalı, hiçbir şey kaydedilmedi. Düzeltip dosyayı yeniden yükleyin:',
+      excelRow: 'Satır {row}',
+      excelMoreErrors: '… ve {count} hatalı satır daha',
+      excelErrorFile: 'Dosya okunamadı. Buradan indirilen .xlsx şablonunu kullanın.',
+      excelErrorTooLarge: 'Dosya çok büyük: en çok 5.000 satır ve 2 MB.',
+      excelErrorEmpty: 'Dosyada sayı yazılmış satır yok.',
+      excelErrorRange: 'Tarih aralığı en çok 62 gün olabilir ve bugünden ileri olamaz.',
+      excelDone: 'Tamam',
+      excelRowErrors: {
+        INVALID_DATE: 'tarih okunamadı',
+        FUTURE_DATE: 'gelecekteki bir gün',
+        INVALID_STORE: 'iş yeri no okunamadı',
+        UNKNOWN_STORE: 'bu numarada iş yeri yok',
+        INVALID_COUNT: 'sayı 0 ya da daha büyük bir tam sayı olmalı',
+        DUPLICATE: 'aynı iş yeri ve gün dosyada iki kez var',
+        CLOSED_PERIOD: 'bu ayın KPI dönemi kapalı',
+      },
+    },
+    visitorReport: {
+      button: 'Rapor',
+      title: 'Ziyaretçi raporu',
+      rangeThisWeek: 'Bu hafta',
+      rangeLast10: 'Son 10 gün',
+      rangeThisMonth: 'Bu ay',
+      rangeLastMonth: 'Geçen ay',
+      rangeCustom: 'Özel',
+      allStores: 'Bütün iş yerleri',
+      store: 'İş yeri',
+      from: 'Başlangıç',
+      to: 'Bitiş',
+      errorRange: 'Tarih aralığı en çok 366 gün olabilir ve bugünden ileri olamaz.',
+      loading: 'Rapor hazırlanıyor…',
+      error: 'Rapor yüklenemedi.',
+      empty: 'Bu aralıkta girilmiş sayı yok.',
+      totalVisitors: 'Toplam ziyaretçi',
+      dailyAverage: 'Günlük ortalama',
+      perStoreDay: 'iş yeri başına, girilen günlerden',
+      change: 'önceki {days} güne göre',
+      noChange: 'önceki dönemde veri yok',
+      coverage: 'Girilen gün',
+      coverageLow:
+        'Bazı günler girilmemiş (%{percent}). Ortalamalar yalnız girilen günlerden hesaplanır; eksik günleri girin.',
+      busiestDay: 'En yoğun gün',
+      dailyTitle: 'Günlük ziyaretçi',
+      dailyHint: 'Değerini görmek için bir çubuğa dokunun.',
+      dayValue: '{date}: {count} kişi · {stores} iş yeri',
+      dayMissing: '{date}: girilmedi',
+      missing: 'Girilmedi',
+      weekdayTitle: 'Haftanın günleri',
+      weekdayHint: 'İş yeri başına ortalama kişi',
+      storesTitle: 'İş yerleri',
+      storeDays: '{days}/{possible} gün',
+      storeAverage: 'ort. {average}',
+      notEntered: 'girilmedi',
+      people: 'kişi',
+      chartLabel: 'Günlük ziyaretçi grafiği, {from} – {to}, toplam {total} kişi',
+      percent: '%{value}',
+      weekdays: {
+        w1: 'Pzt',
+        w2: 'Sal',
+        w3: 'Çar',
+        w4: 'Per',
+        w5: 'Cum',
+        w6: 'Cmt',
+        w7: 'Paz',
+      },
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -1743,6 +1906,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Deactivated',
       viaBulkStatus: 'via bulk action',
       viaBulkCopy: 'via bulk copy',
+      viaExcelImport: 'from Excel',
       copiedFrom: 'Copied from “{name}”',
       valueAdded: 'added',
       valueRemoved: 'removed',
@@ -1898,7 +2062,7 @@ export const translations: Record<Locale, TranslationShape> = {
         'These targets will change:\n{changes}\nThey are kept once you press Save. Are you sure?',
       applyConfirmButton: 'Apply',
       emptyTarget: 'empty',
-      combinedHint: 'several stores added up',
+      combinedHint: 'several stores combined',
       manualHint: 'This KPI is entered by hand; it has no report.',
       noRecommendation: 'No report data for this KPI.',
       deletePlan: 'Delete plan',
@@ -2100,6 +2264,91 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: 'Remove filter {filter}',
       resultCount: 'Entries: {count}',
       emptyFiltered: 'No entries match these filters.',
+      excel: 'Excel',
+      excelTitle: 'Bulk entry with Excel',
+      excelStep1: 'Download the template',
+      excelStep1Hint:
+        'Each store gets a row for every day you pick; counts already saved are filled in. The file’s “Instructions” sheet explains the rest.',
+      excelStoreAll: 'All stores',
+      excelStoreOne: 'Only {store}',
+      excelDownload: 'Download template',
+      excelDownloading: 'Preparing…',
+      excelStep2: 'Fill it in and upload',
+      excelStep2Hint:
+        'Type the counts in column D; a row left empty is not changed. When the store and day already have a count, the new one replaces it and is logged. If any row is wrong, nothing is saved.',
+      excelChooseFile: 'Choose Excel file (.xlsx)',
+      excelChangeFile: 'Choose another file',
+      excelUpload: 'Upload',
+      excelUploading: 'Uploading…',
+      excelResult: '{created} new counts added, {updated} updated, {unchanged} already the same.',
+      excelSkipped: '{count} rows had no count and were skipped.',
+      excelRowsInvalid:
+        '{count} rows are wrong, nothing was saved. Fix them and upload the file again:',
+      excelRow: 'Row {row}',
+      excelMoreErrors: '… and {count} more wrong rows',
+      excelErrorFile: 'The file could not be read. Use the .xlsx template downloaded here.',
+      excelErrorTooLarge: 'The file is too large: at most 5,000 rows and 2 MB.',
+      excelErrorEmpty: 'No row in the file has a count.',
+      excelErrorRange: 'The date range can be at most 62 days and cannot go past today.',
+      excelDone: 'Done',
+      excelRowErrors: {
+        INVALID_DATE: 'the date cannot be read',
+        FUTURE_DATE: 'a day in the future',
+        INVALID_STORE: 'the store number cannot be read',
+        UNKNOWN_STORE: 'no store has this number',
+        INVALID_COUNT: 'the count must be a whole number from 0 up',
+        DUPLICATE: 'the same store and day appear twice in the file',
+        CLOSED_PERIOD: 'this month’s KPI period is closed',
+      },
+    },
+    visitorReport: {
+      button: 'Report',
+      title: 'Visitor report',
+      rangeThisWeek: 'This week',
+      rangeLast10: 'Last 10 days',
+      rangeThisMonth: 'This month',
+      rangeLastMonth: 'Last month',
+      rangeCustom: 'Custom',
+      allStores: 'All stores',
+      store: 'Store',
+      from: 'From',
+      to: 'To',
+      errorRange: 'The date range can be at most 366 days and cannot go past today.',
+      loading: 'Preparing the report…',
+      error: 'The report could not be loaded.',
+      empty: 'No counts were entered in this range.',
+      totalVisitors: 'Total visitors',
+      dailyAverage: 'Daily average',
+      perStoreDay: 'per store, from entered days',
+      change: 'vs the previous {days} days',
+      noChange: 'no data in the previous period',
+      coverage: 'Entered days',
+      coverageLow:
+        'Some days are missing ({percent}%). Averages use entered days only; enter the missing days.',
+      busiestDay: 'Busiest day',
+      dailyTitle: 'Daily visitors',
+      dailyHint: 'Tap a bar to see its value.',
+      dayValue: '{date}: {count} people · {stores} stores',
+      dayMissing: '{date}: not entered',
+      missing: 'Not entered',
+      weekdayTitle: 'Days of the week',
+      weekdayHint: 'Average visitors per store',
+      storesTitle: 'Stores',
+      storeDays: '{days}/{possible} days',
+      storeAverage: 'avg {average}',
+      notEntered: 'not entered',
+      people: 'people',
+      chartLabel: 'Daily visitors chart, {from} – {to}, {total} people in total',
+      percent: '{value}%',
+      weekdays: {
+        w1: 'Mon',
+        w2: 'Tue',
+        w3: 'Wed',
+        w4: 'Thu',
+        w5: 'Fri',
+        w6: 'Sat',
+        w7: 'Sun',
+      },
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -2454,6 +2703,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Деактивировано',
       viaBulkStatus: 'массовым действием',
       viaBulkCopy: 'массовым копированием',
+      viaExcelImport: 'из Excel',
       copiedFrom: 'Скопировано из «{name}»',
       valueAdded: 'добавлено',
       valueRemoved: 'удалено',
@@ -2609,7 +2859,7 @@ export const translations: Record<Locale, TranslationShape> = {
         'Изменятся цели:\n{changes}\nСохранятся после нажатия «Сохранить». Вы уверены?',
       applyConfirmButton: 'Применить',
       emptyTarget: 'пусто',
-      combinedHint: 'несколько магазинов суммированы',
+      combinedHint: 'несколько магазинов объединены',
       manualHint: 'Этот KPI вводится вручную; отчёта нет.',
       noRecommendation: 'Для этого KPI нет данных отчёта.',
       deletePlan: 'Удалить план',
@@ -2811,6 +3061,91 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: 'Убрать фильтр {filter}',
       resultCount: 'Записей: {count}',
       emptyFiltered: 'Нет записей по этим фильтрам.',
+      excel: 'Excel',
+      excelTitle: 'Массовый ввод из Excel',
+      excelStep1: 'Скачайте шаблон',
+      excelStep1Hint:
+        'Для каждого магазина на каждый выбранный день готова строка; уже сохранённые числа заполнены. Подробности — на листе «Инструкция».',
+      excelStoreAll: 'Все магазины',
+      excelStoreOne: 'Только {store}',
+      excelDownload: 'Скачать шаблон',
+      excelDownloading: 'Готовим…',
+      excelStep2: 'Заполните и загрузите',
+      excelStep2Hint:
+        'Впишите числа в столбец D; пустая строка не меняется. Если за магазин и день число уже есть, новое заменяет его и записывается в историю. Если хотя бы одна строка неверна, ничего не сохраняется.',
+      excelChooseFile: 'Выбрать файл Excel (.xlsx)',
+      excelChangeFile: 'Выбрать другой файл',
+      excelUpload: 'Загрузить',
+      excelUploading: 'Загружаем…',
+      excelResult: 'Добавлено новых: {created}, обновлено: {updated}, без изменений: {unchanged}.',
+      excelSkipped: 'Строк без числа пропущено: {count}.',
+      excelRowsInvalid:
+        'Неверных строк: {count}, ничего не сохранено. Исправьте и загрузите файл снова:',
+      excelRow: 'Строка {row}',
+      excelMoreErrors: '… и ещё неверных строк: {count}',
+      excelErrorFile: 'Не удалось прочитать файл. Используйте шаблон .xlsx, скачанный здесь.',
+      excelErrorTooLarge: 'Файл слишком большой: не более 5 000 строк и 2 МБ.',
+      excelErrorEmpty: 'В файле нет строк с числом.',
+      excelErrorRange: 'Диапазон — не более 62 дней и не позже сегодняшнего дня.',
+      excelDone: 'Готово',
+      excelRowErrors: {
+        INVALID_DATE: 'не удаётся прочитать дату',
+        FUTURE_DATE: 'день в будущем',
+        INVALID_STORE: 'не удаётся прочитать номер магазина',
+        UNKNOWN_STORE: 'магазина с таким номером нет',
+        INVALID_COUNT: 'число должно быть целым, от 0',
+        DUPLICATE: 'тот же магазин и день встречаются в файле дважды',
+        CLOSED_PERIOD: 'KPI-период этого месяца закрыт',
+      },
+    },
+    visitorReport: {
+      button: 'Отчёт',
+      title: 'Отчёт по посетителям',
+      rangeThisWeek: 'Эта неделя',
+      rangeLast10: 'Последние 10 дней',
+      rangeThisMonth: 'Этот месяц',
+      rangeLastMonth: 'Прошлый месяц',
+      rangeCustom: 'Период',
+      allStores: 'Все магазины',
+      store: 'Магазин',
+      from: 'С',
+      to: 'По',
+      errorRange: 'Период — не более 366 дней и не позже сегодняшнего дня.',
+      loading: 'Готовим отчёт…',
+      error: 'Не удалось загрузить отчёт.',
+      empty: 'За этот период числа не вводились.',
+      totalVisitors: 'Всего посетителей',
+      dailyAverage: 'Среднее в день',
+      perStoreDay: 'на магазин, по введённым дням',
+      change: 'к предыдущим {days} дн.',
+      noChange: 'нет данных за прошлый период',
+      coverage: 'Введено дней',
+      coverageLow:
+        'Некоторые дни не введены ({percent}%). Средние считаются только по введённым дням; введите пропущенные.',
+      busiestDay: 'Самый загруженный день',
+      dailyTitle: 'Посетители по дням',
+      dailyHint: 'Нажмите на столбец, чтобы увидеть значение.',
+      dayValue: '{date}: {count} чел. · магазинов: {stores}',
+      dayMissing: '{date}: не введено',
+      missing: 'Не введено',
+      weekdayTitle: 'Дни недели',
+      weekdayHint: 'Среднее число посетителей на магазин',
+      storesTitle: 'Магазины',
+      storeDays: '{days}/{possible} дн.',
+      storeAverage: 'ср. {average}',
+      notEntered: 'не введено',
+      people: 'чел.',
+      chartLabel: 'График посетителей по дням, {from} – {to}, всего {total} чел.',
+      percent: '{value}%',
+      weekdays: {
+        w1: 'Пн',
+        w2: 'Вт',
+        w3: 'Ср',
+        w4: 'Чт',
+        w5: 'Пт',
+        w6: 'Сб',
+        w7: 'Вс',
+      },
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -3167,6 +3502,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Passiwleşdirildi',
       viaBulkStatus: 'köpçülikleýin amal bilen',
       viaBulkCopy: 'köpçülikleýin nusgalamak bilen',
+      viaExcelImport: 'Excel-den',
       copiedFrom: '“{name}” şablonyndan nusgalandy',
       valueAdded: 'goşuldy',
       valueRemoved: 'aýryldy',
@@ -3323,7 +3659,7 @@ export const translations: Record<Locale, TranslationShape> = {
         'Şu maksatlar üýtgeýär:\n{changes}\nÝatda sakla basylanda hemişelik bolar. Ynamyňyz barmy?',
       applyConfirmButton: 'Ulan',
       emptyTarget: 'boş',
-      combinedHint: 'birnäçe dükan jemlendi',
+      combinedHint: 'birnäçe dükan birleşdirildi',
       manualHint: 'Bu KPI el bilen girizilýär; hasabaty ýok.',
       noRecommendation: 'Bu KPI üçin hasabat maglumaty ýok.',
       deletePlan: 'Meýilnamany poz',
@@ -3525,6 +3861,91 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: '{filter} süzgüjini aýyr',
       resultCount: '{count} ýazgy',
       emptyFiltered: 'Bu süzgüçlere laýyk ýazgy ýok.',
+      excel: 'Excel',
+      excelTitle: 'Excel bilen köpçülikleýin giriş',
+      excelStep1: 'Nusgany ýükläp alyň',
+      excelStep1Hint:
+        'Saýlan günleriňizde her iş ýeri üçin setir taýýar gelýär; ýazylan sanlar doldurylandyr. Düşündiriş faýlyň “Düşündiriş” sahypasynda.',
+      excelStoreAll: 'Ähli iş ýerleri',
+      excelStoreOne: 'Diňe {store}',
+      excelDownload: 'Nusgany ýükle',
+      excelDownloading: 'Taýýarlanýar…',
+      excelStep2: 'Dolduryp ýükläň',
+      excelStep2Hint:
+        'Sanlary D sütünine ýazyň; boş galdyrylan setir üýtgemeýär. Şol iş ýeri we gün üçin san bar bolsa, täzesi onuň ornuna geçýär we ýazgy yzyna ýazylýar. Bir setir hem ýalňyş bolsa hiç zat ýazylmaýar.',
+      excelChooseFile: 'Excel faýlyny saýla (.xlsx)',
+      excelChangeFile: 'Başga faýl saýla',
+      excelUpload: 'Ýükle',
+      excelUploading: 'Ýüklenýär…',
+      excelResult:
+        '{created} täze san goşuldy, {updated} san täzelendi, {unchanged} san öňküsi ýalydy.',
+      excelSkipped: '{count} setirde san ýokdy, geçildi.',
+      excelRowsInvalid: '{count} setir ýalňyş, hiç zat ýazylmady. Düzedip faýly täzeden ýükläň:',
+      excelRow: '{row}-nji setir',
+      excelMoreErrors: '… we ýene {count} ýalňyş setir',
+      excelErrorFile: 'Faýl okalmady. Şu ýerden ýüklenen .xlsx nusgasyny ulanyň.',
+      excelErrorTooLarge: 'Faýl gaty uly: iň köp 5 000 setir we 2 MB.',
+      excelErrorEmpty: 'Faýlda san ýazylan setir ýok.',
+      excelErrorRange: 'Sene aralygy iň köp 62 gün bolup biler we şu günden geçip bilmez.',
+      excelDone: 'Bolýar',
+      excelRowErrors: {
+        INVALID_DATE: 'sene okalmady',
+        FUTURE_DATE: 'geljekki gün',
+        INVALID_STORE: 'iş ýeriniň belgisi okalmady',
+        UNKNOWN_STORE: 'bu belgili iş ýeri ýok',
+        INVALID_COUNT: 'san 0-dan uly ýa-da deň bitin san bolmaly',
+        DUPLICATE: 'şol bir iş ýeri we gün faýlda iki gezek bar',
+        CLOSED_PERIOD: 'bu aýyň KPI döwri ýapyk',
+      },
+    },
+    visitorReport: {
+      button: 'Hasabat',
+      title: 'Gelýänler hasabaty',
+      rangeThisWeek: 'Şu hepde',
+      rangeLast10: 'Soňky 10 gün',
+      rangeThisMonth: 'Şu aý',
+      rangeLastMonth: 'Geçen aý',
+      rangeCustom: 'Başga',
+      allStores: 'Ähli iş ýerleri',
+      store: 'Iş ýeri',
+      from: 'Başy',
+      to: 'Soňy',
+      errorRange: 'Sene aralygy iň köp 366 gün bolup biler we şu günden geçip bilmez.',
+      loading: 'Hasabat taýýarlanýar…',
+      error: 'Hasabat ýüklenmedi.',
+      empty: 'Bu aralykda san girizilmedi.',
+      totalVisitors: 'Jemi gelýänler',
+      dailyAverage: 'Günlük ortaça',
+      perStoreDay: 'iş ýeri boýunça, girizilen günlerden',
+      change: 'öňki {days} güne görä',
+      noChange: 'öňki döwürde maglumat ýok',
+      coverage: 'Girizilen gün',
+      coverageLow:
+        'Käbir günler girizilmedi (%{percent}). Ortaçalar diňe girizilen günlerden hasaplanýar; galan günleri giriziň.',
+      busiestDay: 'Iň köp gelnen gün',
+      dailyTitle: 'Günlük gelýänler',
+      dailyHint: 'Bahasyny görmek üçin sütüne basyň.',
+      dayValue: '{date}: {count} adam · {stores} iş ýeri',
+      dayMissing: '{date}: girizilmedi',
+      missing: 'Girizilmedi',
+      weekdayTitle: 'Hepdäniň günleri',
+      weekdayHint: 'Iş ýeri boýunça ortaça gelýän',
+      storesTitle: 'Iş ýerleri',
+      storeDays: '{days}/{possible} gün',
+      storeAverage: 'ort. {average}',
+      notEntered: 'girizilmedi',
+      people: 'adam',
+      chartLabel: 'Günlük gelýänler grafigi, {from} – {to}, jemi {total} adam',
+      percent: '%{value}',
+      weekdays: {
+        w1: 'Duş',
+        w2: 'Siş',
+        w3: 'Çar',
+        w4: 'Pen',
+        w5: 'Ann',
+        w6: 'Şen',
+        w7: 'Ýek',
+      },
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

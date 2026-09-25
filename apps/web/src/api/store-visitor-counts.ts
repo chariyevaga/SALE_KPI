@@ -1,6 +1,9 @@
-import { apiFetch } from '../lib/api-client';
+import { apiFetch, apiFetchBlob, apiUpload } from '../lib/api-client';
+import type { Locale } from '../i18n/translations';
 import type {
   SaveStoreVisitorCountInput,
+  StoreVisitorCountImportResult,
+  VisitorCountReport,
   StoreVisitorCount,
   StoreVisitorCountListResponse,
 } from '../types/api';
@@ -38,4 +41,42 @@ export function saveStoreVisitorCount(
 
 export function deleteStoreVisitorCount(id: string): Promise<void> {
   return apiFetch<void>(`/store-visitor-counts/${id}`, { method: 'DELETE' });
+}
+
+export interface VisitorCountTemplateQuery {
+  from: string;
+  to: string;
+  storeId?: number;
+  lang: Locale;
+}
+
+/** The Excel template (ADR-055): a row per store and day, saved counts filled in. */
+export function downloadVisitorCountTemplate(query: VisitorCountTemplateQuery): Promise<Blob> {
+  const params = new URLSearchParams({ from: query.from, to: query.to, lang: query.lang });
+
+  if (query.storeId !== undefined) {
+    params.set('storeId', String(query.storeId));
+  }
+
+  return apiFetchBlob(`/store-visitor-counts/template?${params.toString()}`);
+}
+
+/** Writes the counts of a filled-in template; nothing is written if any row is wrong. */
+export function importVisitorCounts(file: File): Promise<StoreVisitorCountImportResult> {
+  return apiUpload<StoreVisitorCountImportResult>('/store-visitor-counts/import', file);
+}
+
+/** Totals, daily series, weekday pattern and store ranking of a range (ADR-056). */
+export function getVisitorCountReport(query: {
+  from: string;
+  to: string;
+  storeId?: number;
+}): Promise<VisitorCountReport> {
+  const params = new URLSearchParams({ from: query.from, to: query.to });
+
+  if (query.storeId !== undefined) {
+    params.set('storeId', String(query.storeId));
+  }
+
+  return apiFetch<VisitorCountReport>(`/store-visitor-counts/report?${params.toString()}`);
 }

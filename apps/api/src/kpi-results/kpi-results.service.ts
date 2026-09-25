@@ -116,9 +116,9 @@ interface PlanData {
  *
  * The measures are not computed here. `dbo.kpi_month_values(@month_start)` reads the same
  * `kpi_report_documents` view the target reports use (ADR-038), so the Tiger rules of
- * docs/TIGER_DATA.md keep a single implementation. KPIs Tiger cannot measure
- * (`STORE_CONVERSION`) are typed in by a manager and are never overwritten by a
- * recalculation.
+ * docs/TIGER_DATA.md keep a single implementation. The store conversion is computed from
+ * Tiger's receipts and the entered daily visitor counts (ADR-052). KPIs no source can
+ * measure would be typed in by a manager and never overwritten by a recalculation.
  */
 @Injectable()
 export class KpiResultsService {

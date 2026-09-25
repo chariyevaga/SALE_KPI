@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
+import { CONVERSION_KPI_CODE } from '../kpi-results/conversion-rules.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 import { KpiAssignmentItemEntity } from './entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from './entities/kpi-assignment.entity.js';
@@ -11,6 +12,7 @@ import {
   loadStoreNumbers,
   matchRows,
 } from './kpi-entity-lookup.js';
+import { weightedAverage } from './kpi-recommendation-rules.js';
 import type {
   KpiAssignmentRecommendationResponse,
   KpiAssignmentRecommendationsResponse,
@@ -76,7 +78,44 @@ export class KpiRecommendationsService {
       storeNumbers,
     });
 
-    return { items: this.summarise(lookups, await this.readReportRows(lookups)) };
+    const [rows, conversionWeights] = await Promise.all([
+      this.readReportRows(lookups),
+      this.readConversionWeights(lookups),
+    ]);
+
+    return { items: this.summarise(lookups, rows, conversionWeights) };
+  }
+
+  /**
+   * Visitors of the counted months per store, the weight of each store's conversion when a
+   * row covers several stores (ADR-057). Only read when such a row exists.
+   */
+  private async readConversionWeights(lookups: EntityLookup[]): Promise<Map<number, number>> {
+    const refs = [
+      ...new Set(
+        lookups
+          .filter(
+            (lookup) => lookup.kpiCode === CONVERSION_KPI_CODE && lookup.entityRefs.length > 1,
+          )
+          .flatMap((lookup) => lookup.entityRefs),
+      ),
+    ];
+
+    if (refs.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.dataSource.query<{ storeNr: number; visitors: number | string }[]>(
+      `
+        SELECT [store_nr] AS [storeNr], SUM([visitors]) AS [visitors]
+        FROM [dbo].[kpi_report_conversion_monthly]
+        WHERE [value] IS NOT NULL AND [store_nr] IN (${refs.map((_, index) => `@${String(index)}`).join(', ')})
+        GROUP BY [store_nr]
+      `,
+      refs,
+    );
+
+    return new Map(rows.map((row) => [Number(row.storeNr), Number(row.visitors)]));
   }
 
   private async readReportRows(lookups: EntityLookup[]): Promise<ReportRow[]> {
@@ -131,11 +170,13 @@ export class KpiRecommendationsService {
   /**
    * One suggestion per plan row. Several stores (and, for item group KPIs, several groups)
    * are added up, which is exact for money and receipts and an approximation for customer
-   * counts (docs/REPORTS.md).
+   * counts (docs/REPORTS.md). The conversion is a rate: its stores are averaged with their
+   * visitors as the weight, and it keeps two decimals (ADR-057).
    */
   private summarise(
     lookups: EntityLookup[],
     rows: ReportRow[],
+    conversionWeights: Map<number, number>,
   ): KpiAssignmentRecommendationResponse[] {
     return lookups.flatMap((lookup) => {
       const matching = matchRows(lookup, rows);
@@ -144,13 +185,34 @@ export class KpiRecommendationsService {
         return [];
       }
 
+      const isRate = lookup.kpiCode === CONVERSION_KPI_CODE;
+      const combine = (pick: (row: ReportRow) => number | null) =>
+        isRate
+          ? weightedAverage(
+              matching.map((row) => ({
+                value: toNumber(pick(row)),
+                weight: conversionWeights.get(Number(row.entityRef)) ?? 0,
+              })),
+            )
+          : sum(matching.map((row) => toNumber(pick(row))));
+      const targetDecimals = isRate ? 2 : 0;
+
       return [
         {
           itemId: lookup.itemId,
           monthCount: Math.max(...matching.map((row) => Number(row.monthCount))),
-          average: round(sum(matching.map((row) => toNumber(row.average))), 2),
-          achievableMax: round(sum(matching.map((row) => toNumber(row.achievableMax))), 0),
-          recommended: round(sum(matching.map((row) => toNumber(row.recommended))), 0),
+          average: round(
+            combine((row) => row.average),
+            2,
+          ),
+          achievableMax: round(
+            combine((row) => row.achievableMax),
+            targetDecimals,
+          ),
+          recommended: round(
+            combine((row) => row.recommended),
+            targetDecimals,
+          ),
           // "Several stores added up": groups of one store are exact sums and need no note.
           ...(new Set(matching.map((row) => Number(row.entityRef))).size > 1
             ? { combined: true }
@@ -170,7 +232,10 @@ function round(value: number | null, decimals: number): number | null {
     return null;
   }
 
-  const factor = 10 ** decimals;
+  // SQL returns 4.725 exactly, but 4.725 * 100 is 472.49999… in floating point; rounding
+  // the decimal text keeps the half-up result SQL Server shows (4.73).
+  // toFixed(12) gives plain digits (never 1e-7) with the float noise rounded away.
+  const shifted = Number(`${value.toFixed(12)}e${String(decimals)}`);
 
-  return Math.round(value * factor) / factor;
+  return Number(`${String(Math.round(shifted))}e-${String(decimals)}`);
 }

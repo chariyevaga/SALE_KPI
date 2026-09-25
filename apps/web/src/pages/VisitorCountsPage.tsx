@@ -14,6 +14,8 @@ import { FormField, formInputClassName } from '../components/FormField';
 import { Modal } from '../components/Modal';
 import { RecordInfoButton } from '../components/RecordInfo';
 import { StoreLookupField } from '../components/StoreLookupField';
+import { VisitorCountImportModal } from '../components/VisitorCountImportModal';
+import { VisitorCountReportModal } from '../components/VisitorCountReportModal';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatDate, formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
@@ -340,6 +342,8 @@ export function VisitorCountsPage() {
   // `null` closed, `'new'` adding, an entry when correcting it.
   const [editing, setEditing] = useState<StoreVisitorCount | 'new' | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const query = useMemo(() => toQuery(filters), [filters]);
@@ -560,32 +564,78 @@ export function VisitorCountsPage() {
               ? t('visitorCounts.resultCount', { count: formatNumber(total, locale) })
               : ''}
           </p>
-          <button
-            type="button"
-            onClick={openFilters}
-            className={`relative flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition ${
-              activeFilterCount > 0
-                ? 'border-emerald-400 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900'
-            }`}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-4 w-4"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              aria-label={t('visitorReport.title')}
+              title={t('visitorReport.title')}
+              className="flex h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
             >
-              <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
-            </svg>
-            {t('visitorCounts.filters')}
-            {activeFilterCount > 0 ? (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-400 px-1 text-[11px] font-bold text-slate-950">
-                {activeFilterCount}
-              </span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" strokeLinecap="round" />
+              </svg>
+              {t('visitorReport.button')}
+            </button>
+            {canEnter ? (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                aria-label={t('visitorCounts.excelTitle')}
+                title={t('visitorCounts.excelTitle')}
+                className="flex h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5Zm0 5h16M4 15h16M10 4v16"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {t('visitorCounts.excel')}
+              </button>
             ) : null}
-          </button>
+            <button
+              type="button"
+              onClick={openFilters}
+              className={`relative flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition ${
+                activeFilterCount > 0
+                  ? 'border-emerald-400 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900'
+              }`}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
+              </svg>
+              {t('visitorCounts.filters')}
+              {activeFilterCount > 0 ? (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-400 px-1 text-[11px] font-bold text-slate-950">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
         </div>
 
         {/* Applied filters, each removable on its own */}
@@ -837,6 +887,26 @@ export function VisitorCountsPage() {
           </svg>
           {t('visitorCounts.add')}
         </button>
+      ) : null}
+
+      {reportOpen ? (
+        <VisitorCountReportModal
+          initialStoreId={filters.storeId}
+          onClose={() => setReportOpen(false)}
+        />
+      ) : null}
+
+      {importOpen ? (
+        <VisitorCountImportModal
+          storeId={filters.storeId}
+          storeLabel={filteredStoreName}
+          initialFrom={filters.from}
+          initialTo={filters.to}
+          onClose={() => setImportOpen(false)}
+          onImported={() =>
+            void queryClient.invalidateQueries({ queryKey: ['store-visitor-counts'] })
+          }
+        />
       ) : null}
 
       {editing !== null ? (

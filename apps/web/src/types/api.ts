@@ -84,6 +84,9 @@ export interface ApiErrorBody {
   storeIds?: number[];
   /** `KPI_TEMPLATE_UNKNOWN_ITEM_GROUP`: item group codes that do not exist. */
   groupCodes?: string[];
+  /** `STORE_VISITOR_COUNT_IMPORT_INVALID`: the wrong rows (first 100) and their total. */
+  rows?: VisitorCountImportRowError[];
+  errorCount?: number;
   /** `EMPLOYEE_SALARY_PERIOD_CLOSED`: closed months the change would alter. */
   months?: string[];
   /** 429 `AUTH_TOO_MANY_ATTEMPTS`: seconds until the next attempt is allowed. */
@@ -460,6 +463,60 @@ export interface StoreVisitorCountListResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+/** What an Excel import wrote (ADR-055). */
+export interface StoreVisitorCountImportResult {
+  created: number;
+  updated: number;
+  unchanged: number;
+  /** Rows left without a count. */
+  skipped: number;
+}
+
+export interface VisitorCountReportPeriod {
+  from: string;
+  to: string;
+  visitors: number;
+  countedStoreDays: number;
+  possibleStoreDays: number;
+  /** Per entered store-day; null without entries. */
+  average: number | null;
+}
+
+/** Visitor count report of a date range (ADR-056). */
+export interface VisitorCountReport {
+  current: VisitorCountReportPeriod;
+  previous: VisitorCountReportPeriod;
+  averageChange: number | null;
+  storeCount: number;
+  busiestDay: { date: string; visitors: number } | null;
+  days: { date: string; visitors: number | null; stores: number }[];
+  /** ISO weekday 1 (Monday) … 7. */
+  weekdays: { weekday: number; average: number | null; storeDays: number }[];
+  stores: {
+    storeId: number;
+    storeNr: number;
+    storeName: string | null;
+    visitors: number;
+    days: number;
+    average: number | null;
+  }[];
+}
+
+export type VisitorCountImportRowErrorCode =
+  | 'INVALID_DATE'
+  | 'FUTURE_DATE'
+  | 'INVALID_STORE'
+  | 'UNKNOWN_STORE'
+  | 'INVALID_COUNT'
+  | 'DUPLICATE'
+  | 'CLOSED_PERIOD';
+
+/** A wrong row of a rejected import; `row` is the Excel row number. */
+export interface VisitorCountImportRowError {
+  row: number;
+  code: VisitorCountImportRowErrorCode;
 }
 
 export interface SaveStoreVisitorCountInput {

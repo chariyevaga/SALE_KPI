@@ -28,11 +28,13 @@
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
     "mssql": "^12.7.1",
-    "multer": "^2.2.0",
+    "multer": "^2.4.0",
+    "read-excel-file": "^9.3.10",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.4",
-    "typeorm": "^0.3.31"
+    "typeorm": "^0.3.31",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

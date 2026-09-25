@@ -30,7 +30,8 @@ export const KPI_GROUP_REPORT_CODES = ['STORE_GROUP_SALES', 'EMPLOYEE_GROUP_SALE
 
 /**
  * KPIs calculated from other data than a report view: the store conversion, from Tiger's
- * receipts and the entered daily visitor counts (ADR-052). They have no target report.
+ * receipts and the entered daily visitor counts (ADR-052). Its target report comes from
+ * migration 1799704500000 (ADR-057, KPI_CONVERSION_REPORT_OBJECTS).
  */
 export const KPI_DERIVED_CODES = ['STORE_CONVERSION'] as const;
 
@@ -74,6 +75,12 @@ export const KPI_GROUP_REPORT_OBJECTS: ReadonlyArray<{
   { name: 'dbo.item_group_coverage', type: 'V' },
   ...KPI_GROUP_REPORT_CODES.map((code) => ({ name: `dbo.report_${code}`, type: 'V' as const })),
   { name: 'dbo.kpi_month_group_values', type: 'IF' },
+];
+
+/** Objects the conversion report migration creates (ADR-057); schema-check requires them. */
+export const KPI_CONVERSION_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'V' }> = [
+  { name: 'dbo.kpi_report_conversion_monthly', type: 'V' },
+  { name: 'dbo.report_STORE_CONVERSION', type: 'V' },
 ];
 
 export interface ReportSource {

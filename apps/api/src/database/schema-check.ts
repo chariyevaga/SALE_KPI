@@ -11,6 +11,7 @@ import {
 } from '../config/environment.js';
 import {
   compareReportSource,
+  KPI_CONVERSION_REPORT_OBJECTS,
   KPI_GROUP_REPORT_OBJECTS,
   KPI_REPORT_OBJECTS,
   readReportSource,
@@ -49,6 +50,8 @@ const REQUIRED_OBJECTS = [
   ...KPI_REPORT_OBJECTS,
   // Item group sales: item cards, group list, group reports and month function (ADR-045).
   ...KPI_GROUP_REPORT_OBJECTS,
+  // Store conversion target report (ADR-057).
+  ...KPI_CONVERSION_REPORT_OBJECTS,
 ] as const;
 
 async function objectExists(name: string, type: string): Promise<boolean> {
