@@ -232,7 +232,10 @@ function round(value: number | null, decimals: number): number | null {
     return null;
   }
 
-  const factor = 10 ** decimals;
+  // SQL returns 4.725 exactly, but 4.725 * 100 is 472.49999… in floating point; rounding
+  // the decimal text keeps the half-up result SQL Server shows (4.73).
+  // toFixed(12) gives plain digits (never 1e-7) with the float noise rounded away.
+  const shifted = Number(`${value.toFixed(12)}e${String(decimals)}`);
 
-  return Math.round(value * factor) / factor;
+  return Number(`${String(Math.round(shifted))}e-${String(decimals)}`);
 }
