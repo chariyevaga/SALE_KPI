@@ -310,7 +310,8 @@ export class KpiAssignmentRecommendationResponse {
 
   @ApiPropertyOptional({
     type: Boolean,
-    description: 'Birden fazla mağaza seçili olduğu için değerler toplanarak bulundu.',
+    description:
+      'Birden fazla mağaza seçili olduğu için değerler birleştirildi: adetler ve tutarlar toplanır, dönüşüm oranı ziyaretçi sayısıyla ağırlıklı ortalanır (ADR-057).',
   })
   combined?: boolean;
 }
