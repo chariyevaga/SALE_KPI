@@ -13,12 +13,14 @@ import { StoreEntity } from '../stores/entities/store.entity.js';
 import type {
   ListStoreVisitorCountsQueryDto,
   SaveStoreVisitorCountDto,
+  StoreVisitorCountReportQueryDto,
   StoreVisitorCountTemplateQueryDto,
 } from './dto/store-visitor-count.dto.js';
 import { StoreVisitorCountEntity } from './entities/store-visitor-count.entity.js';
 import { storeVisitorCountBadRequest } from './store-visitor-count-errors.js';
 import {
   type StoreVisitorCountImportResponse,
+  type VisitorCountReportResponse,
   type StoreVisitorCountListResponse,
   type StoreVisitorCountResponse,
   toStoreVisitorCountResponse,
@@ -33,6 +35,12 @@ import {
   parseImportSheet,
   previousDay,
 } from './visitor-count-import-rules.js';
+import {
+  buildVisitorCountReport,
+  MAX_REPORT_DAYS,
+  previousRange,
+  type ReportCount,
+} from './visitor-count-report-rules.js';
 import { buildVisitorCountTemplate } from './visitor-count-template.js';
 
 export interface VisitorCountTemplateFile {
@@ -201,6 +209,59 @@ export class StoreVisitorCountsService {
       content: await buildVisitorCountTemplate(rows, stores, query.lang ?? 'tr'),
       fileName: `visitor-counts_${from}_${to}.xlsx`,
     };
+  }
+
+  /**
+   * The visitor count report of a range (ADR-056): totals and averages per entered
+   * store-day, the daily series, the weekday pattern and the store ranking, against the
+   * same number of days just before. Read from KPI_DB only; Tiger is not touched.
+   */
+  async report(query: StoreVisitorCountReportQueryDto): Promise<VisitorCountReportResponse> {
+    const today = dateInZone(new Date(), getBusinessTimeZone());
+    const length = daysBetween(query.from, query.to).length;
+
+    if (length === 0 || length > MAX_REPORT_DAYS || query.to > today) {
+      throw storeVisitorCountBadRequest(
+        'STORE_VISITOR_COUNT_REPORT_RANGE',
+        `from..to must be 1-${String(MAX_REPORT_DAYS)} days, not after today.`,
+      );
+    }
+
+    const allStores = await this.firmStores();
+    const stores =
+      query.storeId === undefined
+        ? allStores
+        : allStores.filter((store) => store.id === query.storeId);
+
+    if (stores.length === 0) {
+      throw storeVisitorCountBadRequest(
+        'STORE_VISITOR_COUNT_UNKNOWN_STORE',
+        'storeId is not a store of the configured firm.',
+      );
+    }
+
+    const previous = previousRange(query.from, query.to);
+    const rows = await this.countRepository.find({
+      select: { storeId: true, visitDate: true, visitorCount: true },
+      where: {
+        storeId: In(stores.map((store) => store.id)),
+        visitDate: Between(previous.from, query.to),
+      },
+    });
+    const counts: ReportCount[] = rows.map((row) => ({
+      storeId: row.storeId,
+      date: row.visitDate,
+      visitorCount: row.visitorCount,
+    }));
+
+    return buildVisitorCountReport({
+      from: query.from,
+      to: query.to,
+      today,
+      stores,
+      counts: counts.filter((count) => count.date >= query.from),
+      previousCounts: counts.filter((count) => count.date < query.from),
+    });
   }
 
   /**

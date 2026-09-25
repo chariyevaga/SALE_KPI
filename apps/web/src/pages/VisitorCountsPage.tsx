@@ -15,6 +15,7 @@ import { Modal } from '../components/Modal';
 import { RecordInfoButton } from '../components/RecordInfo';
 import { StoreLookupField } from '../components/StoreLookupField';
 import { VisitorCountImportModal } from '../components/VisitorCountImportModal';
+import { VisitorCountReportModal } from '../components/VisitorCountReportModal';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatDate, formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
@@ -342,6 +343,7 @@ export function VisitorCountsPage() {
   const [editing, setEditing] = useState<StoreVisitorCount | 'new' | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const query = useMemo(() => toQuery(filters), [filters]);
@@ -563,6 +565,25 @@ export function VisitorCountsPage() {
               : ''}
           </p>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              aria-label={t('visitorReport.title')}
+              title={t('visitorReport.title')}
+              className="flex h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" strokeLinecap="round" />
+              </svg>
+              {t('visitorReport.button')}
+            </button>
             {canEnter ? (
               <button
                 type="button"
@@ -866,6 +887,13 @@ export function VisitorCountsPage() {
           </svg>
           {t('visitorCounts.add')}
         </button>
+      ) : null}
+
+      {reportOpen ? (
+        <VisitorCountReportModal
+          initialStoreId={filters.storeId}
+          onClose={() => setReportOpen(false)}
+        />
       ) : null}
 
       {importOpen ? (

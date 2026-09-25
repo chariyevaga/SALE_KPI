@@ -474,6 +474,36 @@ export interface StoreVisitorCountImportResult {
   skipped: number;
 }
 
+export interface VisitorCountReportPeriod {
+  from: string;
+  to: string;
+  visitors: number;
+  countedStoreDays: number;
+  possibleStoreDays: number;
+  /** Per entered store-day; null without entries. */
+  average: number | null;
+}
+
+/** Visitor count report of a date range (ADR-056). */
+export interface VisitorCountReport {
+  current: VisitorCountReportPeriod;
+  previous: VisitorCountReportPeriod;
+  averageChange: number | null;
+  storeCount: number;
+  busiestDay: { date: string; visitors: number } | null;
+  days: { date: string; visitors: number | null; stores: number }[];
+  /** ISO weekday 1 (Monday) … 7. */
+  weekdays: { weekday: number; average: number | null; storeDays: number }[];
+  stores: {
+    storeId: number;
+    storeNr: number;
+    storeName: string | null;
+    visitors: number;
+    days: number;
+    average: number | null;
+  }[];
+}
+
 export type VisitorCountImportRowErrorCode =
   | 'INVALID_DATE'
   | 'FUTURE_DATE'

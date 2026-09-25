@@ -706,6 +706,53 @@ interface TranslationShape {
     excelDone: string;
     excelRowErrors: Record<VisitorCountImportRowErrorCode, string>;
   };
+  visitorReport: {
+    button: string;
+    title: string;
+    rangeThisWeek: string;
+    rangeLast10: string;
+    rangeThisMonth: string;
+    rangeLastMonth: string;
+    rangeCustom: string;
+    allStores: string;
+    store: string;
+    from: string;
+    to: string;
+    errorRange: string;
+    loading: string;
+    error: string;
+    empty: string;
+    totalVisitors: string;
+    dailyAverage: string;
+    perStoreDay: string;
+    change: string;
+    noChange: string;
+    coverage: string;
+    coverageLow: string;
+    busiestDay: string;
+    dailyTitle: string;
+    dailyHint: string;
+    dayValue: string;
+    dayMissing: string;
+    missing: string;
+    weekdayTitle: string;
+    weekdayHint: string;
+    storesTitle: string;
+    storeDays: string;
+    storeAverage: string;
+    notEntered: string;
+    people: string;
+    chartLabel: string;
+    weekdays: {
+      w1: string;
+      w2: string;
+      w3: string;
+      w4: string;
+      w5: string;
+      w6: string;
+      w7: string;
+    };
+  };
   errors: {
     generic: string;
     network: string;
@@ -1457,6 +1504,54 @@ export const translations: Record<Locale, TranslationShape> = {
         CLOSED_PERIOD: 'bu ayın KPI dönemi kapalı',
       },
     },
+    visitorReport: {
+      button: 'Rapor',
+      title: 'Ziyaretçi raporu',
+      rangeThisWeek: 'Bu hafta',
+      rangeLast10: 'Son 10 gün',
+      rangeThisMonth: 'Bu ay',
+      rangeLastMonth: 'Geçen ay',
+      rangeCustom: 'Özel',
+      allStores: 'Bütün iş yerleri',
+      store: 'İş yeri',
+      from: 'Başlangıç',
+      to: 'Bitiş',
+      errorRange: 'Tarih aralığı en çok 366 gün olabilir ve bugünden ileri olamaz.',
+      loading: 'Rapor hazırlanıyor…',
+      error: 'Rapor yüklenemedi.',
+      empty: 'Bu aralıkta girilmiş sayı yok.',
+      totalVisitors: 'Toplam ziyaretçi',
+      dailyAverage: 'Günlük ortalama',
+      perStoreDay: 'iş yeri başına, girilen günlerden',
+      change: 'önceki {days} güne göre',
+      noChange: 'önceki dönemde veri yok',
+      coverage: 'Girilen gün',
+      coverageLow:
+        'Bazı günler girilmemiş (%{percent}). Ortalamalar yalnız girilen günlerden hesaplanır; eksik günleri girin.',
+      busiestDay: 'En yoğun gün',
+      dailyTitle: 'Günlük ziyaretçi',
+      dailyHint: 'Değerini görmek için bir çubuğa dokunun.',
+      dayValue: '{date}: {count} kişi · {stores} iş yeri',
+      dayMissing: '{date}: girilmedi',
+      missing: 'Girilmedi',
+      weekdayTitle: 'Haftanın günleri',
+      weekdayHint: 'İş yeri başına ortalama kişi',
+      storesTitle: 'İş yerleri',
+      storeDays: '{days}/{possible} gün',
+      storeAverage: 'ort. {average}',
+      notEntered: 'girilmedi',
+      people: 'kişi',
+      chartLabel: 'Günlük ziyaretçi grafiği, {from} – {to}, toplam {total} kişi',
+      weekdays: {
+        w1: 'Pzt',
+        w2: 'Sal',
+        w3: 'Çar',
+        w4: 'Per',
+        w5: 'Cum',
+        w6: 'Cmt',
+        w7: 'Paz',
+      },
+    },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
       network: 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.',
@@ -2202,6 +2297,54 @@ export const translations: Record<Locale, TranslationShape> = {
         INVALID_COUNT: 'the count must be a whole number from 0 up',
         DUPLICATE: 'the same store and day appear twice in the file',
         CLOSED_PERIOD: 'this month’s KPI period is closed',
+      },
+    },
+    visitorReport: {
+      button: 'Report',
+      title: 'Visitor report',
+      rangeThisWeek: 'This week',
+      rangeLast10: 'Last 10 days',
+      rangeThisMonth: 'This month',
+      rangeLastMonth: 'Last month',
+      rangeCustom: 'Custom',
+      allStores: 'All stores',
+      store: 'Store',
+      from: 'From',
+      to: 'To',
+      errorRange: 'The date range can be at most 366 days and cannot go past today.',
+      loading: 'Preparing the report…',
+      error: 'The report could not be loaded.',
+      empty: 'No counts were entered in this range.',
+      totalVisitors: 'Total visitors',
+      dailyAverage: 'Daily average',
+      perStoreDay: 'per store, from entered days',
+      change: 'vs the previous {days} days',
+      noChange: 'no data in the previous period',
+      coverage: 'Entered days',
+      coverageLow:
+        'Some days are missing ({percent}%). Averages use entered days only; enter the missing days.',
+      busiestDay: 'Busiest day',
+      dailyTitle: 'Daily visitors',
+      dailyHint: 'Tap a bar to see its value.',
+      dayValue: '{date}: {count} people · {stores} stores',
+      dayMissing: '{date}: not entered',
+      missing: 'Not entered',
+      weekdayTitle: 'Days of the week',
+      weekdayHint: 'Average visitors per store',
+      storesTitle: 'Stores',
+      storeDays: '{days}/{possible} days',
+      storeAverage: 'avg {average}',
+      notEntered: 'not entered',
+      people: 'people',
+      chartLabel: 'Daily visitors chart, {from} – {to}, {total} people in total',
+      weekdays: {
+        w1: 'Mon',
+        w2: 'Tue',
+        w3: 'Wed',
+        w4: 'Thu',
+        w5: 'Fri',
+        w6: 'Sat',
+        w7: 'Sun',
       },
     },
     errors: {
@@ -2950,6 +3093,54 @@ export const translations: Record<Locale, TranslationShape> = {
         INVALID_COUNT: 'число должно быть целым, от 0',
         DUPLICATE: 'тот же магазин и день встречаются в файле дважды',
         CLOSED_PERIOD: 'KPI-период этого месяца закрыт',
+      },
+    },
+    visitorReport: {
+      button: 'Отчёт',
+      title: 'Отчёт по посетителям',
+      rangeThisWeek: 'Эта неделя',
+      rangeLast10: 'Последние 10 дней',
+      rangeThisMonth: 'Этот месяц',
+      rangeLastMonth: 'Прошлый месяц',
+      rangeCustom: 'Период',
+      allStores: 'Все магазины',
+      store: 'Магазин',
+      from: 'С',
+      to: 'По',
+      errorRange: 'Период — не более 366 дней и не позже сегодняшнего дня.',
+      loading: 'Готовим отчёт…',
+      error: 'Не удалось загрузить отчёт.',
+      empty: 'За этот период числа не вводились.',
+      totalVisitors: 'Всего посетителей',
+      dailyAverage: 'Среднее в день',
+      perStoreDay: 'на магазин, по введённым дням',
+      change: 'к предыдущим {days} дн.',
+      noChange: 'нет данных за прошлый период',
+      coverage: 'Введено дней',
+      coverageLow:
+        'Некоторые дни не введены ({percent}%). Средние считаются только по введённым дням; введите пропущенные.',
+      busiestDay: 'Самый загруженный день',
+      dailyTitle: 'Посетители по дням',
+      dailyHint: 'Нажмите на столбец, чтобы увидеть значение.',
+      dayValue: '{date}: {count} чел. · магазинов: {stores}',
+      dayMissing: '{date}: не введено',
+      missing: 'Не введено',
+      weekdayTitle: 'Дни недели',
+      weekdayHint: 'Среднее число посетителей на магазин',
+      storesTitle: 'Магазины',
+      storeDays: '{days}/{possible} дн.',
+      storeAverage: 'ср. {average}',
+      notEntered: 'не введено',
+      people: 'чел.',
+      chartLabel: 'График посетителей по дням, {from} – {to}, всего {total} чел.',
+      weekdays: {
+        w1: 'Пн',
+        w2: 'Вт',
+        w3: 'Ср',
+        w4: 'Чт',
+        w5: 'Пт',
+        w6: 'Сб',
+        w7: 'Вс',
       },
     },
     errors: {
@@ -3701,6 +3892,54 @@ export const translations: Record<Locale, TranslationShape> = {
         INVALID_COUNT: 'san 0-dan uly ýa-da deň bitin san bolmaly',
         DUPLICATE: 'şol bir iş ýeri we gün faýlda iki gezek bar',
         CLOSED_PERIOD: 'bu aýyň KPI döwri ýapyk',
+      },
+    },
+    visitorReport: {
+      button: 'Hasabat',
+      title: 'Gelýänler hasabaty',
+      rangeThisWeek: 'Şu hepde',
+      rangeLast10: 'Soňky 10 gün',
+      rangeThisMonth: 'Şu aý',
+      rangeLastMonth: 'Geçen aý',
+      rangeCustom: 'Başga',
+      allStores: 'Ähli iş ýerleri',
+      store: 'Iş ýeri',
+      from: 'Başy',
+      to: 'Soňy',
+      errorRange: 'Sene aralygy iň köp 366 gün bolup biler we şu günden geçip bilmez.',
+      loading: 'Hasabat taýýarlanýar…',
+      error: 'Hasabat ýüklenmedi.',
+      empty: 'Bu aralykda san girizilmedi.',
+      totalVisitors: 'Jemi gelýänler',
+      dailyAverage: 'Günlük ortaça',
+      perStoreDay: 'iş ýeri boýunça, girizilen günlerden',
+      change: 'öňki {days} güne görä',
+      noChange: 'öňki döwürde maglumat ýok',
+      coverage: 'Girizilen gün',
+      coverageLow:
+        'Käbir günler girizilmedi (%{percent}). Ortaçalar diňe girizilen günlerden hasaplanýar; galan günleri giriziň.',
+      busiestDay: 'Iň köp gelnen gün',
+      dailyTitle: 'Günlük gelýänler',
+      dailyHint: 'Bahasyny görmek üçin sütüne basyň.',
+      dayValue: '{date}: {count} adam · {stores} iş ýeri',
+      dayMissing: '{date}: girizilmedi',
+      missing: 'Girizilmedi',
+      weekdayTitle: 'Hepdäniň günleri',
+      weekdayHint: 'Iş ýeri boýunça ortaça gelýän',
+      storesTitle: 'Iş ýerleri',
+      storeDays: '{days}/{possible} gün',
+      storeAverage: 'ort. {average}',
+      notEntered: 'girizilmedi',
+      people: 'adam',
+      chartLabel: 'Günlük gelýänler grafigi, {from} – {to}, jemi {total} adam',
+      weekdays: {
+        w1: 'Duş',
+        w2: 'Siş',
+        w3: 'Çar',
+        w4: 'Pen',
+        w5: 'Ann',
+        w6: 'Şen',
+        w7: 'Ýek',
       },
     },
     errors: {

@@ -42,6 +42,7 @@ import { memoryStorage } from 'multer';
 import {
   ListStoreVisitorCountsQueryDto,
   SaveStoreVisitorCountDto,
+  StoreVisitorCountReportQueryDto,
   StoreVisitorCountTemplateQueryDto,
 } from './dto/store-visitor-count.dto.js';
 import {
@@ -50,6 +51,7 @@ import {
   StoreVisitorCountImportResponse,
   StoreVisitorCountListResponse,
   StoreVisitorCountResponse,
+  VisitorCountReportResponse,
 } from './store-visitor-count-response.js';
 import { StoreVisitorCountsService } from './store-visitor-counts.service.js';
 import { MAX_IMPORT_BYTES, MAX_IMPORT_ROWS } from './visitor-count-import-rules.js';
@@ -81,6 +83,25 @@ export class StoreVisitorCountsController {
   @ApiForbiddenResponse({ description: ACCESS_FORBIDDEN })
   list(@Query() query: ListStoreVisitorCountsQueryDto): Promise<StoreVisitorCountListResponse> {
     return this.storeVisitorCountsService.list(query);
+  }
+
+  @Get('report')
+  @UseGuards(VisitorCountAccessGuard)
+  @ApiOperation({
+    summary:
+      'Ziyaretçi sayısı raporu: toplam, günlük seri, haftanın günleri, mağaza sıralaması (ADR-056).',
+    description:
+      'Ortalamalar yalnız girilen mağaza-günlerden hesaplanır; önceki aynı uzunluktaki aralıkla karşılaştırılır. Yalnız KPI_DB okunur.',
+  })
+  @ApiOkResponse({ type: VisitorCountReportResponse })
+  @ApiBadRequestResponse({
+    description:
+      '`code`: `STORE_VISITOR_COUNT_REPORT_RANGE` (1–366 gün değil ya da bugünden ileri) veya `STORE_VISITOR_COUNT_UNKNOWN_STORE`.',
+    type: StoreVisitorCountErrorResponse,
+  })
+  @ApiForbiddenResponse({ description: ACCESS_FORBIDDEN })
+  report(@Query() query: StoreVisitorCountReportQueryDto): Promise<VisitorCountReportResponse> {
+    return this.storeVisitorCountsService.report(query);
   }
 
   @Get('template')

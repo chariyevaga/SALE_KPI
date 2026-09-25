@@ -3,6 +3,7 @@ import type { Locale } from '../i18n/translations';
 import type {
   SaveStoreVisitorCountInput,
   StoreVisitorCountImportResult,
+  VisitorCountReport,
   StoreVisitorCount,
   StoreVisitorCountListResponse,
 } from '../types/api';
@@ -63,4 +64,19 @@ export function downloadVisitorCountTemplate(query: VisitorCountTemplateQuery): 
 /** Writes the counts of a filled-in template; nothing is written if any row is wrong. */
 export function importVisitorCounts(file: File): Promise<StoreVisitorCountImportResult> {
   return apiUpload<StoreVisitorCountImportResult>('/store-visitor-counts/import', file);
+}
+
+/** Totals, daily series, weekday pattern and store ranking of a range (ADR-056). */
+export function getVisitorCountReport(query: {
+  from: string;
+  to: string;
+  storeId?: number;
+}): Promise<VisitorCountReport> {
+  const params = new URLSearchParams({ from: query.from, to: query.to });
+
+  if (query.storeId !== undefined) {
+    params.set('storeId', String(query.storeId));
+  }
+
+  return apiFetch<VisitorCountReport>(`/store-visitor-counts/report?${params.toString()}`);
 }

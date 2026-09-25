@@ -39,3 +39,12 @@ export function formatMonth(value: string, locale: Locale): string {
     timeZone: 'UTC',
   }).format(new Date(`${value}-01T00:00:00Z`));
 }
+
+/** A calendar day in a few characters, e.g. "21 Eyl"; for chart axes. */
+export function formatShortDate(value: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
+}

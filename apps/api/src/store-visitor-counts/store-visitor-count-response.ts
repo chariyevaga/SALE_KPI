@@ -129,3 +129,118 @@ export class StoreVisitorCountImportErrorResponse extends StoreVisitorCountError
   @ApiPropertyOptional({ type: Number, description: 'Hatalı satırların toplamı.' })
   errorCount?: number;
 }
+
+export class VisitorCountReportPeriod {
+  @ApiProperty({ type: String, format: 'date' })
+  from: string;
+
+  @ApiProperty({ type: String, format: 'date' })
+  to: string;
+
+  @ApiProperty({ type: Number, description: 'Girilen sayıların toplamı.' })
+  visitors: number;
+
+  @ApiProperty({ type: Number, description: 'Sayı girilmiş mağaza-gün.' })
+  countedStoreDays: number;
+
+  @ApiProperty({
+    type: Number,
+    description: 'Girilebilecek mağaza-gün: geçmiş günler; bugün yalnız girildiyse.',
+  })
+  possibleStoreDays: number;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Girilen mağaza-gün başına ortalama kişi.',
+  })
+  average: number | null;
+}
+
+export class VisitorCountReportDay {
+  @ApiProperty({ type: String, format: 'date' })
+  date: string;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Hiç girilmediyse `null`.' })
+  visitors: number | null;
+
+  @ApiProperty({ type: Number, description: 'O gün sayısı girilen mağaza.' })
+  stores: number;
+}
+
+export class VisitorCountReportWeekday {
+  @ApiProperty({ type: Number, minimum: 1, maximum: 7, description: 'ISO: 1 pazartesi.' })
+  weekday: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  average: number | null;
+
+  @ApiProperty({ type: Number })
+  storeDays: number;
+}
+
+export class VisitorCountReportStore {
+  @ApiProperty({ type: Number })
+  storeId: number;
+
+  @ApiProperty({ type: Number })
+  storeNr: number;
+
+  @ApiProperty({ type: String, nullable: true })
+  storeName: string | null;
+
+  @ApiProperty({ type: Number })
+  visitors: number;
+
+  @ApiProperty({ type: Number, description: 'Aralıkta sayısı girilen gün.' })
+  days: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  average: number | null;
+}
+
+export class VisitorCountReportBusiestDay {
+  @ApiProperty({ type: String, format: 'date' })
+  date: string;
+
+  @ApiProperty({ type: Number })
+  visitors: number;
+}
+
+/** Visitor count report of a date range (ADR-056). */
+export class VisitorCountReportResponse {
+  @ApiProperty({ type: () => VisitorCountReportPeriod })
+  current: VisitorCountReportPeriod;
+
+  @ApiProperty({
+    type: () => VisitorCountReportPeriod,
+    description: 'Hemen önceki aynı uzunluktaki aralık.',
+  })
+  previous: VisitorCountReportPeriod;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Mağaza-gün ortalamasının önceki aralığa göre değişimi (%).',
+  })
+  averageChange: number | null;
+
+  @ApiProperty({ type: Number, description: 'Rapordaki mağaza sayısı.' })
+  storeCount: number;
+
+  @ApiProperty({ type: () => VisitorCountReportBusiestDay, nullable: true })
+  busiestDay: VisitorCountReportBusiestDay | null;
+
+  @ApiProperty({ type: () => VisitorCountReportDay, isArray: true })
+  days: VisitorCountReportDay[];
+
+  @ApiProperty({ type: () => VisitorCountReportWeekday, isArray: true })
+  weekdays: VisitorCountReportWeekday[];
+
+  @ApiProperty({
+    type: () => VisitorCountReportStore,
+    isArray: true,
+    description: 'Toplama göre büyükten küçüğe; hiç girilmeyen mağaza da vardır.',
+  })
+  stores: VisitorCountReportStore[];
+}
