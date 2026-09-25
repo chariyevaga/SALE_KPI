@@ -317,6 +317,8 @@ function viaLabel(context: AuditLogEntry['context'], t: Translate): string | nul
       return t('recordInfo.viaBulkStatus');
     case 'bulk-copy':
       return t('recordInfo.viaBulkCopy');
+    case 'excel-import':
+      return t('recordInfo.viaExcelImport');
     default:
       return null;
   }

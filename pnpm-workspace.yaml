@@ -7,3 +7,7 @@ allowBuilds:
   '@scarf/scarf': false
   esbuild: true
   sharp: true
+
+overrides:
+  # Security fixes (DoS, size-limit bypass) for the version @nestjs/platform-express pins.
+  multer: ^2.4.0

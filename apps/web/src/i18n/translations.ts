@@ -1,3 +1,5 @@
+import type { VisitorCountImportRowErrorCode } from '../types/api';
+
 export type Locale = 'tr' | 'en' | 'ru' | 'tk';
 
 export const SUPPORTED_LOCALES: Locale[] = ['tr', 'en', 'ru', 'tk'];
@@ -333,6 +335,7 @@ interface TranslationShape {
     actionDeactivate: string;
     viaBulkStatus: string;
     viaBulkCopy: string;
+    viaExcelImport: string;
     copiedFrom: string;
     valueAdded: string;
     valueRemoved: string;
@@ -677,6 +680,31 @@ interface TranslationShape {
     removeFilter: string;
     resultCount: string;
     emptyFiltered: string;
+    excel: string;
+    excelTitle: string;
+    excelStep1: string;
+    excelStep1Hint: string;
+    excelStoreAll: string;
+    excelStoreOne: string;
+    excelDownload: string;
+    excelDownloading: string;
+    excelStep2: string;
+    excelStep2Hint: string;
+    excelChooseFile: string;
+    excelChangeFile: string;
+    excelUpload: string;
+    excelUploading: string;
+    excelResult: string;
+    excelSkipped: string;
+    excelRowsInvalid: string;
+    excelRow: string;
+    excelMoreErrors: string;
+    excelErrorFile: string;
+    excelErrorTooLarge: string;
+    excelErrorEmpty: string;
+    excelErrorRange: string;
+    excelDone: string;
+    excelRowErrors: Record<VisitorCountImportRowErrorCode, string>;
   };
   errors: {
     generic: string;
@@ -1032,6 +1060,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Pasifleştirildi',
       viaBulkStatus: 'toplu işlemle',
       viaBulkCopy: 'toplu kopyalamayla',
+      viaExcelImport: 'Excel’den',
       copiedFrom: '“{name}” şablonundan kopyalandı',
       valueAdded: 'eklendi',
       valueRemoved: 'kaldırıldı',
@@ -1390,6 +1419,43 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: '{filter} filtresini kaldır',
       resultCount: '{count} kayıt',
       emptyFiltered: 'Bu filtrelere uyan kayıt yok.',
+      excel: 'Excel',
+      excelTitle: 'Excel ile toplu giriş',
+      excelStep1: 'Şablonu indirin',
+      excelStep1Hint:
+        'Seçtiğiniz günlerde her iş yeri için bir satır hazır gelir; kayıtlı sayılar doludur. Açıklama dosyanın “Açıklama” sayfasındadır.',
+      excelStoreAll: 'Bütün iş yerleri',
+      excelStoreOne: 'Yalnız {store}',
+      excelDownload: 'Şablonu indir',
+      excelDownloading: 'Hazırlanıyor…',
+      excelStep2: 'Doldurup yükleyin',
+      excelStep2Hint:
+        'Sayıları D sütununa yazın; boş bıraktığınız satır değişmez. Aynı iş yeri ve gün için sayı varsa yenisi eskisinin yerine geçer ve kayıt izine yazılır. Bir satır bile hatalıysa hiçbir şey kaydedilmez.',
+      excelChooseFile: 'Excel dosyası seç (.xlsx)',
+      excelChangeFile: 'Başka dosya seç',
+      excelUpload: 'Yükle',
+      excelUploading: 'Yükleniyor…',
+      excelResult:
+        '{created} yeni sayı eklendi, {updated} sayı güncellendi, {unchanged} sayı zaten aynıydı.',
+      excelSkipped: '{count} satırda sayı yazılı değildi, atlandı.',
+      excelRowsInvalid:
+        '{count} satır hatalı, hiçbir şey kaydedilmedi. Düzeltip dosyayı yeniden yükleyin:',
+      excelRow: 'Satır {row}',
+      excelMoreErrors: '… ve {count} hatalı satır daha',
+      excelErrorFile: 'Dosya okunamadı. Buradan indirilen .xlsx şablonunu kullanın.',
+      excelErrorTooLarge: 'Dosya çok büyük: en çok 5.000 satır ve 2 MB.',
+      excelErrorEmpty: 'Dosyada sayı yazılmış satır yok.',
+      excelErrorRange: 'Tarih aralığı en çok 62 gün olabilir ve bugünden ileri olamaz.',
+      excelDone: 'Tamam',
+      excelRowErrors: {
+        INVALID_DATE: 'tarih okunamadı',
+        FUTURE_DATE: 'gelecekteki bir gün',
+        INVALID_STORE: 'iş yeri no okunamadı',
+        UNKNOWN_STORE: 'bu numarada iş yeri yok',
+        INVALID_COUNT: 'sayı 0 ya da daha büyük bir tam sayı olmalı',
+        DUPLICATE: 'aynı iş yeri ve gün dosyada iki kez var',
+        CLOSED_PERIOD: 'bu ayın KPI dönemi kapalı',
+      },
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -1743,6 +1809,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Deactivated',
       viaBulkStatus: 'via bulk action',
       viaBulkCopy: 'via bulk copy',
+      viaExcelImport: 'from Excel',
       copiedFrom: 'Copied from “{name}”',
       valueAdded: 'added',
       valueRemoved: 'removed',
@@ -2100,6 +2167,42 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: 'Remove filter {filter}',
       resultCount: 'Entries: {count}',
       emptyFiltered: 'No entries match these filters.',
+      excel: 'Excel',
+      excelTitle: 'Bulk entry with Excel',
+      excelStep1: 'Download the template',
+      excelStep1Hint:
+        'Each store gets a row for every day you pick; counts already saved are filled in. The file’s “Instructions” sheet explains the rest.',
+      excelStoreAll: 'All stores',
+      excelStoreOne: 'Only {store}',
+      excelDownload: 'Download template',
+      excelDownloading: 'Preparing…',
+      excelStep2: 'Fill it in and upload',
+      excelStep2Hint:
+        'Type the counts in column D; a row left empty is not changed. When the store and day already have a count, the new one replaces it and is logged. If any row is wrong, nothing is saved.',
+      excelChooseFile: 'Choose Excel file (.xlsx)',
+      excelChangeFile: 'Choose another file',
+      excelUpload: 'Upload',
+      excelUploading: 'Uploading…',
+      excelResult: '{created} new counts added, {updated} updated, {unchanged} already the same.',
+      excelSkipped: '{count} rows had no count and were skipped.',
+      excelRowsInvalid:
+        '{count} rows are wrong, nothing was saved. Fix them and upload the file again:',
+      excelRow: 'Row {row}',
+      excelMoreErrors: '… and {count} more wrong rows',
+      excelErrorFile: 'The file could not be read. Use the .xlsx template downloaded here.',
+      excelErrorTooLarge: 'The file is too large: at most 5,000 rows and 2 MB.',
+      excelErrorEmpty: 'No row in the file has a count.',
+      excelErrorRange: 'The date range can be at most 62 days and cannot go past today.',
+      excelDone: 'Done',
+      excelRowErrors: {
+        INVALID_DATE: 'the date cannot be read',
+        FUTURE_DATE: 'a day in the future',
+        INVALID_STORE: 'the store number cannot be read',
+        UNKNOWN_STORE: 'no store has this number',
+        INVALID_COUNT: 'the count must be a whole number from 0 up',
+        DUPLICATE: 'the same store and day appear twice in the file',
+        CLOSED_PERIOD: 'this month’s KPI period is closed',
+      },
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -2454,6 +2557,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Деактивировано',
       viaBulkStatus: 'массовым действием',
       viaBulkCopy: 'массовым копированием',
+      viaExcelImport: 'из Excel',
       copiedFrom: 'Скопировано из «{name}»',
       valueAdded: 'добавлено',
       valueRemoved: 'удалено',
@@ -2811,6 +2915,42 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: 'Убрать фильтр {filter}',
       resultCount: 'Записей: {count}',
       emptyFiltered: 'Нет записей по этим фильтрам.',
+      excel: 'Excel',
+      excelTitle: 'Массовый ввод из Excel',
+      excelStep1: 'Скачайте шаблон',
+      excelStep1Hint:
+        'Для каждого магазина на каждый выбранный день готова строка; уже сохранённые числа заполнены. Подробности — на листе «Инструкция».',
+      excelStoreAll: 'Все магазины',
+      excelStoreOne: 'Только {store}',
+      excelDownload: 'Скачать шаблон',
+      excelDownloading: 'Готовим…',
+      excelStep2: 'Заполните и загрузите',
+      excelStep2Hint:
+        'Впишите числа в столбец D; пустая строка не меняется. Если за магазин и день число уже есть, новое заменяет его и записывается в историю. Если хотя бы одна строка неверна, ничего не сохраняется.',
+      excelChooseFile: 'Выбрать файл Excel (.xlsx)',
+      excelChangeFile: 'Выбрать другой файл',
+      excelUpload: 'Загрузить',
+      excelUploading: 'Загружаем…',
+      excelResult: 'Добавлено новых: {created}, обновлено: {updated}, без изменений: {unchanged}.',
+      excelSkipped: 'Строк без числа пропущено: {count}.',
+      excelRowsInvalid:
+        'Неверных строк: {count}, ничего не сохранено. Исправьте и загрузите файл снова:',
+      excelRow: 'Строка {row}',
+      excelMoreErrors: '… и ещё неверных строк: {count}',
+      excelErrorFile: 'Не удалось прочитать файл. Используйте шаблон .xlsx, скачанный здесь.',
+      excelErrorTooLarge: 'Файл слишком большой: не более 5 000 строк и 2 МБ.',
+      excelErrorEmpty: 'В файле нет строк с числом.',
+      excelErrorRange: 'Диапазон — не более 62 дней и не позже сегодняшнего дня.',
+      excelDone: 'Готово',
+      excelRowErrors: {
+        INVALID_DATE: 'не удаётся прочитать дату',
+        FUTURE_DATE: 'день в будущем',
+        INVALID_STORE: 'не удаётся прочитать номер магазина',
+        UNKNOWN_STORE: 'магазина с таким номером нет',
+        INVALID_COUNT: 'число должно быть целым, от 0',
+        DUPLICATE: 'тот же магазин и день встречаются в файле дважды',
+        CLOSED_PERIOD: 'KPI-период этого месяца закрыт',
+      },
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -3167,6 +3307,7 @@ export const translations: Record<Locale, TranslationShape> = {
       actionDeactivate: 'Passiwleşdirildi',
       viaBulkStatus: 'köpçülikleýin amal bilen',
       viaBulkCopy: 'köpçülikleýin nusgalamak bilen',
+      viaExcelImport: 'Excel-den',
       copiedFrom: '“{name}” şablonyndan nusgalandy',
       valueAdded: 'goşuldy',
       valueRemoved: 'aýryldy',
@@ -3525,6 +3666,42 @@ export const translations: Record<Locale, TranslationShape> = {
       removeFilter: '{filter} süzgüjini aýyr',
       resultCount: '{count} ýazgy',
       emptyFiltered: 'Bu süzgüçlere laýyk ýazgy ýok.',
+      excel: 'Excel',
+      excelTitle: 'Excel bilen köpçülikleýin giriş',
+      excelStep1: 'Nusgany ýükläp alyň',
+      excelStep1Hint:
+        'Saýlan günleriňizde her iş ýeri üçin setir taýýar gelýär; ýazylan sanlar doldurylandyr. Düşündiriş faýlyň “Düşündiriş” sahypasynda.',
+      excelStoreAll: 'Ähli iş ýerleri',
+      excelStoreOne: 'Diňe {store}',
+      excelDownload: 'Nusgany ýükle',
+      excelDownloading: 'Taýýarlanýar…',
+      excelStep2: 'Dolduryp ýükläň',
+      excelStep2Hint:
+        'Sanlary D sütünine ýazyň; boş galdyrylan setir üýtgemeýär. Şol iş ýeri we gün üçin san bar bolsa, täzesi onuň ornuna geçýär we ýazgy yzyna ýazylýar. Bir setir hem ýalňyş bolsa hiç zat ýazylmaýar.',
+      excelChooseFile: 'Excel faýlyny saýla (.xlsx)',
+      excelChangeFile: 'Başga faýl saýla',
+      excelUpload: 'Ýükle',
+      excelUploading: 'Ýüklenýär…',
+      excelResult:
+        '{created} täze san goşuldy, {updated} san täzelendi, {unchanged} san öňküsi ýalydy.',
+      excelSkipped: '{count} setirde san ýokdy, geçildi.',
+      excelRowsInvalid: '{count} setir ýalňyş, hiç zat ýazylmady. Düzedip faýly täzeden ýükläň:',
+      excelRow: '{row}-nji setir',
+      excelMoreErrors: '… we ýene {count} ýalňyş setir',
+      excelErrorFile: 'Faýl okalmady. Şu ýerden ýüklenen .xlsx nusgasyny ulanyň.',
+      excelErrorTooLarge: 'Faýl gaty uly: iň köp 5 000 setir we 2 MB.',
+      excelErrorEmpty: 'Faýlda san ýazylan setir ýok.',
+      excelErrorRange: 'Sene aralygy iň köp 62 gün bolup biler we şu günden geçip bilmez.',
+      excelDone: 'Bolýar',
+      excelRowErrors: {
+        INVALID_DATE: 'sene okalmady',
+        FUTURE_DATE: 'geljekki gün',
+        INVALID_STORE: 'iş ýeriniň belgisi okalmady',
+        UNKNOWN_STORE: 'bu belgili iş ýeri ýok',
+        INVALID_COUNT: 'san 0-dan uly ýa-da deň bitin san bolmaly',
+        DUPLICATE: 'şol bir iş ýeri we gün faýlda iki gezek bar',
+        CLOSED_PERIOD: 'bu aýyň KPI döwri ýapyk',
+      },
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',
