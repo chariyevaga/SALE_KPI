@@ -124,7 +124,7 @@ function ChangeBadge({ change, days }: { change: number | null; days: number }) 
         <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3" fill="currentColor">
           <path d={up ? 'M6 2l4 5H2z' : 'M6 10L2 5h8z'} />
         </svg>
-        {`${up ? '+' : ''}${formatNumber(change, locale)}%`}
+        {`${up ? '+' : '−'}${t('visitorReport.percent', { value: formatNumber(Math.abs(change), locale) })}`}
       </span>
       <span className="text-slate-500 dark:text-slate-400">
         {t('visitorReport.change', { days: String(days) })}
@@ -255,15 +255,15 @@ function WeekdayChart({ report }: { report: VisitorCountReport }) {
       <p className="text-[11px] text-slate-500 dark:text-slate-400">
         {t('visitorReport.weekdayHint')}
       </p>
-      <div className="mt-3 flex h-32 items-end gap-2">
+      <div className="mt-3 flex items-end gap-2">
         {report.weekdays.map((day) => (
-          <div key={day.weekday} className="flex h-full min-w-0 flex-1 flex-col items-center">
+          <div key={day.weekday} className="flex min-w-0 flex-1 flex-col items-center">
             <span className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
               {day.average === null ? '—' : formatNumber(Math.round(day.average), locale)}
             </span>
-            <div className="flex w-full flex-1 items-end">
+            <div className="relative mt-1 h-24 w-full">
               <span
-                className={`block w-full rounded-t-md ${
+                className={`absolute inset-x-0 bottom-0 block rounded-t-md ${
                   day.weekday === best
                     ? 'bg-emerald-500 dark:bg-emerald-400'
                     : 'bg-emerald-200 dark:bg-emerald-500/40'
@@ -405,7 +405,7 @@ export function VisitorCountReportModal({ initialStoreId, onClose }: VisitorCoun
     <Modal open onClose={onClose} title={t('visitorReport.title')} size="lg">
       <div className="flex flex-col gap-4">
         {/* Filters */}
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <div className="flex flex-wrap gap-2">
           {(Object.keys(PRESET_LABELS) as Preset[]).map((key) => (
             <button
               key={key}
@@ -417,7 +417,7 @@ export function VisitorCountReportModal({ initialStoreId, onClose }: VisitorCoun
                 setPreset(key);
               }}
               aria-pressed={preset === key}
-              className={`h-11 flex-shrink-0 rounded-full border px-4 text-sm font-medium transition ${
+              className={`h-11 rounded-full border px-4 text-sm font-medium transition ${
                 preset === key
                   ? 'border-emerald-500 bg-emerald-500 text-slate-950'
                   : 'border-slate-300 text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:text-slate-300'
@@ -510,7 +510,11 @@ export function VisitorCountReportModal({ initialStoreId, onClose }: VisitorCoun
                   report.current.possibleStoreDays,
                   locale,
                 )}`}
-                hint={coverage === null ? undefined : `%${String(coverage)}`}
+                hint={
+                  coverage === null
+                    ? undefined
+                    : t('visitorReport.percent', { value: formatNumber(coverage, locale) })
+                }
               />
               <StatCard
                 label={t('visitorReport.busiestDay')}

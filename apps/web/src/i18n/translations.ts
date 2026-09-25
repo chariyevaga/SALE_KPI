@@ -743,6 +743,7 @@ interface TranslationShape {
     notEntered: string;
     people: string;
     chartLabel: string;
+    percent: string;
     weekdays: {
       w1: string;
       w2: string;
@@ -1542,6 +1543,7 @@ export const translations: Record<Locale, TranslationShape> = {
       notEntered: 'girilmedi',
       people: 'kişi',
       chartLabel: 'Günlük ziyaretçi grafiği, {from} – {to}, toplam {total} kişi',
+      percent: '%{value}',
       weekdays: {
         w1: 'Pzt',
         w2: 'Sal',
@@ -2337,6 +2339,7 @@ export const translations: Record<Locale, TranslationShape> = {
       notEntered: 'not entered',
       people: 'people',
       chartLabel: 'Daily visitors chart, {from} – {to}, {total} people in total',
+      percent: '{value}%',
       weekdays: {
         w1: 'Mon',
         w2: 'Tue',
@@ -3133,6 +3136,7 @@ export const translations: Record<Locale, TranslationShape> = {
       notEntered: 'не введено',
       people: 'чел.',
       chartLabel: 'График посетителей по дням, {from} – {to}, всего {total} чел.',
+      percent: '{value}%',
       weekdays: {
         w1: 'Пн',
         w2: 'Вт',
@@ -3932,6 +3936,7 @@ export const translations: Record<Locale, TranslationShape> = {
       notEntered: 'girizilmedi',
       people: 'adam',
       chartLabel: 'Günlük gelýänler grafigi, {from} – {to}, jemi {total} adam',
+      percent: '%{value}',
       weekdays: {
         w1: 'Duş',
         w2: 'Siş',
