@@ -40,7 +40,7 @@ export class AuditLogResponse {
       passwordHash: { redacted: true },
     },
     description:
-      'Alan adı (API/entity alan adı) → `{ old?, new? }`. Oluşturmada yalnız `new`, silmede yalnız `old` bulunur. Gizli alanlar değer yerine `{ redacted: true }` taşır.',
+      'Alan adı (API/entity alan adı) → `{ old?, new? }`. Oluşturmada yalnız `new`, silmede yalnız `old` bulunur. Gizli alanlar değer yerine `{ redacted: true }` taşır. `export` kayıtlarında boştur (`{}`), ayrıntı `context`tedir (ADR-059).',
   })
   changes: AuditChanges;
 
@@ -50,7 +50,7 @@ export class AuditLogResponse {
     nullable: true,
     example: { via: 'bulk-status' },
     description:
-      'Değişikliğin nasıl yapıldığı: `via` (`bulk-status`, `bulk-copy`), `copiedFrom`, `event` …',
+      'Değişikliğin nasıl yapıldığı: `via` (`bulk-status`, `bulk-copy`, `excel-import`, `excel-export`), `copiedFrom`, `event` …; `excel-export` kaydında `fileName` ve `planCount` de bulunur.',
   })
   context: Record<string, unknown> | null;
 

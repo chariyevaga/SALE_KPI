@@ -19,6 +19,8 @@ interface StoreLookupFieldProps {
   onChange: (ids: number[]) => void;
   required?: boolean;
   inputClassName?: string;
+  /** Single choice only: an empty-search option that clears the field. */
+  noneLabel?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export function StoreLookupField({
   onChange,
   required = false,
   inputClassName = formInputClassName,
+  noneLabel,
 }: StoreLookupFieldProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -77,6 +80,7 @@ export function StoreLookupField({
         isLoading={searchQuery.isFetching}
         isError={searchQuery.isError}
         required={required}
+        noneLabel={noneLabel}
         className={inputClassName}
         {...selectLabels}
       />

@@ -18,6 +18,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MyKpiPage } from './pages/MyKpiPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { StoreDashboardPage } from './pages/StoreDashboardPage';
 import { VisitorCountsPage } from './pages/VisitorCountsPage';
 import { useAuthStore } from './store/auth-store';
 
@@ -138,6 +139,14 @@ export function App() {
             <ProtectedRoute>
               <MyKpiPage />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store-dashboard"
+          element={
+            <AdminRoute>
+              <StoreDashboardPage />
+            </AdminRoute>
           }
         />
         <Route

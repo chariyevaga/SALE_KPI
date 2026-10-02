@@ -1,19 +1,25 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import type { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { KpiAssignmentItemEntity } from '../kpi-assignments/entities/kpi-assignment-item.entity.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
-import { toKpiAssignmentPeriod } from '../kpi-assignments/kpi-assignment-response.js';
+import {
+  employeeAvatarUrl,
+  toKpiAssignmentPeriod,
+} from '../kpi-assignments/kpi-assignment-response.js';
 import { KpiPeriodEntity } from '../kpi-periods/entities/kpi-period.entity.js';
 import { periodOrder } from '../kpi-periods/kpi-period-rules.js';
+import { getFirmNumber } from '../config/environment.js';
 import { KpiAutoCalculationService } from '../kpi-results/kpi-auto-calculation.service.js';
+import { StoreEntity } from '../stores/entities/store.entity.js';
 import type { LeaderboardQueryDto } from './dto/leaderboard-query.dto.js';
 import type {
   LeaderboardEmployeeResponse,
   LeaderboardEntryResponse,
   LeaderboardResponse,
+  LeaderboardStoreResponse,
   LeaderboardTemplateResponse,
 } from './leaderboard-response.js';
 import { rankEntries } from './leaderboard-rules.js';
@@ -32,6 +38,8 @@ export class LeaderboardService {
     private readonly assignmentRepository: Repository<KpiAssignmentEntity>,
     @InjectRepository(KpiAssignmentItemEntity)
     private readonly itemRepository: Repository<KpiAssignmentItemEntity>,
+    @InjectRepository(StoreEntity)
+    private readonly storeRepository: Repository<StoreEntity>,
     @Inject(KpiAutoCalculationService)
     private readonly autoCalculation: KpiAutoCalculationService,
   ) {}
@@ -46,6 +54,7 @@ export class LeaderboardService {
         period: null,
         periods: [],
         templates: [],
+        stores: [],
         calculatedAt: null,
         autoCalculation,
         entries: [],
@@ -57,11 +66,13 @@ export class LeaderboardService {
       relations: { employee: { avatar: true } },
     });
     const templates = toTemplates(assignments);
-    const shown = query.templateId
-      ? assignments.filter(
-          (assignment) => assignment.templateId.toLowerCase() === query.templateId?.toLowerCase(),
-        )
-      : assignments;
+    const stores = await this.toStores(assignments);
+    const shown = assignments.filter(
+      (assignment) =>
+        (!query.templateId ||
+          assignment.templateId.toLowerCase() === query.templateId.toLowerCase()) &&
+        (query.storeId === undefined || assignment.employee?.defaultStoreId === query.storeId),
+    );
     const itemCounts = await this.countItems(shown.map((assignment) => assignment.id));
     const me = requesterId.toLowerCase();
     const entries: LeaderboardEntryResponse[] = rankEntries(
@@ -89,6 +100,7 @@ export class LeaderboardService {
       period: toKpiAssignmentPeriod(period),
       periods: periods.map(toKpiAssignmentPeriod),
       templates,
+      stores,
       calculatedAt: latest(assignments.map((assignment) => assignment.scoreCalculatedAt)),
       autoCalculation,
       entries,
@@ -128,6 +140,40 @@ export class LeaderboardService {
     return periods.find((period) => periodOrder(period) === thisMonth) ?? periods[0];
   }
 
+  /**
+   * The default stores (ADR-058) of the period's employees, by store number; the screen's
+   * store filter. Names come from `dbo.stores`; a store gone from Tiger keeps its id only.
+   */
+  private async toStores(assignments: KpiAssignmentEntity[]): Promise<LeaderboardStoreResponse[]> {
+    const counts = new Map<number, number>();
+
+    for (const assignment of assignments) {
+      const storeId = assignment.employee?.defaultStoreId;
+
+      if (storeId !== undefined && storeId !== null) {
+        counts.set(storeId, (counts.get(storeId) ?? 0) + 1);
+      }
+    }
+
+    if (counts.size === 0) {
+      return [];
+    }
+
+    const rows = await this.storeRepository.find({
+      where: { id: In([...counts.keys()]), firmNr: getFirmNumber() },
+    });
+    const byId = new Map(rows.map((store) => [store.id, store]));
+
+    return [...counts.entries()]
+      .map(([id, planCount]) => ({
+        id,
+        nr: byId.get(id)?.nr ?? null,
+        name: byId.get(id)?.name ?? null,
+        planCount,
+      }))
+      .sort((left, right) => (left.nr ?? Infinity) - (right.nr ?? Infinity) || left.id - right.id);
+  }
+
   private async countItems(assignmentIds: string[]): Promise<Map<string, number>> {
     if (assignmentIds.length === 0) {
       return new Map();
@@ -146,15 +192,13 @@ export class LeaderboardService {
 }
 
 function toLeaderboardEmployee(employee: EmployeeEntity): LeaderboardEmployeeResponse {
-  const avatar = employee.avatar;
-
   return {
     id: employee.id,
     firstname: employee.firstname,
     lastname: employee.lastname,
-    avatarUrl: avatar
-      ? `/files/${avatar.id}/content?variant=${avatar.smallImage ? 'small' : 'original'}`
-      : null,
+    avatarUrl: employeeAvatarUrl(employee),
+    jobTitle: employee.jobTitle,
+    defaultStoreId: employee.defaultStoreId,
   };
 }
 

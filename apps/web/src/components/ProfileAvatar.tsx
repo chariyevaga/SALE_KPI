@@ -1,7 +1,9 @@
 import { AuthenticatedImage } from './AuthenticatedImage';
 import type { EmployeeResponse } from '../types/api';
 
-function initials(employee: EmployeeResponse): string {
+type AvatarOwner = Pick<EmployeeResponse, 'firstname' | 'lastname' | 'avatar'>;
+
+function initials(employee: Pick<EmployeeResponse, 'firstname' | 'lastname'>): string {
   return `${employee.firstname[0] ?? ''}${employee.lastname[0] ?? ''}`.toUpperCase();
 }
 
@@ -9,7 +11,7 @@ export function ProfileAvatar({
   employee,
   className,
 }: {
-  employee: EmployeeResponse | null;
+  employee: AvatarOwner | null;
   className?: string;
 }) {
   const size = className ?? 'h-9 w-9';
@@ -34,4 +36,37 @@ export function ProfileAvatar({
   }
 
   return initialsFallback;
+}
+
+/**
+ * An avatar from a ready image path (lists that carry `avatarUrl` instead of the file):
+ * the photo, else the initials. `className` sets size and text size.
+ */
+export function PersonAvatar({
+  person,
+  path,
+  className = 'h-10 w-10 text-xs',
+}: {
+  person: Pick<EmployeeResponse, 'firstname' | 'lastname'>;
+  path: string | null;
+  className?: string;
+}) {
+  const fallback = (
+    <span
+      className={`flex flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-400 ${className}`}
+    >
+      {initials(person)}
+    </span>
+  );
+
+  return path ? (
+    <AuthenticatedImage
+      path={path}
+      alt=""
+      className={`flex-shrink-0 rounded-full object-cover ${className}`}
+      fallback={fallback}
+    />
+  ) : (
+    fallback
+  );
 }

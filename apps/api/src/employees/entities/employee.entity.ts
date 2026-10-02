@@ -34,6 +34,14 @@ export class EmployeeEntity extends AuditedEntity {
   @Column({ name: 'phone_number', type: 'nvarchar', length: 32, nullable: true })
   phoneNumber: string | null;
 
+  /** Required for new employees; NULL only on employees created before it existed (ADR-058). */
+  @Column({ name: 'job_title', type: 'nvarchar', length: 100, nullable: true })
+  jobTitle: string | null;
+
+  /** Tiger L_CAPIDIV LOGICALREF of `dbo.stores`; an external reference (ADR-058). */
+  @Column({ name: 'default_store_id', type: 'int', nullable: true })
+  defaultStoreId: number | null;
+
   @Column({ name: 'erp_employee_id', type: 'int', nullable: true })
   erpEmployeeId: number | null;
 

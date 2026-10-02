@@ -4,6 +4,8 @@ import type { LeaderboardResponse } from '../types/api';
 export interface LeaderboardQuery {
   periodId?: string | undefined;
   templateId?: string | undefined;
+  /** Only employees whose default store this is (ADR-058). */
+  storeId?: number | undefined;
 }
 
 /** Plans of a period ranked by total score; without a period, this month's (ADR-047). */
@@ -16,6 +18,10 @@ export function getLeaderboard(query: LeaderboardQuery = {}): Promise<Leaderboar
 
   if (query.templateId) {
     params.set('templateId', query.templateId);
+  }
+
+  if (query.storeId !== undefined) {
+    params.set('storeId', String(query.storeId));
   }
 
   const search = params.toString();

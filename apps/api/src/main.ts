@@ -28,6 +28,8 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: getCorsOrigin(),
+    // The web reads a download's file name from it (KPI period Excel, ADR-059).
+    exposedHeaders: ['Content-Disposition'],
   });
   app.useGlobalPipes(
     new ValidationPipe({

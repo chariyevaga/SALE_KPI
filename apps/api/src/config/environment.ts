@@ -10,6 +10,7 @@ const DEFAULT_SHORT_SESSION_TTL = '20m';
 const DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 10;
 /** One day; a longer pause is the same as switching the job off. */
 const MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES = 24 * 60;
+const DEFAULT_STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES = 60;
 
 function getRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();
@@ -248,6 +249,23 @@ export function getFileCleanupTimeZone(): string {
 export function getKpiAutoCalculationIntervalMinutes(): number {
   const name = 'KPI_AUTO_CALCULATION_INTERVAL_MINUTES';
   const value = Number(process.env[name] ?? DEFAULT_KPI_AUTO_CALCULATION_INTERVAL_MINUTES);
+
+  if (!Number.isInteger(value) || value < 0 || value > MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES) {
+    throw new Error(
+      `${name} must be an integer between 0 (off) and ${MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES}.`,
+    );
+  }
+
+  return value;
+}
+
+/**
+ * Minutes between two refreshes of the store dashboard's monthly values (ADR-061); 0
+ * switches the job off. Every run reads this year and last year from Tiger once.
+ */
+export function getStoreDashboardRefreshIntervalMinutes(): number {
+  const name = 'STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES';
+  const value = Number(process.env[name] ?? DEFAULT_STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES);
 
   if (!Number.isInteger(value) || value < 0 || value > MAX_KPI_AUTO_CALCULATION_INTERVAL_MINUTES) {
     throw new Error(

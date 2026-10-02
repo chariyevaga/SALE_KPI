@@ -120,15 +120,32 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return (await response.json()) as T;
 }
 
-export async function apiFetchBlob(path: string): Promise<Blob> {
+/** A downloaded file and the name the server gave it (`Content-Disposition`), if any. */
+export interface DownloadedFile {
+  blob: Blob;
+  fileName: string | null;
+}
+
+/** Like apiFetch, but for a file: a GET, or a POST with a JSON body (e.g. a password). */
+export async function apiFetchFile(
+  path: string,
+  options: Omit<RequestOptions, 'skipAuth'> = {},
+): Promise<DownloadedFile> {
   const stored = tokenStore.get();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> =
+    options.body === undefined ? {} : { 'Content-Type': 'application/json' };
 
   if (stored) {
     headers.Authorization = `Bearer ${stored.accessToken}`;
   }
 
-  let response = await fetch(`${API_BASE_URL}${path}`, { headers });
+  const requestInit: RequestInit = {
+    method: options.method ?? 'GET',
+    headers,
+    ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+  };
+
+  let response = await fetch(`${API_BASE_URL}${path}`, requestInit);
 
   if (response.status === 401 && stored) {
     const refreshed = await ensureFreshSession();
@@ -136,7 +153,8 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
     if (refreshed) {
       const retryStored = tokenStore.get();
       response = await fetch(`${API_BASE_URL}${path}`, {
-        headers: { Authorization: `Bearer ${retryStored?.accessToken ?? ''}` },
+        ...requestInit,
+        headers: { ...headers, Authorization: `Bearer ${retryStored?.accessToken ?? ''}` },
       });
     }
   }
@@ -145,7 +163,21 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
     throw new ApiError(response.status, await parseErrorBody(response));
   }
 
-  return response.blob();
+  return {
+    blob: await response.blob(),
+    fileName: fileNameOf(response.headers.get('Content-Disposition')),
+  };
+}
+
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  return (await apiFetchFile(path)).blob;
+}
+
+/** `attachment; filename="2026-07_KPI_admin.xlsx"` → `2026-07_KPI_admin.xlsx`. */
+function fileNameOf(disposition: string | null): string | null {
+  const match = disposition ? /filename="?([^";]+)"?/i.exec(disposition) : null;
+
+  return match?.[1] ?? null;
 }
 
 export async function apiUpload<T>(path: string, file: Blob, fieldName = 'file'): Promise<T> {

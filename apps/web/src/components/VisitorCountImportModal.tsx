@@ -6,6 +6,7 @@ import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
 import { ApiError } from '../lib/api-client';
+import { saveFile } from '../lib/save-file';
 import type { StoreVisitorCountImportResult } from '../types/api';
 import { FormField, formInputClassName } from './FormField';
 import { Modal } from './Modal';
@@ -26,19 +27,6 @@ function localDate(offsetDays = 0): string {
 
 function dayCount(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;
-}
-
-/** Hands the browser a file to save, without leaving the page. */
-function saveFile(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = fileName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function describeImportError(error: unknown, t: Translate): string {

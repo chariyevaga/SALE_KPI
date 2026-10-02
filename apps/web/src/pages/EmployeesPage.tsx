@@ -16,6 +16,7 @@ import { RecordInfoButton } from '../components/RecordInfo';
 import { Drawer } from '../components/Drawer';
 import { SelectCheckbox } from '../components/SelectCheckbox';
 import { StatusBadge } from '../components/StatusBadge';
+import { StoreLookupField } from '../components/StoreLookupField';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatNumber } from '../i18n/formatters';
 import { useTranslation, type TranslationKey } from '../i18n/locale-store';
@@ -285,6 +286,8 @@ interface FilterState {
   managersOnly: boolean;
   erpLinkedOnly: boolean;
   withAvatarOnly: boolean;
+  /** Default store (ADR-058); `null`: every store. */
+  storeId: number | null;
 }
 
 const EMPTY_FILTERS: FilterState = {
@@ -292,6 +295,7 @@ const EMPTY_FILTERS: FilterState = {
   managersOnly: false,
   erpLinkedOnly: false,
   withAvatarOnly: false,
+  storeId: null,
 };
 
 function countActiveFilters(filters: FilterState): number {
@@ -299,7 +303,8 @@ function countActiveFilters(filters: FilterState): number {
     (filters.status === 'all' ? 0 : 1) +
     (filters.managersOnly ? 1 : 0) +
     (filters.erpLinkedOnly ? 1 : 0) +
-    (filters.withAvatarOnly ? 1 : 0)
+    (filters.withAvatarOnly ? 1 : 0) +
+    (filters.storeId === null ? 0 : 1)
   );
 }
 
@@ -309,6 +314,7 @@ function toQuery(filters: FilterState): EmployeeListQuery {
     ...(filters.managersOnly ? { fullAccess: true } : {}),
     ...(filters.erpLinkedOnly ? { hasErpLink: true } : {}),
     ...(filters.withAvatarOnly ? { hasAvatar: true } : {}),
+    ...(filters.storeId === null ? {} : { defaultStoreId: filters.storeId }),
   };
 }
 
@@ -630,6 +636,19 @@ export function EmployeesPage() {
               </label>
             ))}
           </fieldset>
+
+          <fieldset className="space-y-2">
+            <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <label htmlFor="employee-filter-store">{t('employees.filterStore')}</label>
+            </legend>
+            <StoreLookupField
+              id="employee-filter-store"
+              multiple={false}
+              value={draftFilters.storeId === null ? [] : [draftFilters.storeId]}
+              onChange={(ids) => setDraftFilters((prev) => ({ ...prev, storeId: ids[0] ?? null }))}
+              noneLabel={t('employees.filterStoreAll')}
+            />
+          </fieldset>
         </div>
 
         <div className="flex gap-2 border-t border-slate-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-slate-800">
@@ -867,9 +886,8 @@ export function EmployeesPage() {
       {bulkBarVisible ? <div aria-hidden="true" className="h-44 sm:h-32" /> : null}
 
       <EmployeeCardModal
-        open={cardEmployee !== null}
+        employeeId={cardEmployee?.id ?? null}
         onClose={() => setCardEmployee(null)}
-        employee={cardEmployee}
       />
 
       {canManage ? (

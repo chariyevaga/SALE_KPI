@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, type EntityManager, In, IsNull, Repository } from 'typeorm';
 
@@ -6,15 +12,22 @@ import { AuditService, type AuditValues } from '../audit/audit.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import type { BulkUpdateResponse } from '../common/dto/bulk.dto.js';
 import { SEARCH_COLLATION, escapeLikePattern } from '../common/sql-search.js';
+import { getFirmNumber } from '../config/environment.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { DeviceSessionEntity } from '../device-sessions/entities/device-session.entity.js';
 import { FilesService } from '../files/files.service.js';
+import { StoreEntity } from '../stores/entities/store.entity.js';
 import type { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import type { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
 import type { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import type { UpdateOwnProfileDto } from './dto/update-own-profile.dto.js';
 import type { EmployeeListResponse } from './employee-list-response.js';
-import { toEmployeeResponse, type EmployeeResponse } from './employee-response.js';
+import {
+  toEmployeeAvatarResponse,
+  toEmployeeResponse,
+  type EmployeeCardResponse,
+  type EmployeeResponse,
+} from './employee-response.js';
 import { EmployeeEntity } from './entities/employee.entity.js';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -35,6 +48,8 @@ export class EmployeesService {
     private readonly employeeRepository: Repository<EmployeeEntity>,
     @InjectRepository(ErpEmployeeEntity)
     private readonly erpEmployeeRepository: Repository<ErpEmployeeEntity>,
+    @InjectRepository(StoreEntity)
+    private readonly storeRepository: Repository<StoreEntity>,
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(FilesService) private readonly filesService: FilesService,
     @Inject(PasswordService) private readonly passwordService: PasswordService,
@@ -79,6 +94,12 @@ export class EmployeesService {
       );
     }
 
+    if (query.defaultStoreId !== undefined) {
+      builder.andWhere('employee.defaultStoreId = :defaultStoreId', {
+        defaultStoreId: query.defaultStoreId,
+      });
+    }
+
     const direction = query.order === 'desc' ? 'DESC' : 'ASC';
 
     if (query.sort) {
@@ -120,6 +141,46 @@ export class EmployeesService {
     });
   }
 
+  /**
+   * The employee card (ADR-058), open to every signed-in user: name, avatar, job title,
+   * default store and the ERP code behind the card's QR code. Contact details follow the
+   * same rule as everywhere else: `full_access` and the employee themselves only.
+   */
+  async getCard(id: string, viewer: EmployeeViewer): Promise<EmployeeCardResponse> {
+    const employee = await this.findOneOrFail(id);
+    const erpCodes = await this.resolveErpCodes([employee]);
+    const includeContact = canSeeContact(viewer, employee.id);
+    let defaultStore: EmployeeCardResponse['defaultStore'] = null;
+
+    if (employee.defaultStoreId !== null) {
+      const store = await this.storeRepository.findOneBy({
+        id: employee.defaultStoreId,
+        firmNr: getFirmNumber(),
+      });
+
+      defaultStore = {
+        id: employee.defaultStoreId,
+        nr: store?.nr ?? null,
+        name: store?.name ?? null,
+      };
+    }
+
+    return {
+      id: employee.id,
+      username: employee.username,
+      firstname: employee.firstname,
+      lastname: employee.lastname,
+      avatar: toEmployeeAvatarResponse(employee.avatar),
+      isActive: employee.isActive,
+      fullAccess: employee.fullAccess,
+      jobTitle: employee.jobTitle,
+      defaultStore,
+      erpEmployeeCode: erpCodes.get(employee.erpEmployeeId ?? -1) ?? null,
+      email: includeContact ? employee.email : null,
+      phoneNumber: includeContact ? employee.phoneNumber : null,
+    };
+  }
+
   /** Used after writes, which are admin-only, so contact details stay visible. */
   private async getFull(id: string): Promise<EmployeeResponse> {
     const employee = await this.findOneOrFail(id);
@@ -150,6 +211,7 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeResponse> {
+    await this.assertStore(dto.defaultStoreId);
     const passwordHash = await this.passwordService.hash(dto.password);
 
     try {
@@ -161,7 +223,9 @@ export class EmployeesService {
           firstname: dto.firstname,
           fullAccess: dto.fullAccess ?? false,
           canEnterVisitorCounts: dto.canEnterVisitorCounts ?? false,
+          defaultStoreId: dto.defaultStoreId ?? null,
           isActive: dto.isActive ?? true,
+          jobTitle: dto.jobTitle,
           lastname: dto.lastname,
           passwordHash,
           phoneNumber: dto.phoneNumber || null,
@@ -187,6 +251,8 @@ export class EmployeesService {
   }
 
   async update(id: string, dto: UpdateEmployeeDto): Promise<EmployeeResponse> {
+    await this.assertStore(dto.defaultStoreId);
+
     try {
       await this.dataSource.transaction(async (manager) => {
         const repository = manager.getRepository(EmployeeEntity);
@@ -210,6 +276,8 @@ export class EmployeesService {
         if (dto.username !== undefined) patch.username = dto.username;
         if (dto.firstname !== undefined) patch.firstname = dto.firstname;
         if (dto.lastname !== undefined) patch.lastname = dto.lastname;
+        if (dto.jobTitle !== undefined) patch.jobTitle = dto.jobTitle;
+        if (dto.defaultStoreId !== undefined) patch.defaultStoreId = dto.defaultStoreId;
         if (dto.email !== undefined) patch.email = dto.email || null;
         if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber || null;
         if (dto.erpEmployeeId !== undefined) patch.erpEmployeeId = dto.erpEmployeeId;
@@ -313,6 +381,24 @@ export class EmployeesService {
     }
 
     return { updated: changedIds.length };
+  }
+
+  /** A default store must be a store of the configured firm, like every other store input. */
+  private async assertStore(storeId: number | null | undefined): Promise<void> {
+    if (storeId === undefined || storeId === null) {
+      return;
+    }
+
+    const exists = await this.storeRepository.existsBy({ id: storeId, firmNr: getFirmNumber() });
+
+    if (!exists) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'EMPLOYEE_UNKNOWN_STORE',
+        message: 'defaultStoreId is not a store of the configured firm.',
+      });
+    }
   }
 
   private async findOneOrFail(id: string): Promise<EmployeeEntity> {

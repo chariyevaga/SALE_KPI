@@ -10,6 +10,7 @@ import {
   copyKpiPlans,
   deleteKpiPlan,
   ensureKpiPeriod,
+  exportKpiPeriod,
   listKpiPeriods,
   listKpiPlans,
   reopenKpiPeriod,
@@ -18,15 +19,19 @@ import { listKpiTemplates } from '../api/kpi-templates';
 import { AppShell } from '../components/AppShell';
 import { PasswordConfirmModal } from '../components/PasswordConfirmModal';
 import { Drawer } from '../components/Drawer';
+import { EmployeeAvatarButton } from '../components/EmployeeAvatarButton';
+import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { FormField, formInputClassName } from '../components/FormField';
+import { PersonAvatar } from '../components/ProfileAvatar';
 import { ProgressMeter } from '../components/ProgressMeter';
 import { RecordInfoButton } from '../components/RecordInfo';
 import { SelectCheckbox } from '../components/SelectCheckbox';
 import { localizeApiError } from '../i18n/api-errors';
 import { formatDate, formatNumber } from '../i18n/formatters';
-import { useTranslation, type Translate } from '../i18n/locale-store';
+import { useTranslation, type Translate, type TranslationKey } from '../i18n/locale-store';
 import type { Locale } from '../i18n/translations';
 import { ApiError } from '../lib/api-client';
+import { saveFile } from '../lib/save-file';
 import type { EmployeeResponse, KpiPeriod, KpiPlanSkipReason, KpiPlanSummary } from '../types/api';
 import { confirmAction } from '../store/confirm-store';
 
@@ -111,6 +116,23 @@ function PlusIcon({ className = 'h-5 w-5' }: { className?: string }) {
       className={className}
     >
       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DownloadIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" />
     </svg>
   );
 }
@@ -201,11 +223,13 @@ function PlanScoreMeter({
 function PlanCard({
   plan,
   onDelete,
+  onOpenCard,
   deleting,
 }: {
   plan: KpiPlanSummary;
   /** Absent when the period is closed. */
   onDelete: (() => void) | undefined;
+  onOpenCard: () => void;
   deleting: boolean;
 }) {
   const { t, locale } = useTranslation();
@@ -213,15 +237,23 @@ function PlanCard({
 
   return (
     <div className="flex min-h-[64px] items-center overflow-hidden rounded-xl border border-slate-200 bg-white transition dark:border-slate-800 dark:bg-slate-900">
+      <div className="self-start pl-2 pt-2.5">
+        <EmployeeAvatarButton
+          person={plan.employee}
+          avatarPath={plan.employee.avatarUrl}
+          onOpenCard={onOpenCard}
+        />
+      </div>
       <Link
         to={`/kpi-plans/${plan.id}`}
-        className="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3 pl-4 pr-2 transition active:bg-slate-100 dark:active:bg-slate-800"
+        className="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3 pl-2 pr-2 transition active:bg-slate-100 dark:active:bg-slate-800"
       >
         <div className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {name}
           </span>
           <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+            {plan.employee.jobTitle ? `${plan.employee.jobTitle} · ` : ''}
             {plan.templateName}
           </span>
           {plan.totalScore === null ? null : (
@@ -257,10 +289,12 @@ interface PeriodPanelProps {
   onCopy: () => void;
   onClose: () => void;
   onReopen: () => void;
+  onExport: () => void;
   calculating: boolean;
   copying: boolean;
   closing: boolean;
   reopening: boolean;
+  exporting: boolean;
 }
 
 /**
@@ -277,10 +311,12 @@ function PeriodPanel({
   onCopy,
   onClose,
   onReopen,
+  onExport,
   calculating,
   copying,
   closing,
   reopening,
+  exporting,
 }: PeriodPanelProps) {
   const { t, locale } = useTranslation();
   const isOpen = period.status === 'open';
@@ -333,17 +369,30 @@ function PeriodPanel({
         </p>
       </div>
 
-      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-        {t('kpiPlans.periodPlans', { count: formatNumber(period.assignmentCount, locale) })}
-        {period.missingTargetCount > 0 ? (
-          <span className="text-amber-700 dark:text-amber-400">
-            {' · '}
-            {t('kpiPlans.periodMissingTargets', {
-              count: formatNumber(period.missingTargetCount, locale),
-            })}
-          </span>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="min-w-0 text-xs text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.periodPlans', { count: formatNumber(period.assignmentCount, locale) })}
+          {period.missingTargetCount > 0 ? (
+            <span className="text-amber-700 dark:text-amber-400">
+              {' · '}
+              {t('kpiPlans.periodMissingTargets', {
+                count: formatNumber(period.missingTargetCount, locale),
+              })}
+            </span>
+          ) : null}
+        </p>
+        {period.assignmentCount > 0 ? (
+          <button
+            type="button"
+            onClick={onExport}
+            disabled={exporting}
+            className="inline-flex h-11 flex-shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <DownloadIcon className="h-4 w-4" />
+            {exporting ? t('kpiPlans.exporting') : t('kpiPlans.exportExcel')}
+          </button>
         ) : null}
-      </p>
+      </div>
 
       {isOpen || period.canReopen ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -398,6 +447,7 @@ export function KpiPlansPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [cardEmployeeId, setCardEmployeeId] = useState<string | null>(null);
   const [newPeriodOpen, setNewPeriodOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -451,9 +501,10 @@ export function KpiPlansPage() {
     onError: (error) => setNotice({ tone: 'error', text: localizeApiError(error, t) }),
   });
 
-  // Closing and reopening ask for the person's own password first (ADR-053).
+  // Closing, reopening and the Excel download ask for the person's own password first
+  // (ADR-053, ADR-059).
   const [passwordAction, setPasswordAction] = useState<{
-    kind: 'close' | 'reopen';
+    kind: 'close' | 'reopen' | 'export';
     periodId: string;
     message: string;
   } | null>(null);
@@ -492,6 +543,22 @@ export function KpiPlansPage() {
       setPasswordAction(null);
       setNotice({ tone: 'success', text: t('kpiPlans.reopened', { period: reopened.label }) });
       await refresh();
+    },
+    onError: handlePeriodActionError,
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      exportKpiPeriod(id, password, locale),
+    onSuccess: async (file, { id }) => {
+      const label = periods.find((item) => item.id === id)?.label ?? 'KPI';
+      const fileName = file.fileName ?? `${label}_KPI.xlsx`;
+
+      saveFile(file.blob, fileName);
+      setPasswordAction(null);
+      setNotice({ tone: 'success', text: t('kpiPlans.exported', { file: fileName }) });
+      // The download is in the period's history now (ADR-059).
+      await queryClient.invalidateQueries({ queryKey: ['audit-logs', 'kpi_periods', id] });
     },
     onError: handlePeriodActionError,
   });
@@ -572,6 +639,17 @@ export function KpiPlansPage() {
     });
   }
 
+  function exportPeriod() {
+    if (!period) return;
+
+    setPasswordError(null);
+    setPasswordAction({
+      kind: 'export',
+      periodId: period.id,
+      message: t('kpiPlans.exportPasswordMessage', { period: period.label }),
+    });
+  }
+
   async function copyFromPrevious() {
     if (!period || !previousPeriod) return;
 
@@ -646,10 +724,12 @@ export function KpiPlansPage() {
           onCopy={() => void copyFromPrevious()}
           onClose={closePeriod}
           onReopen={reopenPeriod}
+          onExport={exportPeriod}
           calculating={calculateMutation.isPending}
           copying={copyMutation.isPending}
           closing={closeMutation.isPending}
           reopening={reopenMutation.isPending}
+          exporting={exportMutation.isPending}
         />
       ) : null}
 
@@ -708,6 +788,7 @@ export function KpiPlansPage() {
                 key={plan.id}
                 plan={plan}
                 onDelete={isOpenPeriod ? () => void removePlan(plan) : undefined}
+                onOpenCard={() => setCardEmployeeId(plan.employee.id)}
                 deleting={deleteMutation.isPending}
               />
             ))}
@@ -734,16 +815,27 @@ export function KpiPlansPage() {
                     key={plan.id}
                     className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900"
                   >
-                    <td className="py-2.5 pl-4 pr-3">
-                      <Link
-                        to={`/kpi-plans/${plan.id}`}
-                        className="text-sm font-medium text-slate-900 dark:text-slate-100"
-                      >
-                        {employeeName(plan.employee)}
-                      </Link>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        @{plan.employee.username}
-                      </span>
+                    <td className="py-1.5 pl-2 pr-3">
+                      <div className="flex items-center gap-1.5">
+                        <EmployeeAvatarButton
+                          person={plan.employee}
+                          avatarPath={plan.employee.avatarUrl}
+                          onOpenCard={() => setCardEmployeeId(plan.employee.id)}
+                          avatarClassName="h-9 w-9 text-xs"
+                        />
+                        <div className="min-w-0">
+                          <Link
+                            to={`/kpi-plans/${plan.id}`}
+                            className="text-sm font-medium text-slate-900 dark:text-slate-100"
+                          >
+                            {employeeName(plan.employee)}
+                          </Link>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            @{plan.employee.username}
+                            {plan.employee.jobTitle ? ` · ${plan.employee.jobTitle}` : ''}
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-2.5 pr-3 text-sm text-slate-600 dark:text-slate-300">
                       {plan.templateName}
@@ -841,26 +933,31 @@ export function KpiPlansPage() {
       ) : null}
       {passwordAction ? (
         <PasswordConfirmModal
-          title={t(
-            passwordAction.kind === 'close' ? 'kpiPlans.closePeriod' : 'kpiPlans.reopenPeriod',
-          )}
+          title={t(PASSWORD_ACTION_TITLES[passwordAction.kind])}
           message={passwordAction.message}
-          confirmLabel={t(
-            passwordAction.kind === 'close' ? 'kpiPlans.closePeriod' : 'kpiPlans.reopenPeriod',
-          )}
-          pending={closeMutation.isPending || reopenMutation.isPending}
+          confirmLabel={t(PASSWORD_ACTION_CONFIRMS[passwordAction.kind])}
+          tone={passwordAction.kind === 'export' ? 'primary' : 'danger'}
+          pending={
+            closeMutation.isPending || reopenMutation.isPending || exportMutation.isPending
+          }
           error={passwordError}
           onClose={() => setPasswordAction(null)}
           onConfirm={(password) => {
             setPasswordError(null);
             const input = { id: passwordAction.periodId, password };
 
-            return passwordAction.kind === 'close'
-              ? closeMutation.mutateAsync(input)
-              : reopenMutation.mutateAsync(input);
+            switch (passwordAction.kind) {
+              case 'close':
+                return closeMutation.mutateAsync(input);
+              case 'reopen':
+                return reopenMutation.mutateAsync(input);
+              case 'export':
+                return exportMutation.mutateAsync(input);
+            }
           }}
         />
       ) : null}
+      <EmployeeCardModal employeeId={cardEmployeeId} onClose={() => setCardEmployeeId(null)} />
     </AppShell>
   );
 }
@@ -1043,6 +1140,11 @@ function AssignDrawer({
                   }
                   label={employeeName(employee)}
                 />
+                <PersonAvatar
+                  person={employee}
+                  path={employee.avatar ? (employee.avatar.smallImageUrl ?? employee.avatar.contentUrl) : null}
+                  className="h-8 w-8 text-[11px]"
+                />
                 <span className="min-w-0 flex-1 py-2">
                   <span className="block truncate text-sm text-slate-900 dark:text-slate-100">
                     {employeeName(employee)}
@@ -1078,6 +1180,18 @@ function AssignDrawer({
 }
 
 /** The password was wrong or is locked after too many tries: the dialog stays open. */
+const PASSWORD_ACTION_TITLES = {
+  close: 'kpiPlans.closePeriod',
+  reopen: 'kpiPlans.reopenPeriod',
+  export: 'kpiPlans.exportTitle',
+} as const satisfies Record<string, TranslationKey>;
+
+const PASSWORD_ACTION_CONFIRMS = {
+  close: 'kpiPlans.closePeriod',
+  reopen: 'kpiPlans.reopenPeriod',
+  export: 'kpiPlans.exportConfirm',
+} as const satisfies Record<string, TranslationKey>;
+
 function isPasswordProblem(error: unknown): boolean {
   return (
     error instanceof ApiError &&

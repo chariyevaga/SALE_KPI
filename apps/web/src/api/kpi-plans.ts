@@ -1,4 +1,5 @@
-import { apiFetch } from '../lib/api-client';
+import type { Locale } from '../i18n/translations';
+import { apiFetch, apiFetchFile, type DownloadedFile } from '../lib/api-client';
 import type {
   KpiPeriod,
   KpiPeriodCalculation,
@@ -31,6 +32,18 @@ export function ensureKpiPeriod(year: number, month: number): Promise<KpiPeriod>
 /** Closing asks for the signed-in person's own password (ADR-053). */
 export function closeKpiPeriod(id: string, password: string): Promise<KpiPeriod> {
   return apiFetch<KpiPeriod>(`/kpi-periods/${id}/close`, { method: 'POST', body: { password } });
+}
+
+/**
+ * The period's Excel file (ADR-059): every plan with score and salary, and each KPI row.
+ * Asks for the person's own password; the download is logged on the period.
+ */
+export function exportKpiPeriod(
+  id: string,
+  password: string,
+  lang: Locale,
+): Promise<DownloadedFile> {
+  return apiFetchFile(`/kpi-periods/${id}/export`, { method: 'POST', body: { password, lang } });
 }
 
 /** Undoes a closing made too early; allowed until the 10th day after the month (ADR-044). */

@@ -21,8 +21,30 @@ export interface EmployeeResponse {
   isActive: boolean;
   lastname: string;
   phoneNumber: string | null;
+  /** Required for new employees; `null` only on employees created before it (ADR-058). */
+  jobTitle: string | null;
+  /** Default store: a `GET /stores` id (ADR-058). */
+  defaultStoreId: number | null;
   updatedAt: string;
   username: string;
+}
+
+/** The employee card (ADR-058), open to every signed-in user. */
+export interface EmployeeCard {
+  id: string;
+  username: string;
+  firstname: string;
+  lastname: string;
+  avatar: EmployeeAvatarResponse | null;
+  isActive: boolean;
+  fullAccess: boolean;
+  jobTitle: string | null;
+  defaultStore: { id: number; nr: number | null; name: string | null } | null;
+  /** Tiger sales rep code; the card's QR code. */
+  erpEmployeeCode: string | null;
+  /** Filled for `full_access` users and the employee themselves only. */
+  email: string | null;
+  phoneNumber: string | null;
 }
 
 export interface AuthResponse {
@@ -47,6 +69,8 @@ export interface CreateEmployeeInput {
   password: string;
   firstname: string;
   lastname: string;
+  jobTitle: string;
+  defaultStoreId?: number | null;
   email?: string | null;
   phoneNumber?: string | null;
   erpEmployeeId?: number | null;
@@ -272,6 +296,9 @@ export interface KpiPlanEmployee {
   lastname: string;
   isActive: boolean;
   erpEmployeeId: number | null;
+  /** Small avatar, read with the Bearer token. */
+  avatarUrl: string | null;
+  jobTitle: string | null;
 }
 
 export interface KpiPlanItem {
@@ -552,7 +579,8 @@ export interface AuditLogEntry {
   id: string;
   tableName: string;
   recordId: string;
-  action: 'create' | 'update' | 'delete';
+  /** `export`: the record was downloaded (Excel), nothing changed (ADR-059). */
+  action: 'create' | 'update' | 'delete' | 'export';
   changes: Record<string, AuditFieldChange>;
   context: Record<string, unknown> | null;
   /** null: the system (migration, scheduled job). */
@@ -591,6 +619,8 @@ export interface LeaderboardEntry {
     firstname: string;
     lastname: string;
     avatarUrl: string | null;
+    jobTitle: string | null;
+    defaultStoreId: number | null;
   };
   templateId: string;
   templateName: string;
@@ -605,6 +635,8 @@ export interface LeaderboardResponse {
   /** Periods with at least one plan, newest first. */
   periods: LeaderboardPeriod[];
   templates: { id: string; name: string; planCount: number }[];
+  /** Default stores of the period's employees (ADR-058); the store filter. */
+  stores: { id: number; nr: number | null; name: string | null; planCount: number }[];
   calculatedAt: string | null;
   autoCalculation: {
     /** 0: the scheduled recalculation is off. */
@@ -645,4 +677,71 @@ export interface SaveEmployeeSalaryInput {
   currency: SalaryCurrency;
   fixedPercent: number;
   kpiPercent: number;
+}
+
+/** Store dashboard (ADR-061): a calendar year against the year before. */
+export type StoreDashboardMonthStatus = 'complete' | 'inProgress' | 'upcoming';
+
+export interface StoreDashboardMonth {
+  /** 1–12. */
+  month: number;
+  status: StoreDashboardMonthStatus;
+  /** The selected year; null when the store had no sales documents that month. */
+  current: number | null;
+  previous: number | null;
+  /** Only for a finished month with a positive value the year before. */
+  growthPercent: number | null;
+}
+
+export interface StoreDashboardSummary {
+  /** Finished months with values in both years; growth is measured over these. */
+  comparableMonths: number[];
+  current: number | null;
+  previous: number | null;
+  difference: number | null;
+  growthPercent: number | null;
+  currentYearValue: number | null;
+  currentYearMonths: number;
+  previousYearValue: number | null;
+  previousYearMonths: number;
+}
+
+export interface StoreDashboardComparison {
+  /** Tiger iş yeri number; null for all stores together. */
+  storeNr: number | null;
+  months: StoreDashboardMonth[];
+  summary: StoreDashboardSummary;
+}
+
+export interface StoreDashboardSeries {
+  /** Sales come in both currencies; the counts have none. */
+  currency: 'TMT' | 'USD' | null;
+  total: StoreDashboardComparison;
+  /** Same order as `StoreDashboardResponse.stores`. */
+  stores: StoreDashboardComparison[];
+}
+
+export interface StoreDashboardKpi {
+  code: string;
+  name: LocalizedText;
+  unit: KpiUnit;
+  /** `average`: distinct per month, so a period shows the monthly average. */
+  aggregation: 'sum' | 'average';
+  series: StoreDashboardSeries[];
+}
+
+export interface StoreDashboardResponse {
+  year: number;
+  previousYear: number;
+  /** Selectable years, newest first. */
+  years: number[];
+  /** `YYYY-MM`: the month in progress. */
+  currentMonth: string;
+  refresh: {
+    /** 0: the scheduled refresh is off. */
+    intervalMinutes: number;
+    lastRunAt: string | null;
+  };
+  stores: { nr: number; name: string | null }[];
+  kpis: StoreDashboardKpi[];
 }

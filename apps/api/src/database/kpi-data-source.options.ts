@@ -18,6 +18,7 @@ import { KpiResultEntity } from '../kpi-results/entities/kpi-result.entity.js';
 import { KpiTemplateItemEntity } from '../kpi-templates/entities/kpi-template-item.entity.js';
 import { KpiTemplateEntity } from '../kpi-templates/entities/kpi-template.entity.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
+import { StoreKpiMonthValueEntity } from '../store-dashboard/entities/store-kpi-month-value.entity.js';
 import { StoreVisitorCountEntity } from '../store-visitor-counts/entities/store-visitor-count.entity.js';
 import { StoreEntity } from '../stores/entities/store.entity.js';
 
@@ -46,6 +47,7 @@ export function getKpiDataSourceOptions(): DataSourceOptions {
       KpiAssignmentEntity,
       KpiAssignmentItemEntity,
       StoreVisitorCountEntity,
+      StoreKpiMonthValueEntity,
       EmployeeSalaryEntity,
       AuditLogEntity,
     ],

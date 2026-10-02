@@ -6,6 +6,7 @@ import { logout as logoutRequest } from '../api/auth';
 import { useTranslation } from '../i18n/locale-store';
 import { useAuthStore } from '../store/auth-store';
 import type { RecordInfoTarget } from '../store/record-info-store';
+import { BRAND_NAME, BrandMark } from './BrandLogo';
 import { Breadcrumb, type BreadcrumbItem } from './Breadcrumb';
 import { Drawer } from './Drawer';
 import { EmployeeCardModal } from './EmployeeCardModal';
@@ -42,12 +43,17 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
 
-  // The employee directory, KPI templates and KPI plans are admin-only screens, hidden
-  // from everyone else; employees see their own plan under "My KPI".
+  // The store dashboard, employee directory, KPI templates and KPI plans are admin-only
+  // screens, hidden from everyone else; employees see their own plan under "My KPI".
   const navItems: NavItem[] = [
     { to: '/leaderboard', label: t('appShell.navLeaderboard') },
     { to: '/my-kpi', label: t('appShell.navMyKpi') },
-    ...(employee?.fullAccess ? [{ to: '/employees', label: t('appShell.navEmployees') }] : []),
+    ...(employee?.fullAccess
+      ? [
+          { to: '/store-dashboard', label: t('appShell.navStoreDashboard') },
+          { to: '/employees', label: t('appShell.navEmployees') },
+        ]
+      : []),
     ...(employee?.fullAccess
       ? [
           { to: '/kpi-templates', label: t('appShell.navKpiTemplates') },
@@ -78,13 +84,11 @@ export function AppShell({
       {/* Sidebar - Desktop */}
       <div className="hidden w-72 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 lg:flex lg:flex-col">
         {/* Logo */}
-        <div className="border-b border-slate-200 px-4 py-6 dark:border-slate-800">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">LG</span>
-            </div>
-            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              Lorem & Glamur
+        <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800">
+          <Link to="/" className="flex items-center gap-2.5">
+            <BrandMark className="h-10 w-10" />
+            <span className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+              {BRAND_NAME}
             </span>
           </Link>
         </div>
@@ -183,10 +187,13 @@ export function AppShell({
       {/* Mobile Drawer - Hidden on desktop */}
       <div className="lg:hidden">
         <Drawer open={menuOpen} onClose={() => setMenuOpen(false)}>
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 dark:border-slate-800">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500 dark:text-emerald-400">
-              Lorem & Glamur
-            </p>
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <BrandMark className="h-9 w-9" />
+              <span className="text-lg font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+                {BRAND_NAME}
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
@@ -335,7 +342,10 @@ export function AppShell({
         </main>
       </div>
 
-      <EmployeeCardModal open={cardOpen} onClose={() => setCardOpen(false)} employee={employee} />
+      <EmployeeCardModal
+        employeeId={cardOpen && employee ? employee.id : null}
+        onClose={() => setCardOpen(false)}
+      />
     </div>
   );
 }

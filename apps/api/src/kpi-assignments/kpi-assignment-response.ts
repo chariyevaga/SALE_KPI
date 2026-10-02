@@ -41,6 +41,17 @@ export class KpiAssignmentEmployeeResponse {
     description: 'Tiger satış personeli referansı; `EMPLOYEE_*` KPI için zorunludur.',
   })
   erpEmployeeId: number | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '/files/0b4c…/content?variant=small',
+    description: 'Küçük avatar; Bearer token ile okunur.',
+  })
+  avatarUrl: string | null;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Satış danışmanı' })
+  jobTitle: string | null;
 }
 
 export class KpiAssignmentPeriodResponse {
@@ -361,6 +372,15 @@ export class KpiAssignmentErrorResponse {
   itemId?: string;
 }
 
+/** The small avatar variant, the original when no variant was made; `null` without a photo. */
+export function employeeAvatarUrl(employee: EmployeeEntity): string | null {
+  const avatar = employee.avatar;
+
+  return avatar
+    ? `/files/${avatar.id}/content?variant=${avatar.smallImage ? 'small' : 'original'}`
+    : null;
+}
+
 export function toKpiAssignmentEmployee(employee: EmployeeEntity): KpiAssignmentEmployeeResponse {
   return {
     id: employee.id,
@@ -369,6 +389,8 @@ export function toKpiAssignmentEmployee(employee: EmployeeEntity): KpiAssignment
     lastname: employee.lastname,
     isActive: employee.isActive,
     erpEmployeeId: employee.erpEmployeeId,
+    avatarUrl: employeeAvatarUrl(employee),
+    jobTitle: employee.jobTitle,
   };
 }
 

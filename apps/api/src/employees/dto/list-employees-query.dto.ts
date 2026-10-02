@@ -70,6 +70,16 @@ export class ListEmployeesQueryDto {
   @IsBoolean()
   hasAvatar?: boolean;
 
+  @ApiPropertyOptional({
+    type: Number,
+    description: 'Yalnız varsayılan mağazası bu olanlar (`GET /stores` id\'si, ADR-058).',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  defaultStoreId?: number;
+
   @ApiPropertyOptional({ enum: EMPLOYEE_SORT_FIELDS, default: 'firstname' })
   @IsOptional()
   @IsIn(EMPLOYEE_SORT_FIELDS)

@@ -63,6 +63,32 @@ export class UpdateEmployeeDto {
 
   @ApiPropertyOptional({
     type: String,
+    example: 'Satış danışmanı',
+    minLength: 1,
+    maxLength: 100,
+    description: 'Görevi; gönderilirse boş olamaz, silinemez (ADR-058).',
+  })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  jobTitle?: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    example: 6,
+    description: 'Varsayılan mağaza: `GET /stores` id\'si; `null` kaldırır (ADR-058).',
+  })
+  @IsOptional()
+  @ValidateIf((_object, value: unknown) => value !== null)
+  @IsInt()
+  @Min(1)
+  defaultStoreId?: number | null;
+
+  @ApiPropertyOptional({
+    type: String,
     example: 'ayse.yilmaz@example.com',
     maxLength: 320,
     nullable: true,

@@ -27,8 +27,23 @@ export function formatDate(value: string, locale: Locale): string {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
-export function formatNumber(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(LOCALE_TAGS[locale]).format(value);
+export function formatNumber(
+  value: number,
+  locale: Locale,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat(LOCALE_TAGS[locale], options).format(value);
+}
+
+/** The name of a month (1–12), e.g. "Mart" or "Mar"; for charts and month lists. */
+export function formatMonthName(
+  month: number,
+  locale: Locale,
+  width: 'long' | 'short' = 'long',
+): string {
+  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], { month: width, timeZone: 'UTC' }).format(
+    new Date(Date.UTC(2000, month - 1, 1)),
+  );
 }
 
 /** A month (`YYYY-MM`) as people say it, e.g. "Eylül 2026"; in UTC so it never shifts. */

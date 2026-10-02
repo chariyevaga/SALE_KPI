@@ -19,6 +19,16 @@ export class LeaderboardEmployeeResponse {
     description: 'Küçük avatar; Bearer token ile okunur.',
   })
   avatarUrl: string | null;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Satış danışmanı' })
+  jobTitle: string | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Varsayılan mağaza: `GET /stores` id\'si (ADR-058).',
+  })
+  defaultStoreId: number | null;
 }
 
 export class LeaderboardEntryResponse {
@@ -66,6 +76,27 @@ export class LeaderboardTemplateResponse {
   planCount: number;
 }
 
+export class LeaderboardStoreResponse {
+  @ApiProperty({ type: Number, description: '`GET /stores` id\'si; `storeId` süzgecine verilir.' })
+  id: number;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Tiger iş yeri numarası; mağaza Tiger’da artık yoksa `null`.',
+  })
+  nr: number | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  name: string | null;
+
+  @ApiProperty({
+    type: Number,
+    description: 'Dönemde varsayılan mağazası bu olan çalışanların plan sayısı.',
+  })
+  planCount: number;
+}
+
 export class LeaderboardAutoCalculationResponse {
   @ApiProperty({ type: Number, example: 10, description: '0: otomatik hesaplama kapalı.' })
   intervalMinutes: number;
@@ -96,6 +127,13 @@ export class LeaderboardResponse {
 
   @ApiProperty({ type: () => LeaderboardTemplateResponse, isArray: true })
   templates: LeaderboardTemplateResponse[];
+
+  @ApiProperty({
+    type: () => LeaderboardStoreResponse,
+    isArray: true,
+    description: 'Dönemin planlarındaki çalışanların varsayılan mağazaları; mağaza süzgecinin seçenekleri (ADR-058).',
+  })
+  stores: LeaderboardStoreResponse[];
 
   @ApiProperty({
     type: String,

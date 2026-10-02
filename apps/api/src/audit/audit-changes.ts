@@ -3,7 +3,8 @@
  * They know nothing about TypeORM; AuditService feeds them column facts from metadata.
  */
 
-export const AUDIT_ACTIONS = ['create', 'update', 'delete'] as const;
+/** `export`: the record was taken out of the application (a download), nothing changed (ADR-059). */
+export const AUDIT_ACTIONS = ['create', 'update', 'delete', 'export'] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

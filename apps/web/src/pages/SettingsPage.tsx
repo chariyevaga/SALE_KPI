@@ -317,7 +317,10 @@ export function SettingsPage() {
         </section>
       </div>
 
-      <EmployeeCardModal open={cardOpen} onClose={() => setCardOpen(false)} employee={employee} />
+      <EmployeeCardModal
+        employeeId={cardOpen && employee ? employee.id : null}
+        onClose={() => setCardOpen(false)}
+      />
 
       <Modal
         open={!!selectedImage}

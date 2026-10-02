@@ -3,6 +3,7 @@ import { type FormEvent, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { login } from '../api/auth';
+import { BRAND_NAME, BrandMark } from '../components/BrandLogo';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Modal } from '../components/Modal';
 import { PasswordInput } from '../components/PasswordInput';
@@ -65,12 +66,10 @@ export function LoginPage() {
       <div className="flex w-full flex-1 flex-col justify-center px-4 py-8 sm:px-6 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-6 space-y-2 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center justify-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">LG</span>
-              </div>
-              <p className="text-base font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                Lorem & Glamur
+            <div className="flex flex-col items-center gap-2">
+              <BrandMark className="h-16 w-16 drop-shadow-lg" />
+              <p className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+                {BRAND_NAME}
               </p>
             </div>
             <p
@@ -191,8 +190,9 @@ export function LoginPage() {
 
       <div className="relative hidden w-1/2 items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-slate-900 lg:flex">
         <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white,transparent_35%),radial-gradient(circle_at_80%_60%,white,transparent_30%)]" />
-        <div className="relative px-12 text-center text-white">
-          <p className="text-4xl font-bold tracking-tight">Lorem & Glamur</p>
+        <div className="relative flex flex-col items-center px-12 text-center text-white">
+          <BrandMark className="mb-6 h-32 w-32 drop-shadow-2xl" />
+          <p className="text-4xl font-bold tracking-tight">{BRAND_NAME}</p>
           <p className="mt-4 text-emerald-50/80">{t('login.brand')}</p>
         </div>
       </div>

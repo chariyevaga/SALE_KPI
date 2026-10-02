@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,6 +23,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiProduces,
   ApiTags,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
@@ -31,7 +33,9 @@ import type { AuthenticatedRequest } from '../auth/auth.types.js';
 import { AuthService } from '../auth/auth.service.js';
 import { ConfirmPasswordDto } from '../auth/dto/confirm-password.dto.js';
 import { FullAccessGuard } from '../auth/full-access.guard.js';
+import { ExportKpiPeriodDto } from './dto/export-kpi-period.dto.js';
 import { ListKpiPeriodsQueryDto, SaveKpiPeriodDto } from './dto/save-kpi-period.dto.js';
+import { KpiPeriodExportService } from './kpi-period-export.service.js';
 import {
   KpiPeriodErrorResponse,
   KpiPeriodListResponse,
@@ -41,6 +45,8 @@ import { KpiPeriodsService } from './kpi-periods.service.js';
 
 const PASSWORD_REJECTED =
   '`AUTH_PASSWORD_CONFIRMATION_FAILED`: şifre eşleşmedi (401 değil: oturum geçerlidir).';
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 const PASSWORD_LOCKED =
   '`AUTH_TOO_MANY_ATTEMPTS`: 15 dakikada 5 yanlış şifre; `retryAfterSeconds` kadar beklenir.';
 
@@ -52,6 +58,7 @@ export class KpiPeriodsController {
   constructor(
     @Inject(KpiPeriodsService) private readonly kpiPeriodsService: KpiPeriodsService,
     @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(KpiPeriodExportService) private readonly exportService: KpiPeriodExportService,
   ) {}
 
   @Get()
@@ -86,6 +93,38 @@ export class KpiPeriodsController {
   @ApiNotFoundResponse({ description: 'Dönem yok.' })
   get(@Param('id', new ParseUUIDPipe()) id: string): Promise<KpiPeriodResponse> {
     return this.kpiPeriodsService.get(id);
+  }
+
+  @Post(':id/export')
+  @UseGuards(FullAccessGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Dönemin KPI ve maaş Excel dosyasını indirir (yalnız full_access, ADR-059).',
+    description:
+      'Gövdede oturum sahibinin kendi şifresi istenir (ADR-053). Dosya adı `<dönem>_KPI_<kullanıcı adı>.xlsx`. Sayfalar: özet (plan başına ERP kodu, ad, soyad, kullanıcı adı, görev, mağaza, şablon, KPI puanı, maaş ve dönemde alınacak tutar), KPI ayrıntıları (her plan satırının hedefi, gerçekleşeni, puanı ve maaştaki payı) ve bilgi. Puanlar saklanmış sonuçlardır; yeniden hesap yapılmaz. Her indirme dönemin kayıt izine `export` olarak yazılır.',
+  })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: ExportKpiPeriodDto })
+  @ApiProduces(XLSX_TYPE)
+  @ApiOkResponse({ description: '.xlsx dosyası.', schema: { type: 'string', format: 'binary' } })
+  @ApiNotFoundResponse({ description: 'Dönem yok.' })
+  @ApiForbiddenResponse({ description: '`full_access` yok.' })
+  @ApiBadRequestResponse({ description: PASSWORD_REJECTED })
+  @ApiTooManyRequestsResponse({ description: PASSWORD_LOCKED })
+  async export(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ExportKpiPeriodDto,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<StreamableFile> {
+    await this.authService.confirmOwnPassword(request.employee.id, dto.password);
+
+    const file = await this.exportService.export(id, request.employee, dto.lang ?? 'tr');
+
+    return new StreamableFile(file.content, {
+      type: XLSX_TYPE,
+      disposition: `attachment; filename="${file.fileName}"`,
+      length: file.content.length,
+    });
   }
 
   @Post(':id/close')

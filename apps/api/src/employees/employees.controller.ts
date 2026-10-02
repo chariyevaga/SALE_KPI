@@ -18,7 +18,9 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
+  ApiBadRequestResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -34,7 +36,7 @@ import { ListEmployeesQueryDto } from './dto/list-employees-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { UpdateOwnProfileDto } from './dto/update-own-profile.dto.js';
 import { EmployeeListResponse } from './employee-list-response.js';
-import { EmployeeResponse } from './employee-response.js';
+import { EmployeeCardResponse, EmployeeResponse } from './employee-response.js';
 import { EmployeesService } from './employees.service.js';
 
 @ApiTags('employees')
@@ -70,6 +72,21 @@ export class EmployeesController {
     @Req() request: AuthenticatedRequest,
   ): Promise<EmployeeResponse> {
     return this.employeesService.get(id, request.employee);
+  }
+
+  @Get(':id/card')
+  @ApiOperation({
+    summary: 'Çalışan kartı: oturum açmış her kullanıcıya açıktır (ADR-058).',
+    description:
+      'Ad, avatar, görev, varsayılan mağaza ve ERP satış personeli kodu (kartın QR kodu) herkese döner. E-posta ve telefon yalnız `full_access` kullanıcıya ve çalışanın kendisine döner, diğerlerinde `null`dır.',
+  })
+  @ApiOkResponse({ type: EmployeeCardResponse })
+  @ApiNotFoundResponse({ description: 'Çalışan bulunamadı.' })
+  getCard(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<EmployeeCardResponse> {
+    return this.employeesService.getCard(id, request.employee);
   }
 
   @Patch('me')
@@ -120,6 +137,9 @@ export class EmployeesController {
   @UseGuards(FullAccessGuard)
   @ApiOperation({ summary: 'Yeni bir çalışan/giriş hesabı oluşturur.' })
   @ApiOkResponse({ type: EmployeeResponse })
+  @ApiBadRequestResponse({
+    description: '`EMPLOYEE_UNKNOWN_STORE`: `defaultStoreId` yapılandırılmış firmanın mağazası değil.',
+  })
   create(@Body() dto: CreateEmployeeDto): Promise<EmployeeResponse> {
     return this.employeesService.create(dto);
   }
@@ -128,6 +148,9 @@ export class EmployeesController {
   @UseGuards(FullAccessGuard)
   @ApiOperation({ summary: 'Bir çalışanın alanlarını kısmi olarak günceller.' })
   @ApiOkResponse({ type: EmployeeResponse })
+  @ApiBadRequestResponse({
+    description: '`EMPLOYEE_UNKNOWN_STORE`: `defaultStoreId` yapılandırılmış firmanın mağazası değil.',
+  })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateEmployeeDto,

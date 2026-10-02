@@ -194,3 +194,29 @@ void test('audit columns and unknown keys cannot be written by callers', async (
     /"color" is not a writable column/,
   );
 });
+
+void test('an event is logged against the record without touching it', async () => {
+  const { manager, updates, inserts, logs } = fakeManager([{ id: 'A', name: 'Widget A' }]);
+
+  await asActor(() =>
+    new AuditService().logEvent(manager, WIDGET, 'A', 'export', {
+      via: 'excel-export',
+      fileName: '2026-07_KPI_admin.xlsx',
+    }),
+  );
+
+  assert.equal(updates.length, 0);
+  assert.equal(inserts.length, 0);
+  assert.deepEqual(logs, [
+    {
+      action: 'export',
+      changes: '{}',
+      context: JSON.stringify({ via: 'excel-export', fileName: '2026-07_KPI_admin.xlsx' }),
+      createdBy: ACTOR,
+      ipAddress: '10.0.0.7',
+      recordId: 'A',
+      requestId: REQUEST,
+      tableName: 'widgets',
+    },
+  ]);
+});

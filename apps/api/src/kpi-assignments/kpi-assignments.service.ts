@@ -117,6 +117,8 @@ export class KpiAssignmentsService {
     const builder = this.assignmentRepository
       .createQueryBuilder('assignment')
       .innerJoinAndSelect('assignment.employee', 'employee')
+      // Query builders skip eager relations; the list shows each employee's avatar.
+      .leftJoinAndSelect('employee.avatar', 'avatar')
       .where('assignment.periodId = :periodId', { periodId: period.id })
       .orderBy('employee.firstname', 'ASC')
       .addOrderBy('employee.lastname', 'ASC');
@@ -234,7 +236,7 @@ export class KpiAssignmentsService {
 
     const sourceAssignments = await this.assignmentRepository.find({
       where: { periodId: source.id },
-      relations: { employee: true },
+      relations: { employee: { avatar: true } },
       order: { createdAt: 'ASC' },
     });
     const taken = new Set(
@@ -296,7 +298,7 @@ export class KpiAssignmentsService {
   async get(id: string): Promise<KpiAssignmentResponse> {
     const assignment = await this.assignmentRepository.findOne({
       where: { id },
-      relations: { employee: true, period: true },
+      relations: { employee: { avatar: true }, period: true },
     });
 
     if (!assignment) {
@@ -314,6 +316,7 @@ export class KpiAssignmentsService {
     const builder = this.assignmentRepository
       .createQueryBuilder('assignment')
       .innerJoinAndSelect('assignment.employee', 'employee')
+      .leftJoinAndSelect('employee.avatar', 'avatar')
       .innerJoinAndSelect('assignment.period', 'period')
       .where('assignment.employeeId = :employeeId', { employeeId })
       .orderBy('period.year', 'DESC')
@@ -370,7 +373,7 @@ export class KpiAssignmentsService {
   async setTargets(id: string, dto: SaveKpiTargetsDto): Promise<KpiAssignmentResponse> {
     const assignment = await this.assignmentRepository.findOne({
       where: { id },
-      relations: { employee: true, period: true },
+      relations: { employee: { avatar: true }, period: true },
     });
 
     if (!assignment) {
@@ -558,7 +561,7 @@ export class KpiAssignmentsService {
 
     const assignments = await this.assignmentRepository.find({
       where: { id: In(ids) },
-      relations: { employee: true },
+      relations: { employee: { avatar: true } },
     });
     const stats = await this.loadItemStats(ids);
     const byId = new Map(

@@ -11,6 +11,7 @@ import { EmployeeSalaryPanel } from '../components/EmployeeSalaryPanel';
 import { EmployeeSessionsPanel } from '../components/EmployeeSessionsPanel';
 import { FormField, formInputClassName } from '../components/FormField';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { StoreLookupField } from '../components/StoreLookupField';
 import { Spinner } from '../components/Spinner';
 import { PasswordInput } from '../components/PasswordInput';
 import { localizeApiError } from '../i18n/api-errors';
@@ -22,6 +23,8 @@ interface FormValues {
   password: string;
   firstname: string;
   lastname: string;
+  jobTitle: string;
+  defaultStoreId: number | null;
   email: string;
   phoneNumber: string;
   erpEmployeeId: string;
@@ -34,6 +37,8 @@ const EMPTY_FORM: FormValues = {
   password: '',
   firstname: '',
   lastname: '',
+  jobTitle: '',
+  defaultStoreId: null,
   email: '',
   phoneNumber: '',
   erpEmployeeId: '',
@@ -50,6 +55,7 @@ function validateForm(form: FormValues, mode: 'create' | 'edit'): TranslationKey
   if (form.password && form.password.length < 8) return 'employeeForm.passwordTooShort';
   if (!form.firstname.trim()) return 'employeeForm.firstnameRequired';
   if (!form.lastname.trim()) return 'employeeForm.lastnameRequired';
+  if (!form.jobTitle.trim()) return 'employeeForm.jobTitleRequired';
   if (form.email && !EMAIL_PATTERN.test(form.email.trim())) return 'employeeForm.emailInvalid';
 
   return null;
@@ -111,6 +117,8 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         password: '',
         firstname: employeeQuery.data.firstname,
         lastname: employeeQuery.data.lastname,
+        jobTitle: employeeQuery.data.jobTitle ?? '',
+        defaultStoreId: employeeQuery.data.defaultStoreId,
         email: employeeQuery.data.email ?? '',
         phoneNumber: employeeQuery.data.phoneNumber ?? '',
         erpEmployeeId:
@@ -127,6 +135,8 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         username: form.username,
         firstname: form.firstname,
         lastname: form.lastname,
+        jobTitle: form.jobTitle,
+        defaultStoreId: form.defaultStoreId,
         email: form.email || null,
         phoneNumber: form.phoneNumber || null,
         erpEmployeeId: form.erpEmployeeId ? Number(form.erpEmployeeId) : null,
@@ -141,6 +151,7 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['employees'] });
+      await queryClient.invalidateQueries({ queryKey: ['employee-card'] });
       void navigate('/employees', { replace: true });
     },
   });
@@ -319,6 +330,33 @@ export function EmployeeFormPage({ mode }: { mode: 'create' | 'edit' }) {
               />
             </FormField>
           </div>
+
+          <FormField label={t('employeeForm.jobTitleLabel')} htmlFor="jobTitle" required>
+            <input
+              id="jobTitle"
+              required
+              maxLength={100}
+              autoComplete="organization-title"
+              value={form.jobTitle}
+              onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
+              placeholder={t('employeeForm.jobTitlePlaceholder')}
+              className={formInputClassName}
+            />
+          </FormField>
+
+          <FormField
+            label={t('employeeForm.defaultStoreLabel')}
+            htmlFor="defaultStoreId"
+            hint={t('employeeForm.defaultStoreHint')}
+          >
+            <StoreLookupField
+              id="defaultStoreId"
+              multiple={false}
+              value={form.defaultStoreId === null ? [] : [form.defaultStoreId]}
+              onChange={(ids) => setForm((prev) => ({ ...prev, defaultStoreId: ids[0] ?? null }))}
+              noneLabel={t('employeeForm.defaultStoreNone')}
+            />
+          </FormField>
 
           <FormField label={t('employeeForm.emailLabel')} htmlFor="email">
             <input

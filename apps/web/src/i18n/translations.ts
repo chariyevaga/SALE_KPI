@@ -56,6 +56,7 @@ interface TranslationShape {
     navMyKpi: string;
     navKpiPlans: string;
     navVisitorCounts: string;
+    navStoreDashboard: string;
     navKpiTemplates: string;
     navSettings: string;
     navSessions: string;
@@ -80,6 +81,8 @@ interface TranslationShape {
     filterManagers: string;
     filterErpLinked: string;
     filterWithAvatar: string;
+    filterStore: string;
+    filterStoreAll: string;
     sortLabel: string;
     sortFirstnameAsc: string;
     sortFirstnameDesc: string;
@@ -159,6 +162,11 @@ interface TranslationShape {
     viewPhoto: string;
     managerRole: string;
     employeeRole: string;
+    open: string;
+    loading: string;
+    errorLoading: string;
+    jobTitle: string;
+    defaultStore: string;
   };
   employeeForm: {
     tabDetails: string;
@@ -202,6 +210,12 @@ interface TranslationShape {
     passwordTooShort: string;
     firstnameRequired: string;
     lastnameRequired: string;
+    jobTitleRequired: string;
+    jobTitleLabel: string;
+    jobTitlePlaceholder: string;
+    defaultStoreLabel: string;
+    defaultStoreHint: string;
+    defaultStoreNone: string;
     emailInvalid: string;
     deactivateError: string;
     reactivateError: string;
@@ -337,6 +351,8 @@ interface TranslationShape {
     viaBulkCopy: string;
     viaExcelImport: string;
     copiedFrom: string;
+    actionExport: string;
+    exportedFile: string;
     valueAdded: string;
     valueRemoved: string;
     valueChanged: string;
@@ -358,6 +374,8 @@ interface TranslationShape {
         avatarId: string;
         fullAccess: string;
         canEnterVisitorCounts: string;
+        jobTitle: string;
+        defaultStoreId: string;
         isActive: string;
         passwordHash: string;
       };
@@ -410,6 +428,12 @@ interface TranslationShape {
     closeConfirmFinal: string;
     reopenPeriod: string;
     reopenPasswordMessage: string;
+    exportExcel: string;
+    exporting: string;
+    exportTitle: string;
+    exportConfirm: string;
+    exportPasswordMessage: string;
+    exported: string;
     reopened: string;
     reopenExpired: string;
     periodOpenHint: string;
@@ -521,6 +545,8 @@ interface TranslationShape {
     period: string;
     templateFilter: string;
     allTemplates: string;
+    store: string;
+    allStores: string;
     loading: string;
     errorLoading: string;
     empty: string;
@@ -754,6 +780,45 @@ interface TranslationShape {
       w7: string;
     };
   };
+  storeDashboard: {
+    title: string;
+    year: string;
+    yearOption: string;
+    store: string;
+    allStores: string;
+    currency: string;
+    tabs: string;
+    summaryTab: string;
+    refreshEvery: string;
+    refreshOff: string;
+    updatedAt: string;
+    loading: string;
+    error: string;
+    empty: string;
+    comparing: string;
+    comparedMonths: string;
+    noComparison: string;
+    inProgress: string;
+    inProgressShort: string;
+    growth: string;
+    noGrowth: string;
+    percent: string;
+    monthlyAverage: string;
+    total: string;
+    difference: string;
+    yearSoFar: string;
+    previousYearAll: string;
+    monthlyTitle: string;
+    monthlyHint: string;
+    monthAria: string;
+    month: string;
+    change: string;
+    storesTitle: string;
+    storesHint: string;
+    singleStore: string;
+    openKpi: string;
+    customersNote: string;
+  };
   errors: {
     generic: string;
     network: string;
@@ -816,6 +881,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navMyKpi: 'KPI’larım',
       navKpiPlans: 'KPI planları',
       navVisitorCounts: 'Ziyaretçi sayıları',
+      navStoreDashboard: 'Mağaza dashboard’u',
       navKpiTemplates: 'KPI şablonları',
       navSettings: 'Ayarlar',
       navSessions: 'Oturumlarım',
@@ -840,6 +906,8 @@ export const translations: Record<Locale, TranslationShape> = {
       filterManagers: 'Yalnızca yöneticiler',
       filterErpLinked: 'ERP personeline bağlı',
       filterWithAvatar: 'Profil fotoğrafı olanlar',
+      filterStore: 'Mağaza',
+      filterStoreAll: 'Tüm mağazalar',
       sortLabel: 'Sıralama',
       sortFirstnameAsc: 'Ad (A→Z)',
       sortFirstnameDesc: 'Ad (Z→A)',
@@ -921,6 +989,11 @@ export const translations: Record<Locale, TranslationShape> = {
       viewPhoto: 'Fotoğrafı büyüt',
       managerRole: 'Yönetici',
       employeeRole: 'Çalışan',
+      open: '{name} çalışan kartını aç',
+      loading: 'Çalışan kartı yükleniyor…',
+      errorLoading: 'Çalışan kartı yüklenemedi.',
+      jobTitle: 'Görevi',
+      defaultStore: 'Mağaza',
     },
     employeeForm: {
       tabDetails: 'Bilgiler',
@@ -965,6 +1038,12 @@ export const translations: Record<Locale, TranslationShape> = {
       passwordTooShort: 'Parola en az 8 karakter olmalıdır.',
       firstnameRequired: 'Ad zorunludur.',
       lastnameRequired: 'Soyad zorunludur.',
+      jobTitleRequired: 'Görevi zorunludur.',
+      jobTitleLabel: 'Görevi',
+      jobTitlePlaceholder: 'ör. Satış danışmanı, Mağaza müdürü',
+      defaultStoreLabel: 'Varsayılan mağaza (opsiyonel)',
+      defaultStoreHint: 'Çalışan kartında görünür; liderlik tablosu bu mağazaya göre süzülür.',
+      defaultStoreNone: 'Mağaza yok',
       emailInvalid: 'Geçerli bir e-posta adresi girin.',
       deactivateError: 'Çalışan devre dışı bırakılamadı.',
       reactivateError: 'Çalışan yeniden etkinleştirilemedi.',
@@ -1110,6 +1189,8 @@ export const translations: Record<Locale, TranslationShape> = {
       viaBulkCopy: 'toplu kopyalamayla',
       viaExcelImport: 'Excel’den',
       copiedFrom: '“{name}” şablonundan kopyalandı',
+      actionExport: 'Excel indirildi',
+      exportedFile: 'Dosya: {name}',
       valueAdded: 'eklendi',
       valueRemoved: 'kaldırıldı',
       valueChanged: 'değiştirildi',
@@ -1131,6 +1212,8 @@ export const translations: Record<Locale, TranslationShape> = {
           avatarId: 'Profil fotoğrafı',
           fullAccess: 'Yönetici erişimi',
           canEnterVisitorCounts: 'Ziyaretçi sayısı girebilir',
+          jobTitle: 'Görevi',
+          defaultStoreId: 'Varsayılan mağaza',
           isActive: 'Durum',
           passwordHash: 'Parola',
         },
@@ -1186,6 +1269,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reopenPeriod: 'Dönemi yeniden aç',
       reopenPasswordMessage:
         '{period} dönemi yeniden açılacak; planlar, hedefler ve hesap yeniden değiştirilebilir olacak. Onaylamak için şifrenizi girin.',
+      exportExcel: 'Excel',
+      exporting: 'Hazırlanıyor…',
+      exportTitle: 'KPI ve maaş Excel’i',
+      exportConfirm: 'İndir',
+      exportPasswordMessage:
+        '{period} döneminin bütün planları KPI puanları ve maaşlarıyla Excel olarak indirilecek. Dosya maaş bilgisi içerir; indirme dönemin kayıt bilgisine yazılır.\n\nOnaylamak için şifrenizi girin.',
+      exported: '{file} indirildi.',
       reopened: '{period} dönemi yeniden açıldı.',
       reopenExpired: 'Bu dönem {date} tarihine kadar yeniden açılabilirdi; artık kesinleşti.',
       periodOpenHint: 'Planlar, hedefler ve puanlar değiştirilebilir.',
@@ -1300,6 +1390,8 @@ export const translations: Record<Locale, TranslationShape> = {
       period: 'Dönem',
       templateFilter: 'Şablona göre süz',
       allTemplates: 'Tümü',
+      store: 'Mağaza',
+      allStores: 'Tüm mağazalar',
       loading: 'Yükleniyor…',
       errorLoading: 'Sıralama yüklenemedi.',
       empty: 'Bu dönemde henüz KPI planı yok.',
@@ -1554,6 +1646,47 @@ export const translations: Record<Locale, TranslationShape> = {
         w7: 'Paz',
       },
     },
+    storeDashboard: {
+      title: 'Mağaza dashboard’u',
+      year: 'Yıl',
+      yearOption: '{year} · {previous} ile',
+      store: 'Mağaza',
+      allStores: 'Tüm mağazalar',
+      currency: 'Para birimi',
+      tabs: 'KPI sekmeleri',
+      summaryTab: 'Özet',
+      refreshEvery: 'Değerler {minutes} dakikada bir güncellenir',
+      refreshOff: 'Otomatik güncelleme kapalı',
+      updatedAt: 'son güncelleme {at}',
+      loading: 'Yükleniyor…',
+      error: 'Dashboard yüklenemedi.',
+      empty: 'Henüz saklanmış değer yok. Değerler Tiger’dan hesaplanır ve ilk güncellemede gelir.',
+      comparing: '{year} ile {previous} karşılaştırması',
+      comparedMonths: 'Karşılaştırılan aylar: {range} ({count} ay)',
+      noComparison:
+        '{previous} yılında karşılaştırılacak veri yok. Artış, iki yılda da verisi olan bitmiş aylardan hesaplanır; şimdilik yalnız {year} değerleri görünüyor.',
+      inProgress: '{month} devam ediyor; karşılaştırmaya girmez.',
+      inProgressShort: 'Devam ediyor',
+      growth: 'Artış',
+      noGrowth: 'Karşılaştırma yok',
+      percent: '%{value}',
+      monthlyAverage: 'Aylık ortalama',
+      total: 'Toplam',
+      difference: 'Fark',
+      yearSoFar: '{year}: bitmiş {count} ay',
+      previousYearAll: '{year}: {count} ay',
+      monthlyTitle: 'Ay ay karşılaştırma',
+      monthlyHint: 'Ayrıntı için bir aya dokunun.',
+      monthAria: '{month}: {year} {current}, {previousYear} {previous}',
+      month: 'Ay',
+      change: 'Değişim',
+      storesTitle: 'Mağaza karşılaştırması',
+      storesHint: 'Karşılaştırılan aylardaki artışa göre sıralı.',
+      singleStore: 'Bu yıllarda yalnız bir mağazanın satışı var.',
+      openKpi: '{name} ayrıntısı',
+      customersNote:
+        'Mağazalar toplanırken iki mağazada da görülen müşteri ya da ürün iki kez sayılır.',
+    },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
       network: 'Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.',
@@ -1615,6 +1748,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navMyKpi: 'My KPI',
       navKpiPlans: 'KPI plans',
       navVisitorCounts: 'Visitor counts',
+      navStoreDashboard: 'Store dashboard',
       navKpiTemplates: 'KPI templates',
       navSessions: 'My sessions',
       navSettings: 'Settings',
@@ -1639,6 +1773,8 @@ export const translations: Record<Locale, TranslationShape> = {
       filterManagers: 'Admins only',
       filterErpLinked: 'Linked to an ERP rep',
       filterWithAvatar: 'Has a profile photo',
+      filterStore: 'Store',
+      filterStoreAll: 'All stores',
       sortLabel: 'Sort',
       sortFirstnameAsc: 'First name (A→Z)',
       sortFirstnameDesc: 'First name (Z→A)',
@@ -1720,6 +1856,11 @@ export const translations: Record<Locale, TranslationShape> = {
       viewPhoto: 'View full photo',
       managerRole: 'Admin',
       employeeRole: 'Employee',
+      open: "Open {name}'s employee card",
+      loading: 'Loading employee card…',
+      errorLoading: 'Could not load the employee card.',
+      jobTitle: 'Job title',
+      defaultStore: 'Store',
     },
     employeeForm: {
       tabDetails: 'Details',
@@ -1764,6 +1905,12 @@ export const translations: Record<Locale, TranslationShape> = {
       passwordTooShort: 'Password must be at least 8 characters.',
       firstnameRequired: 'First name is required.',
       lastnameRequired: 'Last name is required.',
+      jobTitleRequired: 'Job title is required.',
+      jobTitleLabel: 'Job title',
+      jobTitlePlaceholder: 'e.g. Sales associate, Store manager',
+      defaultStoreLabel: 'Default store (optional)',
+      defaultStoreHint: 'Shown on the employee card; the leaderboard filters by it.',
+      defaultStoreNone: 'No store',
       emailInvalid: 'Enter a valid email address.',
       deactivateError: 'Could not deactivate the employee.',
       reactivateError: 'Could not reactivate the employee.',
@@ -1908,6 +2055,8 @@ export const translations: Record<Locale, TranslationShape> = {
       viaBulkCopy: 'via bulk copy',
       viaExcelImport: 'from Excel',
       copiedFrom: 'Copied from “{name}”',
+      actionExport: 'Excel downloaded',
+      exportedFile: 'File: {name}',
       valueAdded: 'added',
       valueRemoved: 'removed',
       valueChanged: 'changed',
@@ -1929,6 +2078,8 @@ export const translations: Record<Locale, TranslationShape> = {
           avatarId: 'Profile photo',
           fullAccess: 'Admin access',
           canEnterVisitorCounts: 'Can enter visitor counts',
+          jobTitle: 'Job title',
+          defaultStoreId: 'Default store',
           isActive: 'Status',
           passwordHash: 'Password',
         },
@@ -1984,6 +2135,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reopenPeriod: 'Reopen period',
       reopenPasswordMessage:
         'Period {period} will be reopened; plans, targets and results can change again. Enter your password to confirm.',
+      exportExcel: 'Excel',
+      exporting: 'Preparing…',
+      exportTitle: 'KPI and salary Excel',
+      exportConfirm: 'Download',
+      exportPasswordMessage:
+        'Every plan of {period} will be downloaded as Excel, with KPI scores and salaries. The file contains salaries; the download is written to the period’s record info.\n\nEnter your password to confirm.',
+      exported: '{file} downloaded.',
       reopened: 'The {period} period is open again.',
       reopenExpired: 'This period could be reopened until {date}; it is final now.',
       periodOpenHint: 'Plans, targets and scores can be changed.',
@@ -2098,6 +2256,8 @@ export const translations: Record<Locale, TranslationShape> = {
       period: 'Period',
       templateFilter: 'Filter by template',
       allTemplates: 'All',
+      store: 'Store',
+      allStores: 'All stores',
       loading: 'Loading…',
       errorLoading: 'Could not load the leaderboard.',
       empty: 'There are no KPI plans in this period yet.',
@@ -2350,6 +2510,48 @@ export const translations: Record<Locale, TranslationShape> = {
         w7: 'Sun',
       },
     },
+    storeDashboard: {
+      title: 'Store dashboard',
+      year: 'Year',
+      yearOption: '{year} vs {previous}',
+      store: 'Store',
+      allStores: 'All stores',
+      currency: 'Currency',
+      tabs: 'KPI tabs',
+      summaryTab: 'Summary',
+      refreshEvery: 'Values refresh every {minutes} minutes',
+      refreshOff: 'Automatic refresh is off',
+      updatedAt: 'last updated {at}',
+      loading: 'Loading…',
+      error: 'The dashboard could not be loaded.',
+      empty:
+        'No stored values yet. They are calculated from Tiger and arrive with the first refresh.',
+      comparing: '{year} vs {previous}',
+      comparedMonths: 'Months compared: {range} ({count})',
+      noComparison:
+        'There is no {previous} data to compare with. Growth is measured over finished months that have data in both years; for now only {year} values are shown.',
+      inProgress: '{month} is still in progress and is not compared.',
+      inProgressShort: 'In progress',
+      growth: 'Growth',
+      noGrowth: 'No comparison',
+      percent: '{value}%',
+      monthlyAverage: 'Monthly average',
+      total: 'Total',
+      difference: 'Difference',
+      yearSoFar: '{year}, finished months: {count}',
+      previousYearAll: '{year}, months: {count}',
+      monthlyTitle: 'Month by month',
+      monthlyHint: 'Tap a month for details.',
+      monthAria: '{month}: {year} {current}, {previousYear} {previous}',
+      month: 'Month',
+      change: 'Change',
+      storesTitle: 'Store comparison',
+      storesHint: 'Ranked by growth over the compared months.',
+      singleStore: 'Only one store has sales in these years.',
+      openKpi: '{name} details',
+      customersNote:
+        'When stores are added together, a customer or item seen in two stores counts twice.',
+    },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
       network: 'Could not connect to the server. Check your internet connection.',
@@ -2410,6 +2612,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navMyKpi: 'Мои KPI',
       navKpiPlans: 'Планы KPI',
       navVisitorCounts: 'Посетители',
+      navStoreDashboard: 'Дашборд магазинов',
       navKpiTemplates: 'Шаблоны KPI',
       navSessions: 'Мои сессии',
       navSettings: 'Настройки',
@@ -2434,6 +2637,8 @@ export const translations: Record<Locale, TranslationShape> = {
       filterManagers: 'Только администраторы',
       filterErpLinked: 'Привязан к продавцу ERP',
       filterWithAvatar: 'С фотографией профиля',
+      filterStore: 'Магазин',
+      filterStoreAll: 'Все магазины',
       sortLabel: 'Сортировка',
       sortFirstnameAsc: 'Имя (А→Я)',
       sortFirstnameDesc: 'Имя (Я→А)',
@@ -2516,6 +2721,11 @@ export const translations: Record<Locale, TranslationShape> = {
       viewPhoto: 'Открыть фото',
       managerRole: 'Администратор',
       employeeRole: 'Сотрудник',
+      open: 'Открыть карточку сотрудника {name}',
+      loading: 'Загрузка карточки сотрудника…',
+      errorLoading: 'Не удалось загрузить карточку сотрудника.',
+      jobTitle: 'Должность',
+      defaultStore: 'Магазин',
     },
     employeeForm: {
       tabDetails: 'Данные',
@@ -2559,6 +2769,12 @@ export const translations: Record<Locale, TranslationShape> = {
       passwordTooShort: 'Пароль должен содержать не менее 8 символов.',
       firstnameRequired: 'Имя обязательно.',
       lastnameRequired: 'Фамилия обязательна.',
+      jobTitleRequired: 'Должность обязательна.',
+      jobTitleLabel: 'Должность',
+      jobTitlePlaceholder: 'напр. Продавец-консультант, Директор магазина',
+      defaultStoreLabel: 'Магазин по умолчанию (необязательно)',
+      defaultStoreHint: 'Показывается в карточке сотрудника; по нему фильтруется рейтинг.',
+      defaultStoreNone: 'Без магазина',
       emailInvalid: 'Введите корректный адрес электронной почты.',
       deactivateError: 'Не удалось деактивировать сотрудника.',
       reactivateError: 'Не удалось восстановить сотрудника.',
@@ -2705,6 +2921,8 @@ export const translations: Record<Locale, TranslationShape> = {
       viaBulkCopy: 'массовым копированием',
       viaExcelImport: 'из Excel',
       copiedFrom: 'Скопировано из «{name}»',
+      actionExport: 'Скачан Excel',
+      exportedFile: 'Файл: {name}',
       valueAdded: 'добавлено',
       valueRemoved: 'удалено',
       valueChanged: 'изменено',
@@ -2726,6 +2944,8 @@ export const translations: Record<Locale, TranslationShape> = {
           avatarId: 'Фото профиля',
           fullAccess: 'Права администратора',
           canEnterVisitorCounts: 'Может вводить число посетителей',
+          jobTitle: 'Должность',
+          defaultStoreId: 'Магазин по умолчанию',
           isActive: 'Статус',
           passwordHash: 'Пароль',
         },
@@ -2781,6 +3001,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reopenPeriod: 'Открыть период заново',
       reopenPasswordMessage:
         'Период {period} будет открыт снова; планы, цели и расчёт снова можно будет менять. Введите пароль для подтверждения.',
+      exportExcel: 'Excel',
+      exporting: 'Подготовка…',
+      exportTitle: 'Excel KPI и зарплат',
+      exportConfirm: 'Скачать',
+      exportPasswordMessage:
+        'Все планы периода {period} будут скачаны в Excel с баллами KPI и зарплатами. Файл содержит зарплаты; скачивание записывается в историю периода.\n\nВведите пароль для подтверждения.',
+      exported: '{file} скачан.',
       reopened: 'Период {period} снова открыт.',
       reopenExpired: 'Этот период можно было открыть заново до {date}; теперь он окончательный.',
       periodOpenHint: 'Планы, цели и баллы можно изменять.',
@@ -2895,6 +3122,8 @@ export const translations: Record<Locale, TranslationShape> = {
       period: 'Период',
       templateFilter: 'Фильтр по шаблону',
       allTemplates: 'Все',
+      store: 'Магазин',
+      allStores: 'Все магазины',
       loading: 'Загрузка…',
       errorLoading: 'Не удалось загрузить рейтинг.',
       empty: 'В этом периоде пока нет KPI-планов.',
@@ -3147,6 +3376,48 @@ export const translations: Record<Locale, TranslationShape> = {
         w7: 'Вс',
       },
     },
+    storeDashboard: {
+      title: 'Дашборд магазинов',
+      year: 'Год',
+      yearOption: '{year} к {previous}',
+      store: 'Магазин',
+      allStores: 'Все магазины',
+      currency: 'Валюта',
+      tabs: 'Вкладки KPI',
+      summaryTab: 'Сводка',
+      refreshEvery: 'Значения обновляются каждые {minutes} мин',
+      refreshOff: 'Автоматическое обновление выключено',
+      updatedAt: 'обновлено {at}',
+      loading: 'Загрузка…',
+      error: 'Не удалось загрузить дашборд.',
+      empty:
+        'Сохранённых значений пока нет. Они рассчитываются из Tiger и появятся после первого обновления.',
+      comparing: '{year} в сравнении с {previous}',
+      comparedMonths: 'Сравниваемые месяцы: {range} ({count})',
+      noComparison:
+        'За {previous} год нет данных для сравнения. Рост считается по завершённым месяцам, по которым есть данные в обоих годах; пока показаны только значения {year} года.',
+      inProgress: '{month} ещё идёт и в сравнение не входит.',
+      inProgressShort: 'Идёт',
+      growth: 'Рост',
+      noGrowth: 'Нет сравнения',
+      percent: '{value}%',
+      monthlyAverage: 'Среднее за месяц',
+      total: 'Итого',
+      difference: 'Разница',
+      yearSoFar: '{year}, завершённых месяцев: {count}',
+      previousYearAll: '{year}, месяцев: {count}',
+      monthlyTitle: 'По месяцам',
+      monthlyHint: 'Нажмите на месяц, чтобы увидеть детали.',
+      monthAria: '{month}: {year} — {current}, {previousYear} — {previous}',
+      month: 'Месяц',
+      change: 'Изменение',
+      storesTitle: 'Сравнение магазинов',
+      storesHint: 'По росту за сравниваемые месяцы.',
+      singleStore: 'В эти годы продажи есть только у одного магазина.',
+      openKpi: '{name}: подробнее',
+      customersNote:
+        'При сложении магазинов покупатель или товар, встречающийся в двух магазинах, учитывается дважды.',
+    },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
       network: 'Не удалось подключиться к серверу. Проверьте интернет-соединение.',
@@ -3207,6 +3478,7 @@ export const translations: Record<Locale, TranslationShape> = {
       navMyKpi: 'Meniň KPI-larym',
       navKpiPlans: 'KPI meýilnamalary',
       navVisitorCounts: 'Gelýänleriň sany',
+      navStoreDashboard: 'Dükan paneli',
       navKpiTemplates: 'KPI şablonlary',
       navSessions: 'Meniň sessiýalarym',
       navSettings: 'Sazlamalar',
@@ -3231,6 +3503,8 @@ export const translations: Record<Locale, TranslationShape> = {
       filterManagers: 'Diňe adminler',
       filterErpLinked: 'ERP satyjysyna baglanan',
       filterWithAvatar: 'Profil suraty barlar',
+      filterStore: 'Dükan',
+      filterStoreAll: 'Ähli dükanlar',
       sortLabel: 'Tertip',
       sortFirstnameAsc: 'Ady (A→Z)',
       sortFirstnameDesc: 'Ady (Z→A)',
@@ -3312,6 +3586,11 @@ export const translations: Record<Locale, TranslationShape> = {
       viewPhoto: 'Suraty ulalt',
       managerRole: 'Admin',
       employeeRole: 'Işgär',
+      open: '{name} işgär kartyny aç',
+      loading: 'Işgär kartyny ýüklenýär…',
+      errorLoading: 'Işgär kartyny ýükläp bolmady.',
+      jobTitle: 'Wezipesi',
+      defaultStore: 'Dükan',
     },
     employeeForm: {
       tabDetails: 'Maglumatlar',
@@ -3356,6 +3635,12 @@ export const translations: Record<Locale, TranslationShape> = {
       passwordTooShort: 'Parol azyndan 8 belgiden ybarat bolmaly.',
       firstnameRequired: 'Ady hökmany.',
       lastnameRequired: 'Familiýasy hökmany.',
+      jobTitleRequired: 'Wezipesi hökmany.',
+      jobTitleLabel: 'Wezipesi',
+      jobTitlePlaceholder: 'mysal üçin Satuw geňeşçisi, Dükan müdiri',
+      defaultStoreLabel: 'Esasy dükany (hökman däl)',
+      defaultStoreHint: 'Işgär kartynda görünýär; reýting şu dükan boýunça süzülýär.',
+      defaultStoreNone: 'Dükan ýok',
       emailInvalid: 'Dogry e-poçta salgysyny giriziň.',
       deactivateError: 'Işgäri passiwleşdirip bolmady.',
       reactivateError: 'Işgäri gaýtadan aktiwleşdirip bolmady.',
@@ -3504,6 +3789,8 @@ export const translations: Record<Locale, TranslationShape> = {
       viaBulkCopy: 'köpçülikleýin nusgalamak bilen',
       viaExcelImport: 'Excel-den',
       copiedFrom: '“{name}” şablonyndan nusgalandy',
+      actionExport: 'Excel göçürilip alndy',
+      exportedFile: 'Faýl: {name}',
       valueAdded: 'goşuldy',
       valueRemoved: 'aýryldy',
       valueChanged: 'üýtgedildi',
@@ -3525,6 +3812,8 @@ export const translations: Record<Locale, TranslationShape> = {
           avatarId: 'Profil suraty',
           fullAccess: 'Admin hukugy',
           canEnterVisitorCounts: 'Gelýänleriň sanyny girizip biler',
+          jobTitle: 'Wezipesi',
+          defaultStoreId: 'Esasy dükany',
           isActive: 'Ýagdaýy',
           passwordHash: 'Parol',
         },
@@ -3580,6 +3869,13 @@ export const translations: Record<Locale, TranslationShape> = {
       reopenPeriod: 'Döwri gaýtadan aç',
       reopenPasswordMessage:
         '{period} döwri gaýtadan açylar; meýilnamalar, maksatlar we hasap ýene üýtgedilip bilner. Tassyklamak üçin açar sözüňizi giriziň.',
+      exportExcel: 'Excel',
+      exporting: 'Taýýarlanýar…',
+      exportTitle: 'KPI we aýlyk Excel-i',
+      exportConfirm: 'Göçürip al',
+      exportPasswordMessage:
+        '{period} döwrüniň ähli meýilnamalary KPI bahalary we aýlyklary bilen Excel görnüşinde göçürilip alnar. Faýlda aýlyk maglumaty bar; göçürip almak döwrüň ýazgy maglumatyna ýazylýar.\n\nTassyklamak üçin açar sözüňizi giriziň.',
+      exported: '{file} göçürilip alndy.',
       reopened: '{period} döwri gaýtadan açyldy.',
       reopenExpired: 'Bu döwri {date} senesine çenli gaýtadan açyp bolýardy; indi kesgitlendi.',
       periodOpenHint: 'Meýilnamalar, maksatlar we ballar üýtgedilip bilner.',
@@ -3695,6 +3991,8 @@ export const translations: Record<Locale, TranslationShape> = {
       period: 'Döwür',
       templateFilter: 'Şablon boýunça süzgüç',
       allTemplates: 'Hemmesi',
+      store: 'Dükan',
+      allStores: 'Ähli dükanlar',
       loading: 'Ýüklenýär…',
       errorLoading: 'Reýting ýüklenip bilmedi.',
       empty: 'Bu döwürde entek KPI meýilnamasy ýok.',
@@ -3946,6 +4244,48 @@ export const translations: Record<Locale, TranslationShape> = {
         w6: 'Şen',
         w7: 'Ýek',
       },
+    },
+    storeDashboard: {
+      title: 'Dükan paneli',
+      year: 'Ýyl',
+      yearOption: '{year} · {previous} bilen',
+      store: 'Dükan',
+      allStores: 'Ähli dükanlar',
+      currency: 'Walýuta',
+      tabs: 'KPI bölümleri',
+      summaryTab: 'Jemleme',
+      refreshEvery: 'Bahalar her {minutes} minutda täzelenýär',
+      refreshOff: 'Awtomatik täzelenme öçük',
+      updatedAt: 'soňky täzelenme {at}',
+      loading: 'Ýüklenýär…',
+      error: 'Panel ýüklenmedi.',
+      empty:
+        'Entek saklanan baha ýok. Bahalar Tiger-den hasaplanýar we ilkinji täzelenmede peýda bolýar.',
+      comparing: '{year} bilen {previous} deňeşdirmesi',
+      comparedMonths: 'Deňeşdirilýän aýlar: {range} ({count} aý)',
+      noComparison:
+        '{previous} ýylynda deňeşdirmek üçin maglumat ýok. Ösüş iki ýylda hem maglumaty bolan tamamlanan aýlardan hasaplanýar; häzirlikçe diňe {year} bahalary görkezilýär.',
+      inProgress: '{month} dowam edýär; deňeşdirmä girmeýär.',
+      inProgressShort: 'Dowam edýär',
+      growth: 'Ösüş',
+      noGrowth: 'Deňeşdirme ýok',
+      percent: '%{value}',
+      monthlyAverage: 'Aýlyk ortaça',
+      total: 'Jemi',
+      difference: 'Tapawut',
+      yearSoFar: '{year}: tamamlanan {count} aý',
+      previousYearAll: '{year}: {count} aý',
+      monthlyTitle: 'Aýma-aý deňeşdirme',
+      monthlyHint: 'Jikme-jiklik üçin bir aýa basyň.',
+      monthAria: '{month}: {year} {current}, {previousYear} {previous}',
+      month: 'Aý',
+      change: 'Üýtgeşme',
+      storesTitle: 'Dükanlaryň deňeşdirmesi',
+      storesHint: 'Deňeşdirilýän aýlardaky ösüşe görä tertiplenen.',
+      singleStore: 'Bu ýyllarda diňe bir dükanyň satuwy bar.',
+      openKpi: '{name} jikme-jikligi',
+      customersNote:
+        'Dükanlar goşulanda iki dükanda-da görlen müşderi ýa-da haryt iki gezek sanalýar.',
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

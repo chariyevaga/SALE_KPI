@@ -283,6 +283,7 @@ const ACTION_DOTS: Record<AuditLogEntry['action'], string> = {
   create: 'bg-emerald-500',
   update: 'bg-sky-500',
   delete: 'bg-red-500',
+  export: 'bg-violet-500',
 };
 
 /** "Deactivated" reads better than "Updated · Status: Active → Inactive". */
@@ -307,7 +308,9 @@ function actionLabel(entry: AuditLogEntry, t: Translate): string {
       ? 'recordInfo.actionCreate'
       : entry.action === 'delete'
         ? 'recordInfo.actionDelete'
-        : 'recordInfo.actionUpdate',
+        : entry.action === 'export'
+          ? 'recordInfo.actionExport'
+          : 'recordInfo.actionUpdate',
   );
 }
 
@@ -324,6 +327,13 @@ function viaLabel(context: AuditLogEntry['context'], t: Translate): string | nul
   }
 }
 
+/** The downloaded file of an export entry (ADR-059). */
+function exportedFileName(context: AuditLogEntry['context']): string | null {
+  return context?.via === 'excel-export' && typeof context.fileName === 'string'
+    ? context.fileName
+    : null;
+}
+
 function copiedFromName(context: AuditLogEntry['context']): string | null {
   const source = context?.copiedFrom;
 
@@ -336,6 +346,7 @@ function HistoryItem({ entry, tableName }: { entry: AuditLogEntry; tableName: Au
   const { t, locale } = useTranslation();
   const via = viaLabel(entry.context, t);
   const copiedFrom = copiedFromName(entry.context);
+  const exportedFile = exportedFileName(entry.context);
   const fields = statusOnlyChange(entry) === null ? Object.entries(entry.changes) : [];
 
   return (
@@ -354,6 +365,11 @@ function HistoryItem({ entry, tableName }: { entry: AuditLogEntry; tableName: Au
       {copiedFrom ? (
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
           {t('recordInfo.copiedFrom', { name: copiedFrom })}
+        </p>
+      ) : null}
+      {exportedFile ? (
+        <p className="mt-1 break-all text-xs text-slate-600 dark:text-slate-300">
+          {t('recordInfo.exportedFile', { name: exportedFile })}
         </p>
       ) : null}
       {fields.length > 0 ? (

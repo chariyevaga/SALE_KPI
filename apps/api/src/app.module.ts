@@ -19,6 +19,7 @@ import { KpiPeriodsModule } from './kpi-periods/kpi-periods.module.js';
 import { KpiResultsModule } from './kpi-results/kpi-results.module.js';
 import { KpiTemplatesModule } from './kpi-templates/kpi-templates.module.js';
 import { LeaderboardModule } from './leaderboard/leaderboard.module.js';
+import { StoreDashboardModule } from './store-dashboard/store-dashboard.module.js';
 import { StoreVisitorCountsModule } from './store-visitor-counts/store-visitor-counts.module.js';
 import { StoresModule } from './stores/stores.module.js';
 import { TigerModule } from './tiger/tiger.module.js';
@@ -44,6 +45,7 @@ import { TigerModule } from './tiger/tiger.module.js';
     KpiResultsModule,
     KpiAssignmentsModule,
     LeaderboardModule,
+    StoreDashboardModule,
     AuditLogsModule,
   ],
 })

@@ -13,6 +13,8 @@ import {
 } from '../api/kpi-plans';
 import { listStores } from '../api/stores';
 import { AppShell } from '../components/AppShell';
+import { EmployeeAvatarButton } from '../components/EmployeeAvatarButton';
+import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { formInputDenseClassName } from '../components/FormField';
 import { KpiConversionExplanation } from '../components/KpiConversion';
 import { KpiAchievement, KpiScoreSummary } from '../components/KpiProgress';
@@ -104,6 +106,7 @@ export function KpiPlanFormPage() {
   const queryClient = useQueryClient();
   const { t, locale } = useTranslation();
   const [draft, setDraft] = useState<TargetDraft>({});
+  const [cardOpen, setCardOpen] = useState(false);
   const [actualDraft, setActualDraft] = useState<TargetDraft>({});
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -341,13 +344,23 @@ export function KpiPlanFormPage() {
         {plan ? (
           <div className="flex flex-col gap-4 pb-28">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {plan.templateName}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {plan.period.label} · @{plan.employee.username} ·{' '}
-                {t('kpiPlanForm.weight', { value: formatNumber(plan.totalWeight, locale) })}
-              </p>
+              <div className="flex items-center gap-2">
+                <EmployeeAvatarButton
+                  person={plan.employee}
+                  avatarPath={plan.employee.avatarUrl}
+                  onOpenCard={() => setCardOpen(true)}
+                  avatarClassName="h-11 w-11 text-sm"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {plan.templateName}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {plan.period.label} · @{plan.employee.username} ·{' '}
+                    {t('kpiPlanForm.weight', { value: formatNumber(plan.totalWeight, locale) })}
+                  </p>
+                </div>
+              </div>
 
               {planResults ? (
                 <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -579,6 +592,10 @@ export function KpiPlanFormPage() {
           </div>
         ) : null}
       </SalaryRevealProvider>
+      <EmployeeCardModal
+        employeeId={cardOpen && plan ? plan.employee.id : null}
+        onClose={() => setCardOpen(false)}
+      />
     </AppShell>
   );
 }

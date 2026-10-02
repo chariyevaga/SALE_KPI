@@ -4,6 +4,7 @@ import { chunkIds } from '../lib/bulk';
 import type {
   BulkUpdateResponse,
   CreateEmployeeInput,
+  EmployeeCard,
   EmployeeListResponse,
   EmployeeResponse,
   UpdateEmployeeInput,
@@ -19,6 +20,8 @@ export interface EmployeeListQuery {
   fullAccess?: boolean;
   hasErpLink?: boolean;
   hasAvatar?: boolean;
+  /** Only employees whose default store this is (ADR-058). */
+  defaultStoreId?: number;
   sort?: EmployeeSortField;
   order?: 'asc' | 'desc';
 }
@@ -37,6 +40,11 @@ export function listEmployees(page: number, query: EmployeeListQuery = {}): Prom
 
 export function getEmployee(id: string): Promise<EmployeeResponse> {
   return apiFetch<EmployeeResponse>(`/employees/${id}`);
+}
+
+/** The employee card (ADR-058); every signed-in user may read it. */
+export function getEmployeeCard(id: string): Promise<EmployeeCard> {
+  return apiFetch<EmployeeCard>(`/employees/${id}/card`);
 }
 
 export function createEmployee(input: CreateEmployeeInput): Promise<EmployeeResponse> {

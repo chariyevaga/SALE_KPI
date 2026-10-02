@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 
 import { useTranslation } from '../i18n/locale-store';
-import { FormField } from './FormField';
+import { FormField, formInputClassName } from './FormField';
 import { Modal } from './Modal';
 import { PasswordInput } from './PasswordInput';
 
@@ -15,11 +15,13 @@ interface PasswordConfirmModalProps {
   pending: boolean;
   /** Shown under the field, e.g. "wrong password" or the lock time. */
   error: string | null;
+  /** `danger` (default) for actions that close or lock something; `primary` for a download. */
+  tone?: 'danger' | 'primary';
 }
 
 /**
  * Asks the signed-in person for their own password before a sensitive action (ADR-053):
- * closing or reopening a KPI period. Full access alone is not enough; whoever sits at an
+ * closing or reopening a KPI period, or downloading its scores and salaries (ADR-059). Full access alone is not enough; whoever sits at an
  * unlocked session still has to know the password.
  */
 export function PasswordConfirmModal({
@@ -30,6 +32,7 @@ export function PasswordConfirmModal({
   onClose,
   pending,
   error,
+  tone = 'danger',
 }: PasswordConfirmModalProps) {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
@@ -54,6 +57,7 @@ export function PasswordConfirmModal({
             onChange={setPassword}
             autoComplete="current-password"
             required
+            className={formInputClassName}
           />
         </FormField>
         {error ? (
@@ -72,7 +76,11 @@ export function PasswordConfirmModal({
           <button
             type="submit"
             disabled={password === '' || pending}
-            className="h-12 flex-1 rounded-xl bg-red-600 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-40 dark:bg-red-500 dark:hover:bg-red-400"
+            className={`h-12 flex-1 rounded-xl text-sm font-semibold transition disabled:opacity-40 ${
+              tone === 'primary'
+                ? 'bg-emerald-400 text-slate-950 hover:bg-emerald-300'
+                : 'bg-red-600 text-white hover:bg-red-500 dark:bg-red-500 dark:hover:bg-red-400'
+            }`}
           >
             {pending ? t('passwordConfirm.checking') : confirmLabel}
           </button>

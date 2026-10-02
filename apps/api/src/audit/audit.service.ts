@@ -265,6 +265,26 @@ export class AuditService {
     });
   }
 
+  /**
+   * Logs an event that changes no column of the record, e.g. an Excel export (ADR-059): one
+   * audit_logs entry with the actor and request of the context, `changes` empty and the
+   * details in `context`. The record itself is not touched, so `updated_*` stay as they are.
+   */
+  async logEvent<Entity extends AuditedEntity>(
+    manager: EntityManager,
+    target: EntityTarget<Entity>,
+    recordId: string,
+    action: Extract<AuditAction, 'export'>,
+    context: Record<string, AuditValue>,
+  ): Promise<void> {
+    await this.write(manager, async (transaction) => {
+      const metadata = transaction.getRepository(target).metadata;
+
+      assertAudited(metadata);
+      await this.writeLogs(transaction, metadata, [{ recordId, action, changes: {}, context }]);
+    });
+  }
+
   /** Runs in the caller's transaction, or opens one so the row and its log commit together. */
   private write<T>(
     manager: EntityManager,

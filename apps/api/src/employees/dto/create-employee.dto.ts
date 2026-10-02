@@ -51,6 +51,32 @@ export class CreateEmployeeDto {
   @MaxLength(100)
   lastname: string;
 
+  @ApiProperty({
+    type: String,
+    example: 'Satış danışmanı',
+    minLength: 1,
+    maxLength: 100,
+    description: 'Görevi; çalışan kartında herkese görünür (ADR-058).',
+  })
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  jobTitle: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    example: 6,
+    description:
+      'Varsayılan mağaza: `GET /stores` id\'si (Tiger L_CAPIDIV LOGICALREF). Çalışan kartında görünür, liderlik tablosunu süzer (ADR-058).',
+  })
+  @IsOptional()
+  @ValidateIf((_object, value: unknown) => value !== null)
+  @IsInt()
+  @Min(1)
+  defaultStoreId?: number | null;
+
   @ApiPropertyOptional({
     type: String,
     example: 'ayse.yilmaz@example.com',

@@ -7,10 +7,11 @@ import { EmployeeAvatarFileReferenceHandler } from './employee-avatar-file-refer
 import { EmployeesController } from './employees.controller.js';
 import { EmployeesService } from './employees.service.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
+import { StoreEntity } from '../stores/entities/store.entity.js';
 import { EmployeeEntity } from './entities/employee.entity.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EmployeeEntity, ErpEmployeeEntity]), AuthModule, FilesModule],
+  imports: [TypeOrmModule.forFeature([EmployeeEntity, ErpEmployeeEntity, StoreEntity]), AuthModule, FilesModule],
   controllers: [EmployeesController],
   providers: [EmployeeAvatarFileReferenceHandler, EmployeesService],
   exports: [TypeOrmModule],

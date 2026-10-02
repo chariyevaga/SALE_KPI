@@ -4,9 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 
 import { getLeaderboard } from '../api/leaderboard';
 import { AppShell } from '../components/AppShell';
-import { AuthenticatedImage } from '../components/AuthenticatedImage';
+import { EmployeeAvatarButton } from '../components/EmployeeAvatarButton';
+import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { EmployeeKpiView } from '../components/EmployeeKpiView';
+import { CalendarIcon, FilterSelect, StoreIcon } from '../components/FilterSelect';
 import { Modal } from '../components/Modal';
+import { PersonAvatar } from '../components/ProfileAvatar';
 import { ProgressMeter } from '../components/ProgressMeter';
 import { formatDateTime, formatNumber } from '../i18n/formatters';
 import { useTranslation } from '../i18n/locale-store';
@@ -83,28 +86,86 @@ function MedalIcon({ className = '' }: { className?: string }) {
 }
 
 function EntryAvatar({ entry, className }: { entry: LeaderboardEntry; className: string }) {
-  const initials =
-    `${entry.employee.firstname[0] ?? ''}${entry.employee.lastname[0] ?? ''}`.toUpperCase();
-  const fallback = (
-    <span
-      className={`flex flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-400 ${className}`}
-    >
-      {initials}
-    </span>
-  );
-
-  return entry.employee.avatarUrl ? (
-    <AuthenticatedImage
-      path={entry.employee.avatarUrl}
-      alt=""
-      className={`flex-shrink-0 rounded-full object-cover ${className}`}
-      fallback={fallback}
-    />
-  ) : (
-    fallback
+  return (
+    <PersonAvatar person={entry.employee} path={entry.employee.avatarUrl} className={className} />
   );
 }
 
+type LeaderboardStore = LeaderboardResponse['stores'][number];
+
+/** Default store of an entry's employee (ADR-058); undefined without one. */
+type StoreOf = (entry: LeaderboardEntry) => LeaderboardStore | undefined;
+
+/** The store's name; its number (or id) only when Tiger has no name for it. */
+function storeName(store: LeaderboardStore): string {
+  return store.name ?? (store.nr === null ? `#${String(store.id)}` : String(store.nr));
+}
+
+function BriefcaseIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="7" width="18" height="13" rx="2.5" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18" />
+    </svg>
+  );
+}
+
+/**
+ * Job title and default store of an entry (ADR-058), each with its icon. `stacked` puts them
+ * on two centred lines for the narrow podium places; otherwise they share one line.
+ */
+function EntryMeta({
+  entry,
+  store,
+  stacked = false,
+}: {
+  entry: LeaderboardEntry;
+  store: LeaderboardStore | undefined;
+  stacked?: boolean;
+}) {
+  const { t } = useTranslation();
+  const jobTitle = entry.employee.jobTitle;
+
+  if (!jobTitle && !store) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`flex min-w-0 text-xs text-slate-500 dark:text-slate-400 ${
+        stacked ? 'w-full flex-col items-center gap-0.5' : 'items-center gap-x-3'
+      }`}
+    >
+      {jobTitle ? (
+        <span className={`flex items-center gap-1 ${stacked ? 'max-w-full' : 'min-w-0'}`}>
+          <BriefcaseIcon className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="sr-only">{t('employeeCard.jobTitle')}:</span>
+          <span className="truncate">{jobTitle}</span>
+        </span>
+      ) : null}
+      {store ? (
+        <span
+          className={`flex items-center gap-1 ${stacked ? 'max-w-full' : 'min-w-0 flex-shrink-0'}`}
+        >
+          <StoreIcon className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="sr-only">{t('employeeCard.defaultStore')}:</span>
+          <span className="truncate">{storeName(store)}</span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** A compact filter: icon, value and chevron in one pill; the label is for screen readers. */
 function YouBadge() {
   const { t } = useTranslation();
 
@@ -116,34 +177,30 @@ function YouBadge() {
 }
 
 /**
- * Opens an entry's KPI in a modal; null when the viewer may not open it. Everyone may open
- * their own; only a `full_access` user may open other employees'.
+ * What tapping an entry opens. Everyone may open their own KPI; only a `full_access` user
+ * may open other employees'. Anyone else's entry opens their employee card, which every
+ * signed-in user may see (ADR-058).
  */
-type Opener = (entry: LeaderboardEntry) => (() => void) | null;
+type Opener = (entry: LeaderboardEntry) => { onOpen: () => void; label: string };
 
-/** An entry that opens the KPI modal when it may, and stays plain otherwise. */
-function MaybeButton({
-  onOpen,
-  label,
+function EntryButton({
+  action,
   className,
   children,
 }: {
-  onOpen: (() => void) | null;
-  label: string;
+  action: { onOpen: () => void; label: string };
   className: string;
   children: ReactNode;
 }) {
-  return onOpen ? (
+  return (
     <button
       type="button"
-      onClick={onOpen}
-      aria-label={label}
+      onClick={action.onOpen}
+      aria-label={action.label}
       className={`w-full text-left ${className}`}
     >
       {children}
     </button>
-  ) : (
-    <div className={className}>{children}</div>
   );
 }
 
@@ -282,10 +339,12 @@ function PodiumPlace({
   entry,
   place,
   opener,
+  storeOf,
 }: {
   entry: LeaderboardEntry;
   place: Place;
   opener: Opener;
+  storeOf: StoreOf;
 }) {
   const { t, locale } = useTranslation();
   // `place` is only where the step stands (2 · 1 · 3). Medal, height and crown follow the
@@ -301,9 +360,8 @@ function PodiumPlace({
       className="flex min-w-0 flex-1 animate-podium-rise flex-col items-center motion-reduce:animate-none"
       style={delay}
     >
-      <MaybeButton
-        onOpen={opener(entry)}
-        label={t('leaderboard.openKpi', { name: fullName(entry) })}
+      <EntryButton
+        action={opener(entry)}
         className="flex w-full min-w-0 flex-col items-center rounded-2xl px-1 pb-2 pt-1 transition hover:bg-slate-100 dark:hover:bg-slate-900"
       >
         <div className="relative flex flex-col items-center">
@@ -341,13 +399,14 @@ function PodiumPlace({
           <span className="-mt-1 w-full truncate text-xs text-slate-500 dark:text-slate-400">
             {entry.employee.lastname}
           </span>
+          <EntryMeta entry={entry} store={storeOf(entry)} stacked />
           {entry.isMe ? <YouBadge /> : null}
         </span>
 
         <span className="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-slate-100">
           {entry.totalScore === null ? '—' : formatNumber(entry.totalScore, locale)}
         </span>
-      </MaybeButton>
+      </EntryButton>
 
       <div
         className={`flex w-full flex-col items-center justify-start rounded-t-2xl pt-2 shadow-inner ${medal.step} ${layout.step}`}
@@ -361,7 +420,15 @@ function PodiumPlace({
   );
 }
 
-function Podium({ top, opener }: { top: LeaderboardEntry[]; opener: Opener }) {
+function Podium({
+  top,
+  opener,
+  storeOf,
+}: {
+  top: LeaderboardEntry[];
+  opener: Opener;
+  storeOf: StoreOf;
+}) {
   const { t } = useTranslation();
   // Visual order 2 · 1 · 3; missing places (fewer than three scores) are left empty.
   const slots: { place: Place; entry: LeaderboardEntry | undefined }[] = [
@@ -375,7 +442,13 @@ function Podium({ top, opener }: { top: LeaderboardEntry[]; opener: Opener }) {
       <ol className="mx-auto flex max-w-xl items-end gap-2 sm:gap-4">
         {slots.map(({ place, entry }) =>
           entry ? (
-            <PodiumPlace key={entry.assignmentId} entry={entry} place={place} opener={opener} />
+            <PodiumPlace
+              key={entry.assignmentId}
+              entry={entry}
+              place={place}
+              opener={opener}
+              storeOf={storeOf}
+            />
           ) : (
             <li key={`empty-${String(place)}`} aria-hidden="true" className="flex-1" />
           ),
@@ -459,7 +532,18 @@ function EntryScore({ entry, compact = false }: { entry: LeaderboardEntry; compa
   );
 }
 
-function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Opener }) {
+function RestList({
+  entries,
+  opener,
+  storeOf,
+  showTemplate,
+}: {
+  entries: LeaderboardEntry[];
+  opener: Opener;
+  storeOf: StoreOf;
+  /** Only when the list mixes templates; with one template its name says nothing. */
+  showTemplate: boolean;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -468,9 +552,8 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
       <ol className="flex flex-col gap-2 lg:hidden">
         {entries.map((entry) => (
           <li key={entry.assignmentId}>
-            <MaybeButton
-              onOpen={opener(entry)}
-              label={t('leaderboard.openKpi', { name: fullName(entry) })}
+            <EntryButton
+              action={opener(entry)}
               className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
                 entry.isMe
                   ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400/60 dark:bg-emerald-400/10'
@@ -481,12 +564,15 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
               <EntryAvatar entry={entry} className="h-10 w-10 text-xs" />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <EntryName entry={entry} />
-                <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {entry.templateName}
-                </span>
+                <EntryMeta entry={entry} store={storeOf(entry)} />
+                {showTemplate ? (
+                  <span className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    {entry.templateName}
+                  </span>
+                ) : null}
                 <EntryScore entry={entry} compact />
               </div>
-            </MaybeButton>
+            </EntryButton>
           </li>
         ))}
       </ol>
@@ -502,9 +588,11 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
               <th scope="col" className="px-4 py-3">
                 {t('leaderboard.colEmployee')}
               </th>
-              <th scope="col" className="px-4 py-3">
-                {t('leaderboard.colTemplate')}
-              </th>
+              {showTemplate ? (
+                <th scope="col" className="px-4 py-3">
+                  {t('leaderboard.colTemplate')}
+                </th>
+              ) : null}
               <th scope="col" className="w-72 px-4 py-3 text-right">
                 {t('leaderboard.colScore')}
               </th>
@@ -512,7 +600,7 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {entries.map((entry) => {
-              const onOpen = opener(entry);
+              const action = opener(entry);
 
               return (
                 <tr
@@ -529,23 +617,24 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
                   <td className="px-4 py-2">
                     <div className="flex min-w-0 items-center gap-3">
                       <EntryAvatar entry={entry} className="h-10 w-10 text-xs" />
-                      {onOpen ? (
+                      <div className="flex min-w-0 flex-col gap-0.5">
                         <button
                           type="button"
-                          onClick={onOpen}
-                          aria-label={t('leaderboard.openKpi', { name: fullName(entry) })}
+                          onClick={action.onOpen}
+                          aria-label={action.label}
                           className="min-w-0 text-left hover:underline"
                         >
                           <EntryName entry={entry} />
                         </button>
-                      ) : (
-                        <EntryName entry={entry} />
-                      )}
+                        <EntryMeta entry={entry} store={storeOf(entry)} />
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
-                    {entry.templateName}
-                  </td>
+                  {showTemplate ? (
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
+                      {entry.templateName}
+                    </td>
+                  ) : null}
                   <td className="px-4 py-2">
                     <div className="flex justify-end">
                       <EntryScore entry={entry} />
@@ -558,6 +647,37 @@ function RestList({ entries, opener }: { entries: LeaderboardEntry[]; opener: Op
         </table>
       </div>
     </>
+  );
+}
+
+/** Who the KPI modal is about: the avatar opens their employee card (ADR-058). */
+function EmployeeHeader({
+  entry,
+  store,
+  onOpenCard,
+}: {
+  entry: LeaderboardEntry;
+  store: LeaderboardStore | undefined;
+  onOpenCard: () => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+      <EmployeeAvatarButton
+        person={entry.employee}
+        avatarPath={entry.employee.avatarUrl}
+        onOpenCard={onOpenCard}
+        avatarClassName="h-14 w-14 text-base"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">
+          {fullName(entry)}
+        </p>
+        <EntryMeta entry={entry} store={store} />
+        <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+          {entry.templateName}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -596,8 +716,9 @@ function FreshnessLine({ data }: { data: LeaderboardResponse }) {
 /**
  * Leaderboard (ADR-047): every plan of a period ranked by its stored total score, open to
  * every signed-in employee (names and total scores only). Your own standing sits on top,
- * the first three stand on a podium, everyone else follows as a list. Period and template
- * filters live in the URL (`?period=<id>&template=<id>`).
+ * the first three stand on a podium, everyone else follows as a list; each shows the job
+ * title and default store (ADR-058). Period, store and template filters live in the URL
+ * (`?period=<id>&store=<id>&template=<id>`).
  */
 export function LeaderboardPage() {
   const { t } = useTranslation();
@@ -605,10 +726,12 @@ export function LeaderboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const periodId = searchParams.get('period') ?? undefined;
   const templateId = searchParams.get('template') ?? undefined;
+  const storeParam = Number(searchParams.get('store'));
+  const storeId = Number.isInteger(storeParam) && storeParam > 0 ? storeParam : undefined;
 
   const query = useQuery({
-    queryKey: ['leaderboard', periodId ?? null, templateId ?? null],
-    queryFn: () => getLeaderboard({ periodId, templateId }),
+    queryKey: ['leaderboard', periodId ?? null, templateId ?? null, storeId ?? null],
+    queryFn: () => getLeaderboard({ periodId, templateId, storeId }),
     placeholderData: keepPreviousData,
     refetchInterval: (current) =>
       current.state.data?.period?.status === 'open' ? OPEN_PERIOD_REFRESH_MS : false,
@@ -622,12 +745,34 @@ export function LeaderboardPage() {
   const me = entries.find((entry) => entry.isMe);
   // Whose KPI the modal shows; the screen itself never navigates away.
   const [viewing, setViewing] = useState<LeaderboardEntry | null>(null);
-  const opener: Opener = (entry) => (entry.isMe || fullAccess ? () => setViewing(entry) : null);
+  const [cardEmployeeId, setCardEmployeeId] = useState<string | null>(null);
+  const opener: Opener = (entry) =>
+    entry.isMe || fullAccess
+      ? {
+          onOpen: () => setViewing(entry),
+          label: t('leaderboard.openKpi', { name: fullName(entry) }),
+        }
+      : {
+          onOpen: () => setCardEmployeeId(entry.employee.id),
+          label: t('employeeCard.open', { name: fullName(entry) }),
+        };
+  const storesById = new Map((data?.stores ?? []).map((store) => [store.id, store]));
+  const storeOf: StoreOf = (entry) =>
+    entry.employee.defaultStoreId === null
+      ? undefined
+      : storesById.get(entry.employee.defaultStoreId);
+  // Template names only tell entries apart while the list mixes templates.
+  const showTemplate = (data?.templates.length ?? 0) > 1 && templateId === undefined;
 
-  function update(next: { period?: string | undefined; template?: string | undefined }) {
+  function update(next: {
+    period?: string | undefined;
+    template?: string | undefined;
+    store?: number | undefined;
+  }) {
     const params: Record<string, string> = {};
     const period = 'period' in next ? next.period : periodId;
     const template = 'template' in next ? next.template : templateId;
+    const store = 'store' in next ? next.store : storeId;
 
     if (period) {
       params.period = period;
@@ -637,6 +782,10 @@ export function LeaderboardPage() {
       params.template = template;
     }
 
+    if (store !== undefined) {
+      params.store = String(store);
+    }
+
     setSearchParams(params, { replace: true });
   }
 
@@ -644,26 +793,42 @@ export function LeaderboardPage() {
     <AppShell title={t('leaderboard.title')}>
       {data && data.periods.length > 0 ? (
         <div className="mb-4 flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="leaderboard-period"
-              className="text-sm font-medium text-slate-600 dark:text-slate-300"
-            >
-              {t('leaderboard.period')}
-            </label>
-            <select
+          <div
+            className={`grid gap-2 sm:flex sm:flex-wrap ${
+              data.stores.length > 0 ? 'grid-cols-2' : 'grid-cols-1'
+            }`}
+          >
+            <FilterSelect
               id="leaderboard-period"
+              label={t('leaderboard.period')}
+              icon={<CalendarIcon className="h-4 w-4" />}
               value={data.period?.id ?? ''}
               // Templates differ from month to month, so a new period starts unfiltered.
-              onChange={(event) => update({ period: event.target.value, template: undefined })}
-              className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 sm:max-w-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              onChange={(value) => update({ period: value, template: undefined, store: undefined })}
             >
               {data.periods.map((period) => (
                 <option key={period.id} value={period.id}>
                   {period.label}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
+
+            {data.stores.length > 0 ? (
+              <FilterSelect
+                id="leaderboard-store"
+                label={t('leaderboard.store')}
+                icon={<StoreIcon className="h-4 w-4" />}
+                value={storeId === undefined ? '' : String(storeId)}
+                onChange={(value) => update({ store: value ? Number(value) : undefined })}
+              >
+                <option value="">{t('leaderboard.allStores')}</option>
+                {data.stores.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {storeName(store)}
+                  </option>
+                ))}
+              </FilterSelect>
+            ) : null}
           </div>
 
           {data.templates.length > 1 ? (
@@ -731,9 +896,10 @@ export function LeaderboardPage() {
           {top.length > 0 ? (
             // Keyed by period and filter, so the podium rises again when either changes.
             <Podium
-              key={`${data.period?.id ?? ''}-${templateId ?? ''}`}
+              key={`${data.period?.id ?? ''}-${templateId ?? ''}-${String(storeId ?? '')}`}
               top={top}
               opener={opener}
+              storeOf={storeOf}
             />
           ) : null}
 
@@ -742,7 +908,12 @@ export function LeaderboardPage() {
               <h2 className="mb-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
                 {t('leaderboard.others')}
               </h2>
-              <RestList entries={rest} opener={opener} />
+              <RestList
+                entries={rest}
+                opener={opener}
+                storeOf={storeOf}
+                showTemplate={showTemplate}
+              />
             </section>
           ) : null}
         </div>
@@ -750,6 +921,11 @@ export function LeaderboardPage() {
 
       {viewing ? (
         <Modal open size="lg" onClose={() => setViewing(null)} title={fullName(viewing)}>
+          <EmployeeHeader
+            entry={viewing}
+            store={storeOf(viewing)}
+            onOpenCard={() => setCardEmployeeId(viewing.employee.id)}
+          />
           {/* Its own period picker: changing it must not move the leaderboard's period. */}
           <EmployeeKpiView
             employeeId={viewing.isMe ? undefined : viewing.employee.id}
@@ -757,6 +933,9 @@ export function LeaderboardPage() {
           />
         </Modal>
       ) : null}
+
+      {/* After the KPI modal, so the card stacks above it. */}
+      <EmployeeCardModal employeeId={cardEmployeeId} onClose={() => setCardEmployeeId(null)} />
     </AppShell>
   );
 }
