@@ -618,6 +618,18 @@ interface TranslationShape {
     fixedPercent: string;
     kpiPercent: string;
     preview: string;
+    calcOpen: string;
+    calcClose: string;
+    calcTitle: string;
+    calcHint: string;
+    calcPartLabel: string;
+    calcFixedAmount: string;
+    calcKpiAmount: string;
+    calcResult: string;
+    calcApply: string;
+    calcNeedPercents: string;
+    calcZeroPercent: string;
+    calcTooLarge: string;
     save: string;
     saving: string;
     saveError: string;
@@ -1495,6 +1507,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Sabit (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Sabit {fixed} + KPI {kpi}',
+      calcOpen: 'Maaşı sabit ya da KPI tutarından hesapla',
+      calcClose: 'Hesap makinesini kapat',
+      calcTitle: 'Maaşı hesapla',
+      calcHint: 'Bir kısmın tutarını yazın; maaş yüzdelere göre hesaplanır.',
+      calcPartLabel: 'Bilinen kısım',
+      calcFixedAmount: 'Sabit kısım ne kadar olsun? ({currency})',
+      calcKpiAmount: 'KPI kısmı ne kadar olsun? ({currency})',
+      calcResult: 'Maaş',
+      calcApply: 'Maaşa yaz',
+      calcNeedPercents: 'Önce sabit ve KPI yüzdelerini girin; toplamları 100 olmalı.',
+      calcZeroPercent: 'Bu kısmın yüzdesi 0; maaş ondan hesaplanamaz.',
+      calcTooLarge: 'Hesaplanan maaş izin verilen en büyük tutarı aşıyor.',
       save: 'Kaydet',
       saving: 'Kaydediliyor…',
       saveError: 'Maaş kaydedilemedi.',
@@ -2391,6 +2415,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Fixed (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Fixed {fixed} + KPI {kpi}',
+      calcOpen: 'Work out the salary from the fixed or KPI amount',
+      calcClose: 'Close the calculator',
+      calcTitle: 'Work out the salary',
+      calcHint: 'Type what one part should be; the salary follows from the percentages.',
+      calcPartLabel: 'Known part',
+      calcFixedAmount: 'Fixed part should be ({currency})',
+      calcKpiAmount: 'KPI part should be ({currency})',
+      calcResult: 'Salary',
+      calcApply: 'Use as salary',
+      calcNeedPercents: 'Enter the fixed and KPI percentages first; they must add up to 100.',
+      calcZeroPercent: 'This part is 0%; the salary cannot be worked out from it.',
+      calcTooLarge: 'The salary would be above the largest allowed amount.',
       save: 'Save',
       saving: 'Saving…',
       saveError: 'Could not save the salary.',
@@ -3287,6 +3323,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Фикс. (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Фикс. {fixed} + KPI {kpi}',
+      calcOpen: 'Рассчитать зарплату по фиксированной части или части KPI',
+      calcClose: 'Закрыть калькулятор',
+      calcTitle: 'Расчёт зарплаты',
+      calcHint: 'Введите сумму одной части — зарплата рассчитается по процентам.',
+      calcPartLabel: 'Известная часть',
+      calcFixedAmount: 'Фиксированная часть ({currency})',
+      calcKpiAmount: 'Часть KPI ({currency})',
+      calcResult: 'Зарплата',
+      calcApply: 'Подставить в зарплату',
+      calcNeedPercents: 'Сначала введите проценты фиксированной части и KPI; в сумме 100.',
+      calcZeroPercent: 'Доля этой части 0%; по ней зарплату не рассчитать.',
+      calcTooLarge: 'Зарплата превысит максимально допустимую сумму.',
       save: 'Сохранить',
       saving: 'Сохранение…',
       saveError: 'Не удалось сохранить зарплату.',
@@ -4186,6 +4234,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Hemişelik (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Hemişelik {fixed} + KPI {kpi}',
+      calcOpen: 'Aýlygy hemişelik ýa-da KPI möçberinden hasapla',
+      calcClose: 'Hasaplaýjyny ýap',
+      calcTitle: 'Aýlygy hasapla',
+      calcHint: 'Bir bölegiň möçberini ýazyň; aýlyk göterimlere görä hasaplanar.',
+      calcPartLabel: 'Belli bölek',
+      calcFixedAmount: 'Hemişelik bölek näçe bolsun? ({currency})',
+      calcKpiAmount: 'KPI bölegi näçe bolsun? ({currency})',
+      calcResult: 'Aýlyk',
+      calcApply: 'Aýlyga ýaz',
+      calcNeedPercents: 'Ilki hemişelik we KPI göterimlerini giriziň; jemi 100 bolmaly.',
+      calcZeroPercent: 'Bu bölegiň göterimi 0; aýlygy ondan hasaplap bolmaýar.',
+      calcTooLarge: 'Aýlyk rugsat berlen iň uly möçberden geçýär.',
       save: 'Ýatda sakla',
       saving: 'Ýatda saklanýar…',
       saveError: 'Aýlyk ýatda saklanyp bilmedi.',
