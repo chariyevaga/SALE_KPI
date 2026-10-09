@@ -1,26 +1,43 @@
+import { conversionRate } from '../kpi-results/conversion-rules.js';
+
 /**
- * Rules of the store dashboard (ADR-061): which KPIs it shows, which months it keeps fresh,
- * and how a calendar year is compared with the year before, month by month.
+ * Rules of the store dashboard (ADR-061, ADR-065): which KPIs it shows, which months it keeps
+ * fresh, and how a calendar year is compared with the year before, month by month.
  */
 
-/** The store KPIs #1–#6; conversion and item group sales need inputs the dashboard has not. */
-export const STORE_DASHBOARD_KPI_CODES = [
+/**
+ * The store KPIs with a month function: #1–#6 from Tiger (`dbo.kpi_month_values`) and #16
+ * from the entered visitor counts (`dbo.kpi_month_visitor_values`, ADR-064).
+ */
+export const STORE_DASHBOARD_MONTH_VALUE_CODES = [
   'STORE_SALES',
   'STORE_RECEIPTS',
   'STORE_CUSTOMERS',
   'STORE_NEW_CUSTOMERS',
   'STORE_RETURNING_CUSTOMERS',
   'STORE_PRODUCT_VARIETY',
+  'STORE_VISITOR_COUNT',
+] as const;
+
+/** #7, measured by the refresh job with the calculation's rules (conversion-rules.ts). */
+export const STORE_DASHBOARD_CONVERSION_CODE = 'STORE_CONVERSION';
+
+/** Every KPI the dashboard shows; item group sales (#8) needs a group choice it has not. */
+export const STORE_DASHBOARD_KPI_CODES = [
+  ...STORE_DASHBOARD_MONTH_VALUE_CODES,
+  STORE_DASHBOARD_CONVERSION_CODE,
 ] as const;
 
 export type StoreDashboardKpiCode = (typeof STORE_DASHBOARD_KPI_CODES)[number];
 
 /**
- * How the months of a period add up. Sales, receipts and new customers add up exactly (a
- * customer is new once in the firm's history). Customers, returning customers and product
- * variety are distinct per month, so their sum would count the same customer or item again;
- * the period shows their monthly average. Growth is the same either way, because both years
- * are compared over the same months.
+ * How the months of a period, and the stores of "all stores", add up. Sales, receipts, new
+ * customers (a customer is new once in the firm's history) and visitors add up exactly.
+ * Customers, returning customers and product variety are distinct per month, so their sum
+ * would count the same customer or item again; the period shows their monthly average.
+ * Growth is the same either way, because both years are compared over the same months.
+ * The conversion is a rate: its receipts and visitors are added up first, then divided
+ * (`ratio`, docs/BUSINESS_RULES.md "Dönüşüm").
  */
 export const STORE_DASHBOARD_AGGREGATION = {
   STORE_SALES: 'sum',
@@ -29,15 +46,19 @@ export const STORE_DASHBOARD_AGGREGATION = {
   STORE_NEW_CUSTOMERS: 'sum',
   STORE_RETURNING_CUSTOMERS: 'average',
   STORE_PRODUCT_VARIETY: 'average',
-} as const satisfies Record<StoreDashboardKpiCode, 'sum' | 'average'>;
+  STORE_VISITOR_COUNT: 'sum',
+  STORE_CONVERSION: 'ratio',
+} as const satisfies Record<StoreDashboardKpiCode, StoreDashboardAggregation>;
 
-export type StoreDashboardAggregation = 'sum' | 'average';
+export const STORE_DASHBOARD_AGGREGATIONS = ['sum', 'average', 'ratio'] as const;
+
+export type StoreDashboardAggregation = (typeof STORE_DASHBOARD_AGGREGATIONS)[number];
 
 export const MONTH_STATUSES = ['complete', 'inProgress', 'upcoming'] as const;
 
 export type MonthStatus = (typeof MONTH_STATUSES)[number];
 
-/** One value of `dbo.kpi_month_values` for a store. */
+/** One month of one store KPI: a `dbo.kpi_month_values` row, or the measured conversion. */
 export interface StoreMonthValue {
   storeNr: number;
   /** `YYYY-MM-01`. */
@@ -45,6 +66,16 @@ export interface StoreMonthValue {
   kpiCode: string;
   currency: string | null;
   value: number;
+  /** Rates only (the conversion): receipts; null for every other KPI. */
+  numerator: number | null;
+  /** Rates only: visitors, always positive; null for every other KPI. */
+  denominator: number | null;
+}
+
+/** A month's value with, for a rate, the parts it divides. */
+export interface MonthAmount {
+  value: number;
+  parts: { numerator: number; denominator: number } | null;
 }
 
 export interface StoredStoreMonthValue extends StoreMonthValue {
@@ -115,54 +146,87 @@ export function growthPercent(current: number | null, previous: number | null): 
   return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
-function aggregate(values: number[], aggregation: StoreDashboardAggregation): number | null {
-  if (values.length === 0) {
+/** The parts added up, divided; null when no amount has them. */
+function ratioOf(amounts: readonly MonthAmount[]): number | null {
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const amount of amounts) {
+    numerator += amount.parts?.numerator ?? 0;
+    denominator += amount.parts?.denominator ?? 0;
+  }
+
+  return conversionRate(numerator, denominator);
+}
+
+function aggregate(
+  amounts: readonly MonthAmount[],
+  aggregation: StoreDashboardAggregation,
+): number | null {
+  if (amounts.length === 0) {
     return null;
   }
 
-  const total = values.reduce((sum, value) => sum + value, 0);
+  if (aggregation === 'ratio') {
+    return ratioOf(amounts);
+  }
 
-  return aggregation === 'sum' ? total : total / values.length;
+  const total = amounts.reduce((sum, amount) => sum + amount.value, 0);
+
+  return aggregation === 'sum' ? total : total / amounts.length;
 }
 
 /**
- * Compares `year` with the year before, month by month. `values` holds one value per month
- * (`YYYY-MM`); a missing month had no sales documents. The running month is shown but never
- * compared or counted: it is only partly over.
+ * Compares `year` with the year before, month by month. `values` holds one amount per month
+ * (`YYYY-MM`); a missing month had no sales documents (no visitor count for the visitor KPIs).
+ * The running month is shown but never compared or counted: it is only partly over.
  */
 export function compareYears(
-  values: ReadonlyMap<string, number>,
+  values: ReadonlyMap<string, MonthAmount>,
   year: number,
   currentMonth: string,
   aggregation: StoreDashboardAggregation,
 ): SeriesComparison {
   const months: MonthComparison[] = [];
+  const currentAmounts = new Map<number, MonthAmount>();
+  const previousAmounts = new Map<number, MonthAmount>();
 
   for (let month = 1; month <= 12; month += 1) {
     const status = monthStatus(year, month, currentMonth);
-    const current = status === 'upcoming' ? null : (values.get(monthKey(year, month)) ?? null);
-    const previous = values.get(monthKey(year - 1, month)) ?? null;
+    const current = status === 'upcoming' ? undefined : values.get(monthKey(year, month));
+    const previous = values.get(monthKey(year - 1, month));
+
+    if (current) {
+      currentAmounts.set(month, current);
+    }
+
+    if (previous) {
+      previousAmounts.set(month, previous);
+    }
 
     months.push({
       month,
       status,
-      current,
-      previous,
-      growthPercent: status === 'complete' ? growthPercent(current, previous) : null,
+      current: current?.value ?? null,
+      previous: previous?.value ?? null,
+      growthPercent:
+        status === 'complete'
+          ? growthPercent(current?.value ?? null, previous?.value ?? null)
+          : null,
     });
   }
 
+  const amountsOf = (amounts: Map<number, MonthAmount>, entries: readonly MonthComparison[]) =>
+    entries.flatMap((entry) => {
+      const amount = amounts.get(entry.month);
+
+      return amount ? [amount] : [];
+    });
   const comparable = months.filter(
     (entry) => entry.status === 'complete' && entry.current !== null && entry.previous !== null,
   );
-  const current = aggregate(
-    comparable.map((entry) => entry.current ?? 0),
-    aggregation,
-  );
-  const previous = aggregate(
-    comparable.map((entry) => entry.previous ?? 0),
-    aggregation,
-  );
+  const current = aggregate(amountsOf(currentAmounts, comparable), aggregation);
+  const previous = aggregate(amountsOf(previousAmounts, comparable), aggregation);
   const finished = months.filter((entry) => entry.status === 'complete' && entry.current !== null);
   const previousYear = months.filter((entry) => entry.previous !== null);
 
@@ -174,32 +238,28 @@ export function compareYears(
       previous,
       difference: current !== null && previous !== null ? current - previous : null,
       growthPercent: growthPercent(current, previous),
-      currentYearValue: aggregate(
-        finished.map((entry) => entry.current ?? 0),
-        aggregation,
-      ),
+      currentYearValue: aggregate(amountsOf(currentAmounts, finished), aggregation),
       currentYearMonths: finished.length,
-      previousYearValue: aggregate(
-        previousYear.map((entry) => entry.previous ?? 0),
-        aggregation,
-      ),
+      previousYearValue: aggregate(amountsOf(previousAmounts, previousYear), aggregation),
       previousYearMonths: previousYear.length,
     },
   };
 }
 
 /**
- * Monthly values (`YYYY-MM` → value) of one KPI and currency: one store, or with
- * `storeNr` null every store added together. Adding stores is exact for sales, receipts and
- * new customers; a customer who shopped in two stores counts twice in the other counts.
+ * Monthly amounts (`YYYY-MM` → amount) of one KPI and currency: one store, or with
+ * `storeNr` null every store added together. Adding stores is exact for sales, receipts, new
+ * customers and visitors; a customer who shopped in two stores counts twice in the other
+ * counts. A rate adds its parts and divides them again.
  */
 export function monthlyValues(
   rows: readonly StoreMonthValue[],
   kpiCode: string,
   currency: string | null,
   storeNr: number | null,
-): Map<string, number> {
-  const values = new Map<string, number>();
+  aggregation: StoreDashboardAggregation,
+): Map<string, MonthAmount> {
+  const values = new Map<string, MonthAmount>();
 
   for (const row of rows) {
     if (
@@ -211,8 +271,22 @@ export function monthlyValues(
     }
 
     const key = row.monthStart.slice(0, 7);
+    const sum = values.get(key) ?? { value: 0, parts: null };
+    const parts =
+      row.numerator !== null && row.denominator !== null
+        ? {
+            numerator: (sum.parts?.numerator ?? 0) + row.numerator,
+            denominator: (sum.parts?.denominator ?? 0) + row.denominator,
+          }
+        : sum.parts;
 
-    values.set(key, (values.get(key) ?? 0) + row.value);
+    values.set(key, { value: sum.value + row.value, parts });
+  }
+
+  if (aggregation === 'ratio') {
+    for (const [key, amount] of values) {
+      values.set(key, { ...amount, value: ratioOf([amount]) ?? 0 });
+    }
   }
 
   return values;
@@ -225,9 +299,15 @@ function rowKey(row: StoreMonthValue): string {
 /** decimal(19, 4): values closer than this are the same stored value. */
 const VALUE_TOLERANCE = 0.00005;
 
+function sameNumber(left: number | null, right: number | null): boolean {
+  return left === null || right === null
+    ? left === right
+    : Math.abs(left - right) < VALUE_TOLERANCE;
+}
+
 export interface RefreshPlan {
   inserts: StoreMonthValue[];
-  updates: { id: string; value: number }[];
+  updates: { id: string; value: number; numerator: number | null; denominator: number | null }[];
   deleteIds: string[];
 }
 
@@ -253,8 +333,17 @@ export function planRefresh(
 
     byKey.delete(key);
 
-    if (Math.abs(existing.value - row.value) >= VALUE_TOLERANCE) {
-      plan.updates.push({ id: existing.id, value: row.value });
+    if (
+      !sameNumber(existing.value, row.value) ||
+      !sameNumber(existing.numerator, row.numerator) ||
+      !sameNumber(existing.denominator, row.denominator)
+    ) {
+      plan.updates.push({
+        id: existing.id,
+        value: row.value,
+        numerator: row.numerator,
+        denominator: row.denominator,
+      });
     }
   }
 

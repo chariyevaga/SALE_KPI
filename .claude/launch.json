@@ -3,31 +3,37 @@
   "configurations": [
     {
       "name": "api",
-      "runtimeExecutable": "env",
+      "runtimeExecutable": "sh",
       "runtimeArgs": [
-        "API_PORT=4455",
-        "KPI_AUTO_CALCULATION_INTERVAL_MINUTES=0",
-        "npm",
-        "--prefix",
-        "apps/api",
-        "run",
-        "dev"
+        "-c",
+        "export API_PORT=\"${PORT:-4455}\"; echo \"$API_PORT\" > apps/api/var/dev-api-port; KPI_AUTO_CALCULATION_INTERVAL_MINUTES=0 exec npm --prefix apps/api run dev"
       ],
-      "port": 4455
+      "port": 4455,
+      "autoPort": true
     },
     {
       "name": "web",
-      "runtimeExecutable": "env",
+      "runtimeExecutable": "sh",
       "runtimeArgs": [
-        "WEB_PORT=5182",
-        "VITE_API_BASE_URL=http://localhost:4455",
-        "npm",
-        "--prefix",
-        "apps/web",
-        "run",
-        "dev"
+        "-c",
+        "API_PORT_IN_USE=$(cat apps/api/var/dev-api-port 2>/dev/null || echo 4455); WEB_PORT=\"${PORT:-5182}\" VITE_API_BASE_URL=\"http://localhost:$API_PORT_IN_USE\" exec npm --prefix apps/web run dev"
       ],
-      "port": 5182
+      "port": 5182,
+      "autoPort": true
+    },
+    {
+      "name": "kpi-mail-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5199",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "n8n/kpi-mail-send/preview"
+      ],
+      "port": 5199
     }
   ]
 }

@@ -7,7 +7,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { SEARCH_COLLATION, andWhereEachSearchTerm } from '../common/sql-search.js';
 import { EmployeeSalaryEntity } from '../employee-salaries/entities/employee-salary.entity.js';
 import { salaryInForce } from '../employee-salaries/employee-salary-rules.js';
-import { toSalaryPayout } from '../employee-salaries/salary-payout.js';
+import { type SalaryPayoutResponse, toSalaryPayout } from '../employee-salaries/salary-payout.js';
 import { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { ErpEmployeeEntity } from '../erp-employees/entities/erp-employee.entity.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
@@ -44,6 +44,7 @@ import {
   toKpiAssignmentResponse,
   toKpiAssignmentSummary,
   toKpiMyPeriod,
+  toKpiSalarySummary,
 } from './kpi-assignment-response.js';
 import {
   type AssignableEmployee,
@@ -112,32 +113,28 @@ export class KpiAssignmentsService {
     query: ListKpiAssignmentsQueryDto,
   ): Promise<KpiAssignmentListResponse> {
     const period = await this.findPeriodOrFail(periodId);
+    const month = periodLabel(period);
     const page = query.page ?? 1;
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const builder = this.assignmentRepository
-      .createQueryBuilder('assignment')
-      .innerJoinAndSelect('assignment.employee', 'employee')
-      // Query builders skip eager relations; the list shows each employee's avatar.
-      .leftJoinAndSelect('employee.avatar', 'avatar')
-      .where('assignment.periodId = :periodId', { periodId: period.id })
-      .orderBy('employee.firstname', 'ASC')
-      .addOrderBy('employee.lastname', 'ASC');
-
-    if (query.templateId !== undefined) {
-      builder.andWhere('assignment.templateId = :templateId', { templateId: query.templateId });
-    }
-
-    andWhereEachSearchTerm(builder, query.search, [
-      (parameter) => `employee.firstname COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
-      (parameter) => `employee.lastname COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
-      (parameter) => `employee.username COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
+    const [[assignments, total], matching, salaries] = await Promise.all([
+      this.listedPlans(period.id, query)
+        .addSelect('employee')
+        // Query builders skip eager relations; the list shows each employee's avatar.
+        .leftJoinAndSelect('employee.avatar', 'avatar')
+        .orderBy('employee.firstname', 'ASC')
+        .addOrderBy('employee.lastname', 'ASC')
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getManyAndCount(),
+      // The totals cover every plan the search keeps, not only this page (ADR-067).
+      this.listedPlans(period.id, query)
+        .select(['assignment.id', 'assignment.employeeId', 'assignment.totalScore'])
+        .getMany(),
+      this.loadPeriodSalaries(period.id),
     ]);
-
-    const [assignments, total] = await builder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
     const stats = await this.loadItemStats(assignments.map((assignment) => assignment.id));
+    const payoutOf = (plan: KpiAssignmentEntity) =>
+      this.planPayout(salaries, plan.employeeId, month, plan.totalScore);
 
     return {
       items: assignments.map((assignment) =>
@@ -145,11 +142,13 @@ export class KpiAssignmentsService {
           assignment,
           this.readEmployee(assignment),
           stats.get(assignment.id.toLowerCase()),
+          payoutOf(assignment),
         ),
       ),
       limit,
       page,
       total,
+      salarySummary: toKpiSalarySummary(matching.map(payoutOf)),
     };
   }
 
@@ -219,7 +218,7 @@ export class KpiAssignmentsService {
       return ids;
     });
 
-    return this.loadSummaries(createdIds);
+    return this.loadSummaries(period, createdIds);
   }
 
   /**
@@ -554,16 +553,22 @@ export class KpiAssignmentsService {
     return toKpiAssignmentResponse(assignment, period, this.readEmployee(assignment), items);
   }
 
-  private async loadSummaries(ids: string[]): Promise<KpiAssignmentSummaryResponse[]> {
+  private async loadSummaries(
+    period: KpiPeriodEntity,
+    ids: string[],
+  ): Promise<KpiAssignmentSummaryResponse[]> {
     if (ids.length === 0) {
       return [];
     }
 
-    const assignments = await this.assignmentRepository.find({
-      where: { id: In(ids) },
-      relations: { employee: { avatar: true } },
-    });
-    const stats = await this.loadItemStats(ids);
+    const [assignments, stats, salaries] = await Promise.all([
+      this.assignmentRepository.find({
+        where: { id: In(ids) },
+        relations: { employee: { avatar: true } },
+      }),
+      this.loadItemStats(ids),
+      this.loadPeriodSalaries(period.id),
+    ]);
     const byId = new Map(
       assignments.map((assignment) => [assignment.id.toLowerCase(), assignment]),
     );
@@ -577,10 +582,71 @@ export class KpiAssignmentsService {
               assignment,
               this.readEmployee(assignment),
               stats.get(id.toLowerCase()),
+              this.planPayout(
+                salaries,
+                assignment.employeeId,
+                periodLabel(period),
+                assignment.totalScore,
+              ),
             ),
           ]
         : [];
     });
+  }
+
+  /** The period's plans that the list's search and template filter keep. */
+  private listedPlans(periodId: string, query: ListKpiAssignmentsQueryDto) {
+    const builder = this.assignmentRepository
+      .createQueryBuilder('assignment')
+      .innerJoin('assignment.employee', 'employee')
+      .where('assignment.periodId = :periodId', { periodId });
+
+    if (query.templateId !== undefined) {
+      builder.andWhere('assignment.templateId = :templateId', { templateId: query.templateId });
+    }
+
+    andWhereEachSearchTerm(builder, query.search, [
+      (parameter) => `employee.firstname COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
+      (parameter) => `employee.lastname COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
+      (parameter) => `employee.username COLLATE ${SEARCH_COLLATION} LIKE :${parameter}`,
+    ]);
+
+    return builder;
+  }
+
+  /**
+   * Every salary of the employees with a plan in the period, by lower-cased employee id.
+   * One read serves the whole list; the month picks the salary in force (ADR-049).
+   */
+  private async loadPeriodSalaries(periodId: string): Promise<Map<string, EmployeeSalaryEntity[]>> {
+    const rows = await this.salaryRepository
+      .createQueryBuilder('salary')
+      .innerJoin(
+        KpiAssignmentEntity,
+        'plan',
+        'plan.employeeId = salary.employeeId AND plan.periodId = :periodId',
+        { periodId },
+      )
+      .getMany();
+    const byEmployee = new Map<string, EmployeeSalaryEntity[]>();
+
+    for (const row of rows) {
+      const key = row.employeeId.toLowerCase();
+      byEmployee.set(key, [...(byEmployee.get(key) ?? []), row]);
+    }
+
+    return byEmployee;
+  }
+
+  private planPayout(
+    salaries: Map<string, EmployeeSalaryEntity[]>,
+    employeeId: string,
+    month: string,
+    totalScore: number | null,
+  ): SalaryPayoutResponse | null {
+    const salary = salaryInForce(salaries.get(employeeId.toLowerCase()) ?? [], month);
+
+    return salary ? toSalaryPayout(salary, totalScore) : null;
   }
 
   private readEmployee(assignment: KpiAssignmentEntity): EmployeeEntity {

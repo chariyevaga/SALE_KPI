@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/locale-store';
+import { useScrollLock } from '../lib/use-scroll-lock';
 
 interface ModalProps {
   open: boolean;
@@ -29,6 +30,8 @@ export function Modal({
 }: ModalProps) {
   const isLarge = size === 'lg';
   const { t } = useTranslation();
+  // Only the modal scrolls while it is open, never the page behind it as well.
+  useScrollLock(open);
 
   if (!open) {
     return null;

@@ -63,6 +63,57 @@ function ChevronIcon() {
   );
 }
 
+function PlansIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 flex-shrink-0"
+    >
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h3" />
+    </svg>
+  );
+}
+
+/**
+ * How many KPI plans were built from the template. The count opens the KPI plans of the
+ * newest month that used it, filtered to this template; an unused template says so.
+ */
+function TemplateUsage({ template }: { template: KpiTemplateSummary }) {
+  const { t, locale } = useTranslation();
+
+  if (template.planCount === 0 || template.lastPeriod === null) {
+    return (
+      <span className="flex-shrink-0 px-1 text-[11px] text-slate-400 dark:text-slate-500">
+        {t('kpiTemplates.unused')}
+      </span>
+    );
+  }
+
+  const count = formatNumber(template.planCount, locale);
+  const params = new URLSearchParams({ period: template.lastPeriod, template: template.id });
+
+  return (
+    <Link
+      to={`/kpi-plans?${params.toString()}`}
+      aria-label={t('kpiTemplates.openPlans', { name: template.name, count })}
+      title={t('kpiTemplates.openPlans', { name: template.name, count })}
+      className="flex min-h-[44px] flex-shrink-0 items-center"
+    >
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-700 transition hover:bg-emerald-500/20 dark:text-emerald-300">
+        <PlansIcon />
+        {t('kpiTemplates.planCount', { count })}
+      </span>
+    </Link>
+  );
+}
+
 function TemplateCard({
   template,
   selected,
@@ -113,6 +164,8 @@ function TemplateCard({
           <ChevronIcon />
         </span>
       </Link>
+      {/* Its own link: a link inside the card's link would not be valid HTML. */}
+      <TemplateUsage template={template} />
       <RecordInfoButton tableName="kpi_templates" recordId={template.id} title={template.name} />
     </div>
   );
@@ -400,6 +453,7 @@ export function KpiTemplatesPage() {
                   <th className="py-2 pr-3 text-right font-medium">
                     {t('kpiTemplates.columnWeight')}
                   </th>
+                  <th className="py-2 pr-3 font-medium">{t('kpiTemplates.columnPlans')}</th>
                   <th className="py-2 pr-3 font-medium">{t('kpiTemplates.columnStatus')}</th>
                   <th className="py-2 pr-4 text-right font-medium">
                     {t('kpiTemplates.columnActions')}
@@ -441,6 +495,9 @@ export function KpiTemplatesPage() {
                     </td>
                     <td className="py-2.5 pr-3 text-right text-sm tabular-nums text-slate-700 dark:text-slate-300">
                       {formatNumber(template.totalWeight, locale)}%
+                    </td>
+                    <td className="py-0 pr-3">
+                      <TemplateUsage template={template} />
                     </td>
                     <td className="py-2.5 pr-3">
                       <TemplateStatus isActive={template.isActive} />
