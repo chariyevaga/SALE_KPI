@@ -28,9 +28,9 @@ import {
 const SALES_CURRENCIES = ['TMT', 'USD'] as const;
 
 /**
- * The store dashboard (ADR-061): a calendar year against the year before, month by month,
- * for the store KPIs #1–#6, per store and for all stores. It reads the values the refresh
- * job stored; nothing is computed from Tiger here (ADR-010).
+ * The store dashboard (ADR-061, ADR-065): a calendar year against the year before, month by
+ * month, for the store KPIs #1–#7 and #16, per store and for all stores. It reads the values
+ * the refresh job stored; nothing is computed from Tiger here (ADR-010).
  */
 @Injectable()
 export class StoreDashboardService {
@@ -98,7 +98,7 @@ export class StoreDashboardService {
       const comparison: StoreDashboardComparisonResponse = {
         storeNr,
         ...compareYears(
-          monthlyValues(rows, code, currency, storeNr),
+          monthlyValues(rows, code, currency, storeNr, aggregation),
           year,
           currentMonth,
           aggregation,

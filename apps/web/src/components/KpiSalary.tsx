@@ -99,27 +99,33 @@ function useReveal(): RevealState {
 
 function money(
   value: number,
-  currency: SalaryCurrency,
+  currency: SalaryCurrency | null,
   locale: Parameters<typeof formatNumber>[1],
 ) {
-  return `${formatNumber(value, locale)} ${currency}`;
+  return currency === null
+    ? formatNumber(value, locale)
+    : `${formatNumber(value, locale)} ${currency}`;
 }
 
 /** A salary figure: the number while revealed, a blurred stand-in otherwise. */
 export function SecretAmount({
   value,
   currency,
+  showCurrency = true,
   className = '',
 }: {
   value: number;
   currency: SalaryCurrency;
+  /** Off where the currency is already written once next to the figures. */
+  showCurrency?: boolean;
   className?: string;
 }) {
   const { t, locale } = useTranslation();
   const { revealed, reveal } = useReveal();
+  const unit = showCurrency ? currency : null;
 
   if (revealed) {
-    return <span className={`tabular-nums ${className}`}>{money(value, currency, locale)}</span>;
+    return <span className={`tabular-nums ${className}`}>{money(value, unit, locale)}</span>;
   }
 
   return (
@@ -131,9 +137,51 @@ export function SecretAmount({
     >
       {/* A fixed stand-in, so the blur never hints at the real number. */}
       <span aria-hidden="true" className="select-none blur-[6px]">
-        {money(88_888, currency, locale)}
+        {money(88_888, unit, locale)}
       </span>
     </button>
+  );
+}
+
+/**
+ * The salary as one stacked bar: the fixed part, what the score earned of the KPI part and
+ * the KPI part not earned. It shows proportions only, so it is never blurred.
+ */
+export function SalarySplitBar({
+  amount,
+  fixedAmount,
+  earned,
+  label,
+  className = '',
+}: {
+  amount: number;
+  fixedAmount: number;
+  earned: number;
+  label: string;
+  className?: string;
+}) {
+  const percentOf = (value: number) =>
+    amount > 0 ? Math.min(Math.max((value / amount) * 100, 0), 100) : 0;
+  const fixedWidth = percentOf(fixedAmount);
+  const earnedWidth = percentOf(earned);
+  const restWidth = Math.max(100 - fixedWidth - earnedWidth, 0);
+
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className={`flex h-3 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-400/15 ${className}`}
+    >
+      <span
+        className="bg-slate-400 dark:bg-slate-500"
+        style={{ width: `${String(fixedWidth)}%` }}
+      />
+      <span
+        className="animate-meter-fill bg-emerald-500 motion-reduce:animate-none dark:bg-emerald-400"
+        style={{ width: `${String(earnedWidth)}%` }}
+      />
+      <span style={{ width: `${String(restWidth)}%` }} />
+    </div>
   );
 }
 
@@ -202,12 +250,6 @@ export function KpiSalaryCard({
 }) {
   const { t, locale } = useTranslation();
   const { currency } = salary;
-  const earned = salary.kpiEarned ?? 0;
-  const percentOf = (value: number) =>
-    salary.amount > 0 ? Math.min(Math.max((value / salary.amount) * 100, 0), 100) : 0;
-  const fixedWidth = percentOf(salary.fixedAmount);
-  const earnedWidth = percentOf(earned);
-  const restWidth = Math.max(100 - fixedWidth - earnedWidth, 0);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
@@ -234,25 +276,17 @@ export function KpiSalaryCard({
         />
       </div>
 
-      <div
-        role="img"
-        aria-label={t('kpiSalary.barLabel', {
+      <SalarySplitBar
+        amount={salary.amount}
+        fixedAmount={salary.fixedAmount}
+        earned={salary.kpiEarned ?? 0}
+        label={t('kpiSalary.barLabel', {
           fixed: formatNumber(salary.fixedPercent, locale),
           kpi: formatNumber(salary.kpiPercent, locale),
           score: totalScore === null ? '—' : formatNumber(totalScore, locale),
         })}
-        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-400/15"
-      >
-        <span
-          className="bg-slate-400 dark:bg-slate-500"
-          style={{ width: `${String(fixedWidth)}%` }}
-        />
-        <span
-          className="animate-meter-fill bg-emerald-500 motion-reduce:animate-none dark:bg-emerald-400"
-          style={{ width: `${String(earnedWidth)}%` }}
-        />
-        <span style={{ width: `${String(restWidth)}%` }} />
-      </div>
+        className="mt-3"
+      />
 
       <dl className="mt-3 grid gap-2 text-sm">
         <div className="flex items-center justify-between gap-3">

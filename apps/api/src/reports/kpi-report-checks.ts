@@ -36,6 +36,13 @@ export const KPI_GROUP_REPORT_CODES = ['STORE_GROUP_SALES', 'EMPLOYEE_GROUP_SALE
 export const KPI_DERIVED_CODES = ['STORE_CONVERSION'] as const;
 
 /**
+ * KPIs measured from the entered daily visitor counts alone (ADR-064). They have a month
+ * function in the shape of `dbo.kpi_month_values` (`dbo.kpi_month_visitor_values`) and a
+ * target report from migration 1799705000000 (KPI_VISITOR_COUNT_REPORT_OBJECTS).
+ */
+export const KPI_VISITOR_COUNT_CODES = ['STORE_VISITOR_COUNT'] as const;
+
+/**
  * KPIs the calculation measures. Anything else would be typed in by a manager in the plan's
  * result rows (ADR-041); since the conversion became calculated (ADR-052) no such KPI is
  * left in the catalogue, but the manual path stays for future ones.
@@ -44,7 +51,8 @@ export function isCalculableKpi(code: string): boolean {
   return (
     (KPI_REPORT_CODES as readonly string[]).includes(code) ||
     (KPI_GROUP_REPORT_CODES as readonly string[]).includes(code) ||
-    (KPI_DERIVED_CODES as readonly string[]).includes(code)
+    (KPI_DERIVED_CODES as readonly string[]).includes(code) ||
+    (KPI_VISITOR_COUNT_CODES as readonly string[]).includes(code)
   );
 }
 
@@ -81,6 +89,13 @@ export const KPI_GROUP_REPORT_OBJECTS: ReadonlyArray<{
 export const KPI_CONVERSION_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'V' }> = [
   { name: 'dbo.kpi_report_conversion_monthly', type: 'V' },
   { name: 'dbo.report_STORE_CONVERSION', type: 'V' },
+];
+
+/** Objects the visitor count migration creates (ADR-064); schema-check requires them. */
+export const KPI_VISITOR_COUNT_REPORT_OBJECTS: ReadonlyArray<{ name: string; type: 'V' | 'IF' }> = [
+  { name: 'dbo.kpi_visitor_count_monthly', type: 'V' },
+  { name: 'dbo.kpi_month_visitor_values', type: 'IF' },
+  ...KPI_VISITOR_COUNT_CODES.map((code) => ({ name: `dbo.report_${code}`, type: 'V' as const })),
 ];
 
 export interface ReportSource {

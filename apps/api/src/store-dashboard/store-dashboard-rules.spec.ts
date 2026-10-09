@@ -8,8 +8,19 @@ import {
   monthlyValues,
   planRefresh,
   refreshWindow,
+  type MonthAmount,
   type StoreMonthValue,
 } from './store-dashboard-rules.js';
+
+/** Plain monthly values as the amounts compareYears reads. */
+function amounts(entries: [string, number][]): Map<string, MonthAmount> {
+  return new Map(entries.map(([month, value]) => [month, { value, parts: null }]));
+}
+
+/** monthlyValues without the parts, for the KPIs that are not rates. */
+function valuesOf(map: Map<string, MonthAmount>): [string, number][] {
+  return [...map].map(([month, amount]) => [month, amount.value]);
+}
 
 void test('refreshes January of last year through the current month', () => {
   assert.deepEqual(refreshWindow('2026-09-29'), { from: '2025-01-01', to: '2026-09-01' });
@@ -34,7 +45,7 @@ void test('growth needs a positive base and keeps one decimal', () => {
 });
 
 void test('compares only finished months that have values in both years', () => {
-  const values = new Map([
+  const values = amounts([
     ['2025-03', 100],
     ['2025-04', 200],
     ['2025-05', 50],
@@ -80,7 +91,7 @@ void test('compares only finished months that have values in both years', () => 
 });
 
 void test('distinct counts compare monthly averages; growth equals the sum comparison', () => {
-  const values = new Map([
+  const values = amounts([
     ['2025-01', 100],
     ['2025-02', 300],
     ['2026-01', 150],
@@ -96,7 +107,7 @@ void test('distinct counts compare monthly averages; growth equals the sum compa
 });
 
 void test('without last year the comparison is empty but this year still adds up', () => {
-  const values = new Map([
+  const values = amounts([
     ['2026-03', 10],
     ['2026-04', 20],
   ]);
@@ -111,7 +122,7 @@ void test('without last year the comparison is empty but this year still adds up
 });
 
 void test('a past year is compared in full', () => {
-  const values = new Map([
+  const values = amounts([
     ['2025-12', 200],
     ['2024-12', 100],
   ]);
@@ -121,25 +132,83 @@ void test('a past year is compared in full', () => {
   assert.equal(summary.growthPercent, 100);
 });
 
+function row(
+  storeNr: number,
+  monthStart: string,
+  kpiCode: string,
+  currency: string | null,
+  value: number,
+  parts: [number, number] | null = null,
+): StoreMonthValue {
+  return {
+    storeNr,
+    monthStart,
+    kpiCode,
+    currency,
+    value,
+    numerator: parts?.[0] ?? null,
+    denominator: parts?.[1] ?? null,
+  };
+}
+
 const ROWS: StoreMonthValue[] = [
-  { storeNr: 0, monthStart: '2026-03-01', kpiCode: 'STORE_SALES', currency: 'TMT', value: 100 },
-  { storeNr: 0, monthStart: '2026-03-01', kpiCode: 'STORE_SALES', currency: 'USD', value: 5 },
-  { storeNr: 1, monthStart: '2026-03-01', kpiCode: 'STORE_SALES', currency: 'TMT', value: 40 },
-  { storeNr: 1, monthStart: '2026-04-01', kpiCode: 'STORE_SALES', currency: 'TMT', value: 60 },
-  { storeNr: 0, monthStart: '2026-03-01', kpiCode: 'STORE_RECEIPTS', currency: null, value: 9 },
+  row(0, '2026-03-01', 'STORE_SALES', 'TMT', 100),
+  row(0, '2026-03-01', 'STORE_SALES', 'USD', 5),
+  row(1, '2026-03-01', 'STORE_SALES', 'TMT', 40),
+  row(1, '2026-04-01', 'STORE_SALES', 'TMT', 60),
+  row(0, '2026-03-01', 'STORE_RECEIPTS', null, 9),
 ];
 
 void test('monthly values of one store, or of every store added together', () => {
-  assert.deepEqual(
-    [...monthlyValues(ROWS, 'STORE_SALES', 'TMT', null)],
-    [
-      ['2026-03', 140],
-      ['2026-04', 60],
-    ],
+  assert.deepEqual(valuesOf(monthlyValues(ROWS, 'STORE_SALES', 'TMT', null, 'sum')), [
+    ['2026-03', 140],
+    ['2026-04', 60],
+  ]);
+  assert.deepEqual(valuesOf(monthlyValues(ROWS, 'STORE_SALES', 'TMT', 0, 'sum')), [
+    ['2026-03', 100],
+  ]);
+  assert.deepEqual(valuesOf(monthlyValues(ROWS, 'STORE_SALES', 'USD', null, 'sum')), [
+    ['2026-03', 5],
+  ]);
+  assert.deepEqual(valuesOf(monthlyValues(ROWS, 'STORE_RECEIPTS', null, null, 'sum')), [
+    ['2026-03', 9],
+  ]);
+});
+
+const CONVERSION: StoreMonthValue[] = [
+  // Store 0: 300 receipts of 1,000 visitors; store 1: 50 of 500.
+  row(0, '2026-07-01', 'STORE_CONVERSION', null, 30, [300, 1000]),
+  row(1, '2026-07-01', 'STORE_CONVERSION', null, 10, [50, 500]),
+  row(0, '2026-08-01', 'STORE_CONVERSION', null, 25, [250, 1000]),
+  row(0, '2025-07-01', 'STORE_CONVERSION', null, 20, [200, 1000]),
+  row(0, '2025-08-01', 'STORE_CONVERSION', null, 40, [120, 300]),
+];
+
+void test('the conversion of several stores adds receipts and visitors, then divides', () => {
+  const all = monthlyValues(CONVERSION, 'STORE_CONVERSION', null, null, 'ratio');
+
+  // (300 + 50) / (1,000 + 500) = 23.33 %, not the average of 30 % and 10 %.
+  assert.deepEqual(all.get('2026-07'), {
+    value: 23.33,
+    parts: { numerator: 350, denominator: 1500 },
+  });
+  assert.equal(
+    monthlyValues(CONVERSION, 'STORE_CONVERSION', null, 1, 'ratio').get('2026-07')?.value,
+    10,
   );
-  assert.deepEqual([...monthlyValues(ROWS, 'STORE_SALES', 'TMT', 0)], [['2026-03', 100]]);
-  assert.deepEqual([...monthlyValues(ROWS, 'STORE_SALES', 'USD', null)], [['2026-03', 5]]);
-  assert.deepEqual([...monthlyValues(ROWS, 'STORE_RECEIPTS', null, null)], [['2026-03', 9]]);
+});
+
+void test('the conversion of a period divides the months receipts by their visitors', () => {
+  const values = monthlyValues(CONVERSION, 'STORE_CONVERSION', null, 0, 'ratio');
+  const { months, summary } = compareYears(values, 2026, '2026-09', 'ratio');
+
+  assert.equal(months[6]?.growthPercent, 50);
+  // 2026: 550 / 2,000 = 27.5 %; 2025: 320 / 1,300 = 24.62 %.
+  assert.equal(summary.current, 27.5);
+  assert.equal(summary.previous, 24.62);
+  assert.equal(summary.difference, 27.5 - 24.62);
+  assert.equal(summary.growthPercent, 11.7);
+  assert.equal(summary.currentYearValue, 27.5);
 });
 
 void test('a refresh inserts new values, updates changed ones and deletes the missing', () => {
@@ -153,8 +222,18 @@ void test('a refresh inserts new values, updates changed ones and deletes the mi
 
   assert.deepEqual(planRefresh(stored, fresh), {
     inserts: [ROWS[3]],
-    updates: [{ id: 'b', value: 5 }],
+    updates: [{ id: 'b', value: 5, numerator: null, denominator: null }],
     deleteIds: ['c'],
   });
   assert.deepEqual(planRefresh([], []), { inserts: [], updates: [], deleteIds: [] });
+});
+
+void test('a refresh updates a rate whose parts changed even when its value did not', () => {
+  const fresh = row(0, '2026-07-01', 'STORE_CONVERSION', null, 30, [600, 2000]);
+  const stored = [{ ...row(0, '2026-07-01', 'STORE_CONVERSION', null, 30, [300, 1000]), id: 'a' }];
+
+  assert.deepEqual(planRefresh(stored, [fresh]).updates, [
+    { id: 'a', value: 30, numerator: 600, denominator: 2000 },
+  ]);
+  assert.deepEqual(planRefresh([{ ...fresh, id: 'a' }], [fresh]).updates, []);
 });

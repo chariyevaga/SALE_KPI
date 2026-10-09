@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getStoreDashboard } from '../api/store-dashboard';
 import { AppShell } from '../components/AppShell';
 import { CalendarIcon, FilterSelect, StoreIcon } from '../components/FilterSelect';
+import { StoreKpiIcon, storeKpiShortName } from '../components/StoreKpiIcon';
 import { formatDateTime, formatMonthName, formatNumber } from '../i18n/formatters';
 import { pickLocalizedText } from '../i18n/localized-text';
 import { useTranslation } from '../i18n/locale-store';
@@ -34,6 +35,32 @@ function splitCatalogName(name: string): { number: string | null; label: string 
   return match?.[1] && match[2]
     ? { number: match[1], label: match[2] }
     : { number: null, label: name };
+}
+
+/** What a KPI is called on screen: its catalog number, full name and short name. */
+function kpiNames(
+  kpi: StoreDashboardKpi,
+  locale: Locale,
+  t: Translate,
+): { number: string | null; full: string; label: string; short: string } {
+  const full = pickLocalizedText(kpi.name, locale);
+  const { number, label } = splitCatalogName(full);
+  const shortKey = storeKpiShortName(kpi.code);
+
+  return { number, full, label, short: shortKey ? t(shortKey) : label };
+}
+
+/** The KPI's icon on a tinted square; the emphasis follows the active tab or card. */
+function KpiBadgeIcon({ code, size = 'md' }: { code: string | null; size?: 'sm' | 'md' }) {
+  return (
+    <span
+      className={`flex flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300 ${
+        size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'
+      }`}
+    >
+      <StoreKpiIcon code={code} className={size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'} />
+    </span>
+  );
 }
 
 function monthName(month: number, locale: Locale, width: 'long' | 'short' = 'long'): string {
@@ -83,33 +110,52 @@ function comparisonFor(
     : (series.stores.find((entry) => entry.storeNr === storeNr) ?? series.total);
 }
 
-/** Money with its currency; averages keep one decimal, everything else is whole. */
+/** Fraction digits of a value: rates keep two, averages one, everything else is whole. */
+function valueDigits(kpi: StoreDashboardKpi): number {
+  return kpi.aggregation === 'ratio' ? 2 : kpi.aggregation === 'average' ? 1 : 0;
+}
+
+/** Money with its currency, a rate as a percentage, a count as it is. */
 function formatValue(
   value: number | null,
   kpi: StoreDashboardKpi,
   currency: Currency,
   locale: Locale,
+  t: Translate,
 ): string {
   if (value === null) {
     return '—';
   }
 
-  const text = formatNumber(value, locale, {
-    maximumFractionDigits: kpi.aggregation === 'average' ? 1 : 0,
-  });
+  const text = formatNumber(value, locale, { maximumFractionDigits: valueDigits(kpi) });
+
+  if (kpi.unit === 'percent') {
+    return t('storeDashboard.percent', { value: text });
+  }
 
   return kpi.unit === 'money' ? `${text} ${currency}` : text;
 }
 
+/** A change of a value; between two percentages it is in percentage points. */
 function formatDifference(
   value: number,
   kpi: StoreDashboardKpi,
   currency: Currency,
   locale: Locale,
+  t: Translate,
 ): string {
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
 
-  return sign + formatValue(Math.abs(value), kpi, currency, locale);
+  if (kpi.unit === 'percent') {
+    return (
+      sign +
+      t('storeDashboard.percentPoints', {
+        value: formatNumber(Math.abs(value), locale, { maximumFractionDigits: valueDigits(kpi) }),
+      })
+    );
+  }
+
+  return sign + formatValue(Math.abs(value), kpi, currency, locale, t);
 }
 
 function formatGrowth(value: number, locale: Locale, t: Translate, digits = 1): string {
@@ -221,9 +267,10 @@ function GrowthHeadline({ value, large = false }: { value: number | null; large?
   );
 }
 
+/** The catalog number (ADR-060), kept small next to the name. */
 function NumberChip({ number }: { number: string }) {
   return (
-    <span className="flex-shrink-0 rounded-md bg-emerald-600 px-1.5 py-0.5 text-xs font-bold text-white dark:bg-emerald-400 dark:text-slate-950">
+    <span className="flex-shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
       {number}
     </span>
   );
@@ -355,21 +402,28 @@ function KpiSummaryCard({
   onOpen: () => void;
 }) {
   const { t, locale } = useTranslation();
-  const name = pickLocalizedText(kpi.name, locale);
-  const { number, label } = splitCatalogName(name);
+  const names = kpiNames(kpi, locale, t);
   const labels = yearLabels(comparison, year, previousYear, t);
 
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label={t('storeDashboard.openKpi', { name })}
+      aria-label={t('storeDashboard.openKpi', { name: names.full })}
       className="flex min-h-[44px] flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-emerald-400 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 dark:border-slate-800 dark:bg-slate-900"
     >
-      <span className="flex items-start gap-2">
-        {number ? <NumberChip number={number} /> : null}
-        <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
-          {label}
+      <span className="flex items-center gap-3">
+        <KpiBadgeIcon code={kpi.code} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">
+              {names.short}
+            </span>
+            {names.number ? <NumberChip number={names.number} /> : null}
+          </span>
+          <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
+            {names.label}
+          </span>
         </span>
         <ChevronRightIcon className="h-5 w-5 flex-shrink-0 text-slate-400" />
       </span>
@@ -380,7 +434,7 @@ function KpiSummaryCard({
             {labels.current}
           </span>
           <span className="block truncate font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-            {formatValue(labels.currentValue, kpi, currency, locale)}
+            {formatValue(labels.currentValue, kpi, currency, locale, t)}
           </span>
         </span>
         <span className="min-w-0">
@@ -388,7 +442,7 @@ function KpiSummaryCard({
             {labels.previous}
           </span>
           <span className="block truncate font-semibold tabular-nums text-slate-600 dark:text-slate-300">
-            {formatValue(labels.previousValue, kpi, currency, locale)}
+            {formatValue(labels.previousValue, kpi, currency, locale, t)}
           </span>
         </span>
       </span>
@@ -413,11 +467,11 @@ function StoreMatrix({
   onOpen: (code: string, storeNr: number) => void;
 }) {
   const { t, locale } = useTranslation();
-  const kpis = data.kpis.map((kpi) => ({
-    kpi,
-    name: pickLocalizedText(kpi.name, locale),
-    number: splitCatalogName(pickLocalizedText(kpi.name, locale)).number,
-  }));
+  const kpis = data.kpis.map((kpi) => {
+    const names = kpiNames(kpi, locale, t);
+
+    return { kpi, name: names.full, short: names.short };
+  });
   const growthOf = (kpi: StoreDashboardKpi, storeNr: number) =>
     comparisonFor(kpi, currency, storeNr)?.summary.growthPercent ?? null;
 
@@ -443,7 +497,7 @@ function StoreMatrix({
               {storeLabel(store)}
             </p>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {kpis.map(({ kpi, name, number }) => (
+              {kpis.map(({ kpi, name, short }) => (
                 <button
                   key={kpi.code}
                   type="button"
@@ -451,10 +505,14 @@ function StoreMatrix({
                   aria-label={t('storeDashboard.openKpi', {
                     name: `${storeLabel(store)} · ${name}`,
                   })}
-                  className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 text-left transition hover:bg-emerald-500/10 dark:bg-slate-800/60"
+                  className="flex min-h-[44px] items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-left transition hover:bg-emerald-500/10 dark:bg-slate-800/60"
                 >
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {number ?? name}
+                  <StoreKpiIcon
+                    code={kpi.code}
+                    className="h-4 w-4 flex-shrink-0 text-emerald-700 dark:text-emerald-300"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700 dark:text-slate-200">
+                    {short}
                   </span>
                   <GrowthBadge value={growthOf(kpi, store.nr)} compact />
                 </button>
@@ -470,9 +528,12 @@ function StoreMatrix({
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
               <th className="py-2 pr-3 font-medium">{t('storeDashboard.store')}</th>
-              {kpis.map(({ kpi, name, number }) => (
+              {kpis.map(({ kpi, name, short }) => (
                 <th key={kpi.code} className="px-2 py-2 font-medium" title={name}>
-                  {number ?? name}
+                  <span className="flex items-center gap-1.5">
+                    <StoreKpiIcon code={kpi.code} className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{short}</span>
+                  </span>
                 </th>
               ))}
             </tr>
@@ -576,17 +637,21 @@ function KpiHeader({
   previousYear: number;
 }) {
   const { t, locale } = useTranslation();
-  const { number, label } = splitCatalogName(pickLocalizedText(kpi.name, locale));
+  const names = kpiNames(kpi, locale, t);
   const { summary } = comparison;
   const labels = yearLabels(comparison, year, previousYear, t);
 
   return (
     <Card>
-      <div className="flex items-start gap-2">
-        {number ? <NumberChip number={number} /> : null}
-        <h2 className="min-w-0 flex-1 text-base font-semibold text-slate-900 dark:text-slate-100">
-          {label}
-        </h2>
+      <div className="flex items-center gap-3">
+        <KpiBadgeIcon code={kpi.code} />
+        <div className="min-w-0 flex-1">
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <span className="truncate">{names.short}</span>
+            {names.number ? <NumberChip number={names.number} /> : null}
+          </h2>
+          <p className="truncate text-xs text-slate-500 dark:text-slate-400">{names.label}</p>
+        </div>
       </div>
       <p className="mt-3 text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {t('storeDashboard.growth')}
@@ -603,17 +668,17 @@ function KpiHeader({
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatBox
           label={labels.current}
-          value={formatValue(labels.currentValue, kpi, currency, locale)}
+          value={formatValue(labels.currentValue, kpi, currency, locale, t)}
         />
         <StatBox
           label={labels.previous}
-          value={formatValue(labels.previousValue, kpi, currency, locale)}
+          value={formatValue(labels.previousValue, kpi, currency, locale, t)}
           tone="!text-slate-600 dark:!text-slate-300"
         />
         {summary.difference === null ? null : (
           <StatBox
             label={t('storeDashboard.difference')}
-            value={formatDifference(summary.difference, kpi, currency, locale)}
+            value={formatDifference(summary.difference, kpi, currency, locale, t)}
             tone={growthTone(summary.difference)}
           />
         )}
@@ -621,6 +686,11 @@ function KpiHeader({
       {kpi.aggregation === 'average' ? (
         <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
           {t('storeDashboard.monthlyAverage')}
+        </p>
+      ) : null}
+      {kpi.aggregation === 'ratio' ? (
+        <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+          {t('storeDashboard.ratioNote')}
         </p>
       ) : null}
     </Card>
@@ -645,7 +715,7 @@ function MonthlyChart({
   const months = comparison.months;
   const max = chartMax(months);
   const selectedMonth = months.find((month) => month.month === selected) ?? null;
-  const value = (amount: number | null) => formatValue(amount, kpi, currency, locale);
+  const value = (amount: number | null) => formatValue(amount, kpi, currency, locale, t);
 
   return (
     <Card className="!p-3 sm:!p-4">
@@ -755,7 +825,7 @@ function MonthlyTable({
   const months = comparison.months.filter(
     (month) => month.status === 'inProgress' || month.current !== null || month.previous !== null,
   );
-  const value = (amount: number | null) => formatValue(amount, kpi, currency, locale);
+  const value = (amount: number | null) => formatValue(amount, kpi, currency, locale, t);
   const difference = (month: StoreDashboardMonth) =>
     month.status === 'complete' && month.current !== null && month.previous !== null
       ? month.current - month.previous
@@ -824,7 +894,7 @@ function MonthlyTable({
                   {value(month.current)}
                 </td>
                 <td className={`px-4 py-2 text-right tabular-nums ${growthTone(change)}`}>
-                  {change === null ? '—' : formatDifference(change, kpi, currency, locale)}
+                  {change === null ? '—' : formatDifference(change, kpi, currency, locale, t)}
                 </td>
                 <td className="px-4 py-2 text-right">
                   <GrowthBadge value={month.growthPercent} compact />
@@ -904,7 +974,7 @@ function StoreRanking({
                 </span>
                 <DivergingBar value={comparison.summary.growthPercent} maxAbs={maxAbs} />
                 <span className="mt-1 block truncate text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                  {`${String(data.year)}: ${formatValue(currentValue, kpi, currency, locale)} · ${String(data.previousYear)}: ${formatValue(previousValue, kpi, currency, locale)}`}
+                  {`${String(data.year)}: ${formatValue(currentValue, kpi, currency, locale, t)} · ${String(data.previousYear)}: ${formatValue(previousValue, kpi, currency, locale, t)}`}
                 </span>
               </button>
             </li>
@@ -940,8 +1010,7 @@ function KpiTab({
   return (
     <div className="flex flex-col gap-4">
       <KpiHeader {...props} />
-      {/* Keyed by the store and currency, so the selected month resets with them. */}
-      <MonthlyChart key={`${String(storeNr)}-${currency}`} {...props} />
+      {/* The numbers come first; the chart below draws the same months. */}
       <div className="grid gap-4 lg:grid-cols-5">
         <div
           className={storeNr === null && data.stores.length > 0 ? 'lg:col-span-3' : 'lg:col-span-5'}
@@ -954,6 +1023,8 @@ function KpiTab({
           </div>
         ) : null}
       </div>
+      {/* Keyed by the store and currency, so the selected month resets with them. */}
+      <MonthlyChart key={`${String(storeNr)}-${currency}`} {...props} />
       {storeNr === null && data.stores.length > 1 && kpi.aggregation === 'average' ? (
         <p className="text-[11px] text-slate-500 dark:text-slate-400">
           {t('storeDashboard.customersNote')}
@@ -967,15 +1038,19 @@ function KpiTab({
 // Page
 // ---------------------------------------------------------------------------
 
+/** A tab: the KPI's icon and short name, so nobody has to remember what "#4" was. */
 function TabButton({
   active,
   onClick,
   label,
+  code,
   children,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  /** The KPI's code; null for the summary tab. */
+  code: string | null;
   children: ReactNode;
 }) {
   return (
@@ -987,12 +1062,16 @@ function TabButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition ${
+      className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border pl-3 pr-4 text-sm font-medium transition ${
         active
           ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-950'
           : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
       }`}
     >
+      <StoreKpiIcon
+        code={code}
+        className={`h-4 w-4 flex-shrink-0 ${active ? '' : 'text-emerald-600 dark:text-emerald-400'}`}
+      />
       {children}
     </button>
   );
@@ -1066,10 +1145,10 @@ function ComparisonNotes({
 }
 
 /**
- * Store dashboard (ADR-061), full access only: the store KPIs #1–#6 of a calendar year
- * against the year before, month by month. The summary tab shows how much each KPI grew and
- * where (store by store); each KPI tab has the monthly chart, the month list and the store
- * ranking. Growth is measured over finished months that have values in both years. Year,
+ * Store dashboard (ADR-061, ADR-065), full access only: the store KPIs #1–#7 and #16 of a
+ * calendar year against the year before, month by month. The summary tab shows how much each
+ * KPI grew and where (store by store); each KPI tab has the month list with the store
+ * ranking first, then the monthly chart. Growth is measured over finished months that have values in both years. Year,
  * store, currency and tab live in the URL (`?year=&store=&currency=&tab=`).
  */
 export function StoreDashboardPage() {
@@ -1230,12 +1309,12 @@ export function StoreDashboardPage() {
                 active={activeKpi === null}
                 onClick={() => update({ tab: null })}
                 label={t('storeDashboard.summaryTab')}
+                code={null}
               >
                 {t('storeDashboard.summaryTab')}
               </TabButton>
               {data.kpis.map((kpi) => {
-                const name = pickLocalizedText(kpi.name, locale);
-                const { number, label } = splitCatalogName(name);
+                const names = kpiNames(kpi, locale, t);
                 const growth = comparisonFor(kpi, currency, storeNr)?.summary.growthPercent ?? null;
 
                 return (
@@ -1243,10 +1322,10 @@ export function StoreDashboardPage() {
                     key={kpi.code}
                     active={activeKpi?.code === kpi.code}
                     onClick={() => update({ tab: kpi.code })}
-                    label={name}
+                    label={names.full}
+                    code={kpi.code}
                   >
-                    <span className="font-bold">{number ?? label}</span>
-                    {number ? <span className="hidden xl:inline">{label}</span> : null}
+                    <span className="font-semibold">{names.short}</span>
                     <GrowthBadge value={growth} compact />
                   </TabButton>
                 );

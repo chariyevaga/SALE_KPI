@@ -132,5 +132,10 @@ export function calculateConversion(
     return { value: null, detail: { ...detail, gap: 'no-visitors' } };
   }
 
-  return { value: Math.round((receiptTotal / visitorTotal) * 10_000) / 100, detail };
+  return { value: conversionRate(receiptTotal, visitorTotal), detail };
+}
+
+/** Receipts per 100 visitors, two decimals; null without visitors. */
+export function conversionRate(receipts: number, visitors: number): number | null {
+  return visitors > 0 ? Math.round((receipts / visitors) * 10_000) / 100 : null;
 }
