@@ -302,8 +302,11 @@ export function AppShell({
         </Drawer>
       </div>
 
-      {/* Main Content */}
-      <div className="min-w-0 flex-1 lg:h-screen lg:overflow-y-auto">
+      {/* Main Content: the page's scroll area on desktop; an open modal stops it (useScrollLock). */}
+      <div
+        data-page-scroll
+        className="min-w-0 flex-1 lg:h-screen lg:overflow-y-auto lg:[scrollbar-gutter:stable]"
+      >
         <header className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
           <button
             type="button"

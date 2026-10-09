@@ -14,6 +14,7 @@ import {
   KPI_CONVERSION_REPORT_OBJECTS,
   KPI_GROUP_REPORT_OBJECTS,
   KPI_REPORT_OBJECTS,
+  KPI_VISITOR_COUNT_REPORT_OBJECTS,
   readReportSource,
 } from '../reports/kpi-report-checks.js';
 import {
@@ -53,6 +54,8 @@ const REQUIRED_OBJECTS = [
   ...KPI_GROUP_REPORT_OBJECTS,
   // Store conversion target report (ADR-057).
   ...KPI_CONVERSION_REPORT_OBJECTS,
+  // Store visitor count: monthly view, month function and target report (ADR-064).
+  ...KPI_VISITOR_COUNT_REPORT_OBJECTS,
 ] as const;
 
 async function objectExists(name: string, type: string): Promise<boolean> {

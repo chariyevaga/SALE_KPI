@@ -33,3 +33,6 @@ apps/api/var/uploads/*
 # Internal documentation is not published to the remote.
 *.md
 !README.md
+
+# Local renders of the KPI mail (n8n/kpi-mail-send/preview.mjs).
+n8n/kpi-mail-send/preview/

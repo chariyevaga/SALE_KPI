@@ -51,3 +51,14 @@ body {
   margin: 0;
   min-width: 320px;
 }
+
+/*
+ * While a modal or drawer is open only it scrolls: the document (phones) and the shell's
+ * scroll area (desktop) stand still (useScrollLock). The shell keeps its scrollbar gutter, so
+ * hiding the scrollbar does not shift the page.
+ */
+html[data-scroll-locked],
+html[data-scroll-locked] body,
+html[data-scroll-locked] [data-page-scroll] {
+  overflow: hidden;
+}

@@ -212,6 +212,10 @@ export interface KpiTemplateSummary {
   isActive: boolean;
   itemCount: number;
   totalWeight: number;
+  /** KPI plans built from the template, in every period; 0 when it was never used. */
+  planCount: number;
+  /** `YYYY-MM` of the newest period with such a plan; null when unused. */
+  lastPeriod: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -339,8 +343,30 @@ export interface KpiPlanSummary {
   totalScore: number | null;
   scoredItemCount: number | null;
   scoreCalculatedAt: string | null;
+  /** The salary in force in the plan's month and what the score earns; null without one. */
+  salary: KpiPlanSalary | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** What the listed plans pay in one currency (ADR-067); TMT and USD are never added. */
+export interface KpiPlanSalaryTotal {
+  currency: SalaryCurrency;
+  planCount: number;
+  amount: number;
+  fixedAmount: number;
+  kpiAmount: number;
+  /** A plan not calculated yet adds nothing here. */
+  kpiEarned: number;
+  totalEarned: number;
+}
+
+/** Every plan the search and filter keep, not only the loaded page (ADR-067). */
+export interface KpiPlanSalarySummary {
+  planCount: number;
+  withoutSalaryCount: number;
+  notCalculatedCount: number;
+  totals: KpiPlanSalaryTotal[];
 }
 
 export interface KpiPlanListResponse {
@@ -348,6 +374,7 @@ export interface KpiPlanListResponse {
   total: number;
   page: number;
   limit: number;
+  salarySummary: KpiPlanSalarySummary;
 }
 
 /** A period the signed-in employee has a plan in (`GET /kpi-assignments/me/periods`). */
@@ -725,8 +752,11 @@ export interface StoreDashboardKpi {
   code: string;
   name: LocalizedText;
   unit: KpiUnit;
-  /** `average`: distinct per month, so a period shows the monthly average. */
-  aggregation: 'sum' | 'average';
+  /**
+   * `average`: distinct per month, so a period shows the monthly average. `ratio`: a rate
+   * (the conversion) whose parts are added up first, then divided.
+   */
+  aggregation: 'sum' | 'average' | 'ratio';
   series: StoreDashboardSeries[];
 }
 
