@@ -1,6 +1,6 @@
 {
   "name": "@retail-kpi/web",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Retail KPI Platform React web application.",
   "type": "module",
