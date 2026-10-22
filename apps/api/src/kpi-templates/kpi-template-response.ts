@@ -115,6 +115,22 @@ export class KpiTemplateSummaryResponse {
   @ApiProperty({ type: Number, example: 100 })
   totalWeight: number;
 
+  @ApiProperty({
+    type: Number,
+    example: 12,
+    description: 'Şablondan oluşturulmuş KPI planı sayısı (bütün dönemler); 0 hiç kullanılmamış.',
+  })
+  planCount: number;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '2026-09',
+    description:
+      'Şablonun kullanıldığı en yeni dönem (`YYYY-MM`); web, planlara bu dönemle süzülmüş olarak geçer.',
+  })
+  lastPeriod: string | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt: Date;
 
@@ -224,9 +240,17 @@ export interface KpiTemplateItemStats {
   totalWeight: number;
 }
 
+/** Plans built from a template (ADR-040 keeps such a template from being deleted). */
+export interface KpiTemplatePlanUsage {
+  planCount: number;
+  /** `YYYY-MM` of the newest period among them. */
+  lastPeriod: string;
+}
+
 export function toKpiTemplateSummary(
   template: KpiTemplateEntity,
   stats: KpiTemplateItemStats | undefined,
+  usage: KpiTemplatePlanUsage | undefined,
 ): KpiTemplateSummaryResponse {
   return {
     id: template.id,
@@ -235,6 +259,8 @@ export function toKpiTemplateSummary(
     isActive: template.isActive,
     itemCount: stats?.itemCount ?? 0,
     totalWeight: stats?.totalWeight ?? 0,
+    planCount: usage?.planCount ?? 0,
+    lastPeriod: usage?.lastPeriod ?? null,
     createdAt: template.createdAt,
     updatedAt: template.updatedAt,
   };

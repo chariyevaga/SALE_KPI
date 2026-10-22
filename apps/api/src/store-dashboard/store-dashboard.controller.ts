@@ -24,9 +24,9 @@ export class StoreDashboardController {
 
   @Get()
   @ApiOperation({
-    summary: "Mağaza KPI'larını (#1–#6) iki takvim yılında ay ay karşılaştırır.",
+    summary: "Mağaza KPI'larını (#1–#7, #16) iki takvim yılında ay ay karşılaştırır.",
     description:
-      "Yalnız `full_access`. Seçilen yıl bir önceki yılla karşılaştırılır; artış iki yılda da değeri olan bitmiş aylardan hesaplanır, içinde bulunulan ay karşılaştırılmaz. Değerler `store_kpi_month_values` tablosundan okunur; tabloyu `STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES` aralığıyla çalışan iş `dbo.kpi_month_values`'tan doldurur. İstek Tiger'dan hesap yapmaz (ADR-061).",
+      "Yalnız `full_access`. Seçilen yıl bir önceki yılla karşılaştırılır; artış iki yılda da değeri olan bitmiş aylardan hesaplanır, içinde bulunulan ay karşılaştırılmaz. Değerler `store_kpi_month_values` tablosundan okunur; tabloyu `STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES` aralığıyla çalışan iş `dbo.kpi_month_values` ve `dbo.kpi_month_visitor_values`'tan doldurur, dönüşümü hesaplamanın kurallarıyla ölçer. İstek Tiger'dan hesap yapmaz (ADR-061, ADR-065).",
   })
   @ApiOkResponse({ type: StoreDashboardResponse })
   @ApiForbiddenResponse({ description: 'Oturum sahibinin `full_access` yetkisi yok.' })

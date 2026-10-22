@@ -1,0 +1,433 @@
+{
+  "period": {
+    "id": "6A1F0C8E-4B1D-F111-8C2A-00155D0A1B01",
+    "year": 2026,
+    "month": 10,
+    "status": "open",
+    "closedAt": null
+  },
+  "generatedAt": "2026-10-07T17:00:00.1234567+00:00",
+  "plans": [
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B01",
+      "templateName": "SATIŞ DANIŞMANI 01",
+      "totalScore": 72.45,
+      "scoredItemCount": 3,
+      "scoreCalculatedAt": "2026-10-07T16:50:00.120+00:00",
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B01",
+        "firstname": "Örnek",
+        "lastname": "Satıcı",
+        "email": "ornek.satici@example.com",
+        "isActive": true,
+        "jobTitle": "Satış danışmanı",
+        "storeName": "MERKEZ MAĞAZA"
+      },
+      "salary": {
+        "effectiveMonth": "2026-09",
+        "amount": 12000.0,
+        "currency": "TMT",
+        "fixedPercent": 30.0,
+        "kpiPercent": 70.0
+      },
+      "items": [
+        {
+          "sortOrder": 1,
+          "code": "EMPLOYEE_SALES",
+          "scope": "employee",
+          "unit": "money",
+          "name": {
+            "tr": "#9 Personel bazında ciro",
+            "en": "#9 Sales by salesperson",
+            "ru": "#9 Выручка по продавцу",
+            "tk": "#9 Satyjy boýunça girdeji"
+          },
+          "inputs": {
+            "currency": "TMT"
+          },
+          "stores": null,
+          "weight": 50.0,
+          "target": 120000.0,
+          "actual": 95400.5,
+          "source": "calculated",
+          "rawAchievement": 79.5,
+          "cappedAchievement": 79.5,
+          "weightedScore": 39.75,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        },
+        {
+          "sortOrder": 2,
+          "code": "EMPLOYEE_RECEIPTS",
+          "scope": "employee",
+          "unit": "count",
+          "name": {
+            "tr": "#10 Personel bazında fiş sayısı",
+            "en": "#10 Receipts by salesperson",
+            "ru": "#10 Количество чеков по продавцу",
+            "tk": "#10 Satyjy boýunça çek sany"
+          },
+          "inputs": {},
+          "stores": null,
+          "weight": 20.0,
+          "target": 300.0,
+          "actual": 312.0,
+          "source": "calculated",
+          "rawAchievement": 104.0,
+          "cappedAchievement": 100.0,
+          "weightedScore": 20.0,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        },
+        {
+          "sortOrder": 3,
+          "code": "EMPLOYEE_GROUP_SALES",
+          "scope": "employee",
+          "unit": "money",
+          "name": {
+            "tr": "#15 Personel bazında malzeme grubu cirosu",
+            "en": "#15 Item group sales by salesperson",
+            "ru": "#15 Выручка группы товаров по продавцу",
+            "tk": "#15 Satyjy boýunça haryt topary girdejisi"
+          },
+          "inputs": {
+            "groupCodes": ["AYAKKABI", "ÇANTA"],
+            "currency": "USD"
+          },
+          "stores": null,
+          "weight": 15.0,
+          "target": 4000.0,
+          "actual": 3386.8,
+          "source": "calculated",
+          "rawAchievement": 84.67,
+          "cappedAchievement": 84.67,
+          "weightedScore": 12.7,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        },
+        {
+          "sortOrder": 4,
+          "code": "STORE_CONVERSION",
+          "scope": "store",
+          "unit": "percent",
+          "name": {
+            "tr": "#7 Mağaza bazında dönüşüm oranı (CRM)",
+            "en": "#7 Store conversion rate (CRM)",
+            "ru": "#7 Конверсия магазина (CRM)",
+            "tk": "#7 Dükan boýunça öwrülme derejesi (CRM)"
+          },
+          "inputs": {
+            "storeIds": [12]
+          },
+          "stores": [
+            {
+              "nr": 1,
+              "name": "MERKEZ MAĞAZA"
+            }
+          ],
+          "weight": 15.0,
+          "target": 25.0,
+          "actual": null,
+          "source": "calculated",
+          "rawAchievement": null,
+          "cappedAchievement": null,
+          "weightedScore": null,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": {
+            "storeCount": 1,
+            "countedDays": 3,
+            "possibleDays": 6,
+            "coverage": 50.0,
+            "requiredCoverage": 80,
+            "receipts": 41,
+            "visitors": 220,
+            "lastDay": "2026-10-06",
+            "gap": "low-coverage"
+          }
+        }
+      ]
+    },
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B02",
+      "templateName": "MAĞAZA MÜDÜRÜ 01",
+      "totalScore": 79.7,
+      "scoredItemCount": 2,
+      "scoreCalculatedAt": "2026-10-07T16:50:00.120+00:00",
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B02",
+        "firstname": "Deneme",
+        "lastname": "Müdür",
+        "email": "deneme.mudur@example.com",
+        "isActive": true,
+        "jobTitle": "Mağaza müdürü",
+        "storeName": "MERKEZ MAĞAZA"
+      },
+      "salary": {
+        "effectiveMonth": "2026-10",
+        "amount": 2000.0,
+        "currency": "USD",
+        "fixedPercent": 50.0,
+        "kpiPercent": 50.0
+      },
+      "items": [
+        {
+          "sortOrder": 1,
+          "code": "STORE_SALES",
+          "scope": "store",
+          "unit": "money",
+          "name": {
+            "tr": "#1 Mağaza bazında ciro",
+            "en": "#1 Sales by store",
+            "ru": "#1 Выручка по магазину",
+            "tk": "#1 Dükan boýunça girdeji"
+          },
+          "inputs": {
+            "storeIds": [12, 14],
+            "currency": "USD"
+          },
+          "stores": [
+            {
+              "nr": 1,
+              "name": "MERKEZ MAĞAZA"
+            },
+            {
+              "nr": 2,
+              "name": "BERKARAR"
+            }
+          ],
+          "weight": 60.0,
+          "target": 150000.0,
+          "actual": 141000.0,
+          "source": "calculated",
+          "rawAchievement": 94.0,
+          "cappedAchievement": 94.0,
+          "weightedScore": 56.4,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        },
+        {
+          "sortOrder": 2,
+          "code": "STORE_CONVERSION",
+          "scope": "store",
+          "unit": "percent",
+          "name": {
+            "tr": "#7 Mağaza bazında dönüşüm oranı (CRM)",
+            "en": "#7 Store conversion rate (CRM)",
+            "ru": "#7 Конверсия магазина (CRM)",
+            "tk": "#7 Dükan boýunça öwrülme derejesi (CRM)"
+          },
+          "inputs": {
+            "storeIds": [12]
+          },
+          "stores": [
+            {
+              "nr": 1,
+              "name": "MERKEZ MAĞAZA"
+            }
+          ],
+          "weight": 25.0,
+          "target": 20.0,
+          "actual": 18.64,
+          "source": "calculated",
+          "rawAchievement": 93.2,
+          "cappedAchievement": 93.2,
+          "weightedScore": 23.3,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": {
+            "storeCount": 1,
+            "countedDays": 6,
+            "possibleDays": 6,
+            "coverage": 100.0,
+            "requiredCoverage": 80,
+            "receipts": 82,
+            "visitors": 440,
+            "lastDay": "2026-10-06"
+          }
+        },
+        {
+          "sortOrder": 3,
+          "code": "STORE_NEW_CUSTOMERS",
+          "scope": "store",
+          "unit": "count",
+          "name": {
+            "tr": "#4 Mağaza bazında yeni müşteri",
+            "en": "#4 New customers by store",
+            "ru": "#4 Новые покупатели по магазину",
+            "tk": "#4 Dükan boýunça täze müşderi"
+          },
+          "inputs": {
+            "storeIds": [12]
+          },
+          "stores": [
+            {
+              "nr": 1,
+              "name": "MERKEZ MAĞAZA"
+            }
+          ],
+          "weight": 15.0,
+          "target": 0.0,
+          "actual": null,
+          "source": "calculated",
+          "rawAchievement": null,
+          "cappedAchievement": null,
+          "weightedScore": null,
+          "calculatedAt": null,
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B03",
+      "templateName": "SATIŞ DANIŞMANI 01",
+      "totalScore": 72.45,
+      "scoredItemCount": 2,
+      "scoreCalculatedAt": "2026-10-07T16:50:00.120+00:00",
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B03",
+        "firstname": "Aýna",
+        "lastname": "Örnekowa",
+        "email": "ayna@example.com",
+        "isActive": true,
+        "jobTitle": "Satış danışmanı",
+        "storeName": "BERKARAR"
+      },
+      "salary": null,
+      "items": [
+        {
+          "sortOrder": 1,
+          "code": "EMPLOYEE_SALES",
+          "scope": "employee",
+          "unit": "money",
+          "name": {
+            "tr": "#9 Personel bazında ciro",
+            "en": "#9 Sales by salesperson",
+            "ru": "#9 Выручка по продавцу",
+            "tk": "#9 Satyjy boýunça girdeji"
+          },
+          "inputs": {
+            "currency": "TMT"
+          },
+          "stores": null,
+          "weight": 70.0,
+          "target": 100000.0,
+          "actual": 103500.0,
+          "source": "calculated",
+          "rawAchievement": 103.5,
+          "cappedAchievement": 100.0,
+          "weightedScore": 70.0,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        },
+        {
+          "sortOrder": 2,
+          "code": "EMPLOYEE_NEW_CUSTOMERS",
+          "scope": "employee",
+          "unit": "count",
+          "name": {
+            "tr": "#12 Personel bazında yeni müşteri",
+            "en": "#12 New customers by salesperson",
+            "ru": "#12 Новые покупатели по продавцу",
+            "tk": "#12 Satyjy boýunça täze müşderi"
+          },
+          "inputs": {},
+          "stores": null,
+          "weight": 30.0,
+          "target": 120.0,
+          "actual": 9.8,
+          "source": "calculated",
+          "rawAchievement": 8.17,
+          "cappedAchievement": 8.17,
+          "weightedScore": 2.45,
+          "calculatedAt": "2026-10-07T16:50:00.120+00:00",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B04",
+      "templateName": "SATIŞ DANIŞMANI 01",
+      "totalScore": 41.0,
+      "scoredItemCount": 1,
+      "scoreCalculatedAt": "2026-10-07T16:50:00.120+00:00",
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B04",
+        "firstname": "Mailsiz",
+        "lastname": "Çalışan",
+        "email": null,
+        "isActive": true,
+        "jobTitle": "Satış danışmanı",
+        "storeName": null
+      },
+      "salary": null,
+      "items": []
+    },
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B05",
+      "templateName": "SATIŞ DANIŞMANI 01",
+      "totalScore": null,
+      "scoredItemCount": null,
+      "scoreCalculatedAt": null,
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B05",
+        "firstname": "Yeni",
+        "lastname": "Başlayan",
+        "email": "yeni@example.com",
+        "isActive": true,
+        "jobTitle": "Satış danışmanı",
+        "storeName": "BERKARAR"
+      },
+      "salary": {
+        "effectiveMonth": "2026-10",
+        "amount": 9000.0,
+        "currency": "TMT",
+        "fixedPercent": 40.0,
+        "kpiPercent": 60.0
+      },
+      "items": [
+        {
+          "sortOrder": 1,
+          "code": "EMPLOYEE_SALES",
+          "scope": "employee",
+          "unit": "money",
+          "name": {
+            "tr": "#9 Personel bazında ciro",
+            "en": "#9 Sales by salesperson",
+            "ru": "#9 Выручка по продавцу",
+            "tk": "#9 Satyjy boýunça girdeji"
+          },
+          "inputs": {
+            "currency": "TMT"
+          },
+          "stores": null,
+          "weight": 100.0,
+          "target": null,
+          "actual": null,
+          "source": null,
+          "rawAchievement": null,
+          "cappedAchievement": null,
+          "weightedScore": null,
+          "calculatedAt": null,
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "7B2E0C8E-4B1D-F111-8C2A-00155D0A1B06",
+      "templateName": "SATIŞ DANIŞMANI 01",
+      "totalScore": 55.0,
+      "scoredItemCount": 1,
+      "scoreCalculatedAt": "2026-10-07T16:50:00.120+00:00",
+      "employee": {
+        "id": "8C3F0C8E-4B1D-F111-8C2A-00155D0A1B06",
+        "firstname": "Pasif",
+        "lastname": "Çalışan",
+        "email": "pasif@example.com",
+        "isActive": false,
+        "jobTitle": "Satış danışmanı",
+        "storeName": null
+      },
+      "salary": null,
+      "items": []
+    }
+  ]
+}

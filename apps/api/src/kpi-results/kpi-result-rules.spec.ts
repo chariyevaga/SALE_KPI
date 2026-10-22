@@ -92,6 +92,8 @@ void test('report KPIs and the derived conversion are calculated; unknown codes 
   assert.equal(isCalculableKpi('EMPLOYEE_PRODUCT_VARIETY'), true);
   // From Tiger receipts and the entered visitor counts since ADR-052.
   assert.equal(isCalculableKpi('STORE_CONVERSION'), true);
+  // The entered visitor counts alone (ADR-064).
+  assert.equal(isCalculableKpi('STORE_VISITOR_COUNT'), true);
   assert.equal(isCalculableKpi('EMPLOYEE_DISCIPLINE'), false);
 });
 

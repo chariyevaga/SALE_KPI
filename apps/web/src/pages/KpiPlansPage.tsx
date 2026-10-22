@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { listEmployees } from '../api/employees';
@@ -15,13 +15,19 @@ import {
   listKpiPlans,
   reopenKpiPeriod,
 } from '../api/kpi-plans';
-import { listKpiTemplates } from '../api/kpi-templates';
+import { getKpiTemplate, listKpiTemplates } from '../api/kpi-templates';
 import { AppShell } from '../components/AppShell';
 import { PasswordConfirmModal } from '../components/PasswordConfirmModal';
 import { Drawer } from '../components/Drawer';
 import { EmployeeAvatarButton } from '../components/EmployeeAvatarButton';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
 import { FormField, formInputClassName } from '../components/FormField';
+import {
+  RevealToggle,
+  SalaryRevealProvider,
+  SalarySplitBar,
+  SecretAmount,
+} from '../components/KpiSalary';
 import { PersonAvatar } from '../components/ProfileAvatar';
 import { ProgressMeter } from '../components/ProgressMeter';
 import { RecordInfoButton } from '../components/RecordInfo';
@@ -32,8 +38,18 @@ import { useTranslation, type Translate, type TranslationKey } from '../i18n/loc
 import type { Locale } from '../i18n/translations';
 import { ApiError } from '../lib/api-client';
 import { saveFile } from '../lib/save-file';
-import type { EmployeeResponse, KpiPeriod, KpiPlanSkipReason, KpiPlanSummary } from '../types/api';
+import type {
+  EmployeeResponse,
+  KpiPeriod,
+  KpiPlanSalary,
+  KpiPlanSalarySummary,
+  KpiPlanSkipReason,
+  KpiPlanSummary,
+} from '../types/api';
 import { confirmAction } from '../store/confirm-store';
+
+/** Any GUID text; SQL Server's NEWSEQUENTIALID values are not RFC 4122 UUIDs. */
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 
@@ -236,46 +252,270 @@ function PlanCard({
   const name = employeeName(plan.employee);
 
   return (
-    <div className="flex min-h-[64px] items-center overflow-hidden rounded-xl border border-slate-200 bg-white transition dark:border-slate-800 dark:bg-slate-900">
-      <div className="self-start pl-2 pt-2.5">
-        <EmployeeAvatarButton
-          person={plan.employee}
-          avatarPath={plan.employee.avatarUrl}
-          onOpenCard={onOpenCard}
-        />
-      </div>
-      <Link
-        to={`/kpi-plans/${plan.id}`}
-        className="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3 pl-2 pr-2 transition active:bg-slate-100 dark:active:bg-slate-800"
-      >
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-            {name}
-          </span>
-          <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-            {plan.employee.jobTitle ? `${plan.employee.jobTitle} · ` : ''}
-            {plan.templateName}
-          </span>
-          {plan.totalScore === null ? null : (
-            <PlanScoreMeter score={plan.totalScore} name={name} className="mt-2" />
-          )}
-          <span
-            className={`mt-1 block text-xs ${
-              plan.targetCount < plan.itemCount
-                ? 'text-amber-600 dark:text-amber-400'
-                : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            {t('kpiPlans.targetProgress', {
-              done: formatNumber(plan.targetCount, locale),
-              total: formatNumber(plan.itemCount, locale),
-            })}
-          </span>
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white transition dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex min-h-[64px] items-center">
+        <div className="self-start pl-2 pt-2.5">
+          <EmployeeAvatarButton
+            person={plan.employee}
+            avatarPath={plan.employee.avatarUrl}
+            onOpenCard={onOpenCard}
+          />
         </div>
-      </Link>
-      {onDelete ? <DeletePlanButton name={name} onDelete={onDelete} disabled={deleting} /> : null}
-      <RecordInfoButton tableName="kpi_assignments" recordId={plan.id} title={name} />
+        <Link
+          to={`/kpi-plans/${plan.id}`}
+          className="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3 pl-2 pr-2 transition active:bg-slate-100 dark:active:bg-slate-800"
+        >
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {name}
+            </span>
+            <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+              {plan.employee.jobTitle ? `${plan.employee.jobTitle} · ` : ''}
+              {plan.templateName}
+            </span>
+            {plan.totalScore === null ? null : (
+              <PlanScoreMeter score={plan.totalScore} name={name} className="mt-2" />
+            )}
+            <span
+              className={`mt-1 block text-xs ${
+                plan.targetCount < plan.itemCount
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {t('kpiPlans.targetProgress', {
+                done: formatNumber(plan.targetCount, locale),
+                total: formatNumber(plan.itemCount, locale),
+              })}
+            </span>
+          </div>
+        </Link>
+        {onDelete ? <DeletePlanButton name={name} onDelete={onDelete} disabled={deleting} /> : null}
+        <RecordInfoButton tableName="kpi_assignments" recordId={plan.id} title={name} />
+      </div>
+      <PlanSalaryStrip salary={plan.salary} />
     </div>
+  );
+}
+
+/**
+ * One plan's pay under its card (ADR-067): the fixed part, what the score earned of the KPI
+ * part and what the period pays. The currency is written once, on the payable figure.
+ */
+function PlanSalaryStrip({ salary }: { salary: KpiPlanSalary | null }) {
+  const { t } = useTranslation();
+
+  if (!salary) {
+    return (
+      <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+        {t('kpiPlans.noSalary')}
+      </p>
+    );
+  }
+
+  return (
+    <dl className="grid grid-cols-3 gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/30">
+      <div className="min-w-0">
+        <dt className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.salaryFixed')}
+        </dt>
+        <dd>
+          <SecretAmount
+            value={salary.fixedAmount}
+            currency={salary.currency}
+            showCurrency={false}
+            className="text-sm font-medium text-slate-700 dark:text-slate-200"
+          />
+        </dd>
+      </div>
+      <div className="min-w-0">
+        <dt className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.salaryKpi')}
+        </dt>
+        <dd>
+          {salary.kpiEarned === null ? (
+            <span className="text-sm text-slate-400">—</span>
+          ) : (
+            <SecretAmount
+              value={salary.kpiEarned}
+              currency={salary.currency}
+              showCurrency={false}
+              className="text-sm font-medium text-emerald-700 dark:text-emerald-400"
+            />
+          )}
+        </dd>
+      </div>
+      <div className="min-w-0 text-right">
+        <dt className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.salaryPayable')}
+        </dt>
+        <dd>
+          <SecretAmount
+            value={salary.totalEarned ?? salary.fixedAmount}
+            currency={salary.currency}
+            className="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100"
+          />
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+/** The table's pay cell: what the period pays, with the fixed and KPI parts under it. */
+function PlanSalaryCell({ salary }: { salary: KpiPlanSalary | null }) {
+  const { t } = useTranslation();
+
+  if (!salary) {
+    return (
+      <span className="text-xs text-slate-400 dark:text-slate-500">{t('kpiPlans.noSalary')}</span>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <SecretAmount
+        value={salary.totalEarned ?? salary.fixedAmount}
+        currency={salary.currency}
+        className="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100"
+      />
+      <span className="whitespace-nowrap text-[11px] text-slate-500 dark:text-slate-400">
+        {t('kpiPlans.salaryFixed')}{' '}
+        <SecretAmount value={salary.fixedAmount} currency={salary.currency} showCurrency={false} />
+        {' · '}
+        {t('kpiPlans.salaryKpi')}{' '}
+        {salary.kpiEarned === null ? (
+          '—'
+        ) : (
+          <SecretAmount
+            value={salary.kpiEarned}
+            currency={salary.currency}
+            showCurrency={false}
+            className="text-emerald-700 dark:text-emerald-400"
+          />
+        )}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * What the listed plans pay altogether, next to the search (ADR-067). It covers every plan
+ * the search and template filter keep, not only the loaded rows, and each currency apart.
+ */
+function PlanSalarySummary({
+  summary,
+  periodOpen,
+  className = '',
+}: {
+  summary: KpiPlanSalarySummary;
+  periodOpen: boolean;
+  className?: string;
+}) {
+  const { t, locale } = useTranslation();
+  const hasTotals = summary.totals.length > 0;
+  const percentOf = (value: number, of: number) =>
+    formatNumber(of > 0 ? Math.round((value / of) * 1000) / 10 : 0, locale);
+  const notes = [
+    summary.withoutSalaryCount > 0 && hasTotals
+      ? t('kpiPlans.salaryWithout', { count: formatNumber(summary.withoutSalaryCount, locale) })
+      : null,
+    summary.notCalculatedCount > 0
+      ? t('kpiPlans.salaryNotCalculated', {
+          count: formatNumber(summary.notCalculatedCount, locale),
+        })
+      : null,
+    hasTotals ? t(periodOpen ? 'kpiSalary.interim' : 'kpiSalary.final') : null,
+  ].filter((note) => note !== null);
+
+  return (
+    <section
+      aria-label={t('kpiPlans.salaryTitle')}
+      className={`rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 ${className}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {t('kpiPlans.salaryTitle')}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {t('kpiPlans.salaryPlans', { count: formatNumber(summary.planCount, locale) })}
+          </p>
+        </div>
+        {hasTotals ? <RevealToggle /> : null}
+      </div>
+
+      {hasTotals ? (
+        summary.totals.map((total) => (
+          <div key={total.currency} className="mt-2">
+            <div className="min-h-[36px]">
+              <SecretAmount
+                value={total.totalEarned}
+                currency={total.currency}
+                className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100"
+              />
+            </div>
+            <SalarySplitBar
+              amount={total.amount}
+              fixedAmount={total.fixedAmount}
+              earned={total.kpiEarned}
+              label={t('kpiPlans.salaryBarLabel', {
+                fixed: percentOf(total.fixedAmount, total.amount),
+                earned: percentOf(total.kpiEarned, total.amount),
+              })}
+              className="mt-2"
+            />
+            <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full bg-slate-400 dark:bg-slate-500"
+                />
+                <dt className="text-slate-500 dark:text-slate-400">{t('kpiPlans.salaryFixed')}</dt>
+                <dd>
+                  <SecretAmount
+                    value={total.fixedAmount}
+                    currency={total.currency}
+                    className="font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                </dd>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
+                />
+                <dt className="text-slate-500 dark:text-slate-400">{t('kpiPlans.salaryKpi')}</dt>
+                <dd className="flex items-baseline gap-1">
+                  <SecretAmount
+                    value={total.kpiEarned}
+                    currency={total.currency}
+                    className="font-semibold text-emerald-700 dark:text-emerald-400"
+                  />
+                  <span className="text-slate-400">/</span>
+                  <SecretAmount
+                    value={total.kpiAmount}
+                    currency={total.currency}
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ))
+      ) : (
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          {t('kpiPlans.salaryNone')}
+        </p>
+      )}
+
+      {notes.length > 0 ? (
+        <ul className="mt-3 space-y-0.5 border-t border-slate-100 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          {notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
@@ -466,6 +706,10 @@ export function KpiPlansPage() {
     ? periods.find((item) => item.year * 12 + item.month < period.year * 12 + period.month)
     : undefined;
 
+  // The KPI templates screen links here with ?template=<id>: the plans built from that template.
+  const templateParam = searchParams.get('template') ?? '';
+  const templateId = GUID_PATTERN.test(templateParam) ? templateParam : '';
+
   function selectPeriod(label: string) {
     setSearchParams(
       (current) => {
@@ -477,12 +721,59 @@ export function KpiPlansPage() {
     );
   }
 
-  const plansQuery = useQuery({
-    queryKey: ['kpi-plans', period?.id, search],
-    queryFn: () => listKpiPlans(period?.id ?? '', 1, search ? { search } : {}),
+  function clearTemplateFilter() {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('template');
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const listQuery = useMemo(
+    () => ({
+      ...(search ? { search } : {}),
+      ...(templateId ? { templateId } : {}),
+    }),
+    [search, templateId],
+  );
+  const plansQuery = useInfiniteQuery({
+    queryKey: ['kpi-plans', 'period', period?.id, listQuery],
+    queryFn: ({ pageParam }) => listKpiPlans(period?.id ?? '', pageParam, listQuery),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
     enabled: Boolean(period),
   });
-  const plans = plansQuery.data?.items ?? [];
+  const plans = useMemo(
+    () => plansQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [plansQuery.data],
+  );
+  const firstPage = plansQuery.data?.pages[0];
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && plansQuery.hasNextPage && !plansQuery.isFetchingNextPage) {
+        void plansQuery.fetchNextPage();
+      }
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [plansQuery]);
+  // The chip names the template even in a month none of its plans are in.
+  const filterTemplateQuery = useQuery({
+    queryKey: ['kpi-templates', templateId],
+    queryFn: () => getKpiTemplate(templateId),
+    enabled: templateId !== '',
+  });
+  const filterTemplateName = filterTemplateQuery.data?.name ?? plans[0]?.templateName ?? '…';
 
   async function refresh() {
     await Promise.all([
@@ -693,271 +984,321 @@ export function KpiPlansPage() {
         period ? { tableName: 'kpi_periods', recordId: period.id, title: period.label } : undefined
       }
     >
-      {periodsQuery.isLoading ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          {t('kpiPlans.loading')}
-        </p>
-      ) : null}
-
-      {!periodsQuery.isLoading && periods.length === 0 ? (
-        <div className="px-4 py-10 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t('kpiPlans.emptyPeriods')}</p>
-          <button
-            type="button"
-            onClick={() => setNewPeriodOpen(true)}
-            className="mt-4 inline-flex h-11 items-center gap-1.5 rounded-lg bg-emerald-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
-          >
-            <PlusIcon className="h-4 w-4" />
-            {t('kpiPlans.newPeriod')}
-          </button>
-        </div>
-      ) : null}
-
-      {period ? (
-        <PeriodPanel
-          periods={periods}
-          period={period}
-          previousPeriod={previousPeriod}
-          onSelect={selectPeriod}
-          onNewPeriod={() => setNewPeriodOpen(true)}
-          onCalculate={() => calculateMutation.mutate(period.id)}
-          onCopy={() => void copyFromPrevious()}
-          onClose={closePeriod}
-          onReopen={reopenPeriod}
-          onExport={exportPeriod}
-          calculating={calculateMutation.isPending}
-          copying={copyMutation.isPending}
-          closing={closeMutation.isPending}
-          reopening={reopenMutation.isPending}
-          exporting={exportMutation.isPending}
-        />
-      ) : null}
-
-      {notice ? (
-        <p
-          role="status"
-          className={`mx-4 mb-3 rounded-lg px-3 py-2 text-sm ${
-            notice.tone === 'success'
-              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-              : 'bg-red-500/10 text-red-600 dark:text-red-400'
-          }`}
-        >
-          {notice.text}
-        </p>
-      ) : null}
-
-      {period ? (
-        <div className="px-4 pb-3">
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t('kpiPlans.searchPlaceholder')}
-            aria-label={t('kpiPlans.searchPlaceholder')}
-            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 sm:max-w-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500"
-          />
-        </div>
-      ) : null}
-
-      {plansQuery.isError ? (
-        <p
-          role="alert"
-          className="mx-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400"
-        >
-          {t('kpiPlans.errorLoading')}
-        </p>
-      ) : null}
-
-      {period && !plansQuery.isLoading && plans.length === 0 && !plansQuery.isError ? (
-        <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          {search ? t('kpiPlans.noSearchResults') : t('kpiPlans.empty')}
-        </p>
-      ) : null}
-
-      {plans.length > 0 ? (
-        <>
-          <p className="px-4 pb-2 text-xs text-slate-500 dark:text-slate-400">
-            {t('kpiPlans.resultCount', {
-              count: formatNumber(plansQuery.data?.total ?? plans.length, locale),
-            })}
+      {/* One tap shows every salary figure of the list for twenty seconds (ADR-049). */}
+      <SalaryRevealProvider>
+        {periodsQuery.isLoading ? (
+          <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+            {t('kpiPlans.loading')}
           </p>
+        ) : null}
 
-          <div className="flex flex-col gap-2 px-4 pb-28 lg:hidden">
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                onDelete={isOpenPeriod ? () => void removePlan(plan) : undefined}
-                onOpenCard={() => setCardEmployeeId(plan.employee.id)}
-                deleting={deleteMutation.isPending}
-              />
-            ))}
+        {!periodsQuery.isLoading && periods.length === 0 ? (
+          <div className="px-4 py-10 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('kpiPlans.emptyPeriods')}
+            </p>
+            <button
+              type="button"
+              onClick={() => setNewPeriodOpen(true)}
+              className="mt-4 inline-flex h-11 items-center gap-1.5 rounded-lg bg-emerald-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+            >
+              <PlusIcon className="h-4 w-4" />
+              {t('kpiPlans.newPeriod')}
+            </button>
           </div>
+        ) : null}
 
-          <div className="hidden overflow-x-auto pb-28 lg:block">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-y border-slate-200 bg-slate-50/60 text-left text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/40">
-                  <th className="py-2 pl-4 pr-3 font-medium">{t('kpiPlans.columnEmployee')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('kpiPlans.columnTemplate')}</th>
-                  <th className="py-2 pr-3 text-right font-medium">
-                    {t('kpiPlans.columnTargets')}
-                  </th>
-                  <th className="py-2 pr-3 text-right font-medium">{t('kpiPlans.columnScore')}</th>
-                  <th className="py-2 pr-4 text-right font-medium">
-                    {t('kpiPlans.columnActions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {plans.map((plan) => (
-                  <tr
-                    key={plan.id}
-                    className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900"
+        {period ? (
+          <PeriodPanel
+            periods={periods}
+            period={period}
+            previousPeriod={previousPeriod}
+            onSelect={selectPeriod}
+            onNewPeriod={() => setNewPeriodOpen(true)}
+            onCalculate={() => calculateMutation.mutate(period.id)}
+            onCopy={() => void copyFromPrevious()}
+            onClose={closePeriod}
+            onReopen={reopenPeriod}
+            onExport={exportPeriod}
+            calculating={calculateMutation.isPending}
+            copying={copyMutation.isPending}
+            closing={closeMutation.isPending}
+            reopening={reopenMutation.isPending}
+            exporting={exportMutation.isPending}
+          />
+        ) : null}
+
+        {notice ? (
+          <p
+            role="status"
+            className={`mx-4 mb-3 rounded-lg px-3 py-2 text-sm ${
+              notice.tone === 'success'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+            }`}
+          >
+            {notice.text}
+          </p>
+        ) : null}
+
+        {period ? (
+          <div className="flex flex-col gap-3 px-4 pb-3 lg:flex-row lg:items-start">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:flex-1">
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t('kpiPlans.searchPlaceholder')}
+                aria-label={t('kpiPlans.searchPlaceholder')}
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 sm:max-w-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500"
+              />
+              {templateId ? (
+                <span className="inline-flex min-h-[44px] max-w-full items-center gap-1 self-start rounded-full bg-emerald-400/15 pl-3 text-sm font-medium text-emerald-700 sm:self-auto dark:text-emerald-300">
+                  <span className="truncate">
+                    {t('kpiPlans.templateFilter', { name: filterTemplateName })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearTemplateFilter}
+                    aria-label={t('kpiPlans.clearTemplateFilter')}
+                    title={t('kpiPlans.clearTemplateFilter')}
+                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition hover:bg-emerald-400/20"
                   >
-                    <td className="py-1.5 pl-2 pr-3">
-                      <div className="flex items-center gap-1.5">
-                        <EmployeeAvatarButton
-                          person={plan.employee}
-                          avatarPath={plan.employee.avatarUrl}
-                          onOpenCard={() => setCardEmployeeId(plan.employee.id)}
-                          avatarClassName="h-9 w-9 text-xs"
-                        />
-                        <div className="min-w-0">
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="h-4 w-4"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </span>
+              ) : null}
+            </div>
+            {firstPage && firstPage.total > 0 ? (
+              <PlanSalarySummary
+                summary={firstPage.salarySummary}
+                periodOpen={isOpenPeriod}
+                className="lg:w-[22rem] lg:flex-none"
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {plansQuery.isError ? (
+          <p
+            role="alert"
+            className="mx-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400"
+          >
+            {t('kpiPlans.errorLoading')}
+          </p>
+        ) : null}
+
+        {period && !plansQuery.isLoading && plans.length === 0 && !plansQuery.isError ? (
+          <p className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+            {search
+              ? t('kpiPlans.noSearchResults')
+              : templateId
+                ? t('kpiPlans.noTemplatePlans')
+                : t('kpiPlans.empty')}
+          </p>
+        ) : null}
+
+        {plans.length > 0 ? (
+          <>
+            {/* The plan count is in the pay summary above, which follows the search too. */}
+            <div className="flex flex-col gap-2 px-4 pb-28 lg:hidden">
+              {plans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  onDelete={isOpenPeriod ? () => void removePlan(plan) : undefined}
+                  onOpenCard={() => setCardEmployeeId(plan.employee.id)}
+                  deleting={deleteMutation.isPending}
+                />
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto pb-28 lg:block">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-y border-slate-200 bg-slate-50/60 text-left text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/40">
+                    <th className="py-2 pl-4 pr-3 font-medium">{t('kpiPlans.columnEmployee')}</th>
+                    <th className="py-2 pr-3 text-right font-medium">
+                      {t('kpiPlans.columnTargets')}
+                    </th>
+                    <th className="py-2 pr-3 text-right font-medium">
+                      {t('kpiPlans.columnScore')}
+                    </th>
+                    <th className="py-2 pr-3 text-right font-medium">
+                      {t('kpiPlans.salaryPayable')}
+                    </th>
+                    <th className="py-2 pr-4 text-right font-medium">
+                      {t('kpiPlans.columnActions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.map((plan) => (
+                    <tr
+                      key={plan.id}
+                      className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900"
+                    >
+                      <td className="py-1.5 pl-2 pr-3">
+                        <div className="flex items-center gap-1.5">
+                          <EmployeeAvatarButton
+                            person={plan.employee}
+                            avatarPath={plan.employee.avatarUrl}
+                            onOpenCard={() => setCardEmployeeId(plan.employee.id)}
+                            avatarClassName="h-9 w-9 text-xs"
+                          />
+                          <div className="min-w-0">
+                            <Link
+                              to={`/kpi-plans/${plan.id}`}
+                              className="text-sm font-medium text-slate-900 dark:text-slate-100"
+                            >
+                              {employeeName(plan.employee)}
+                            </Link>
+                            <span className="block text-xs text-slate-500 dark:text-slate-400">
+                              @{plan.employee.username}
+                              {plan.employee.jobTitle ? ` · ${plan.employee.jobTitle}` : ''}
+                            </span>
+                            <span className="block text-xs text-slate-600 dark:text-slate-300">
+                              {plan.templateName}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td
+                        className={`py-2.5 pr-3 text-right text-sm tabular-nums ${
+                          plan.targetCount < plan.itemCount
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {t('kpiPlans.targetProgress', {
+                          done: formatNumber(plan.targetCount, locale),
+                          total: formatNumber(plan.itemCount, locale),
+                        })}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right text-sm text-slate-400 dark:text-slate-500">
+                        {plan.totalScore === null ? (
+                          t('kpiPlans.noScore')
+                        ) : (
+                          <PlanScoreMeter
+                            score={plan.totalScore}
+                            name={employeeName(plan.employee)}
+                            compact
+                            className="ml-auto w-36"
+                          />
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right">
+                        <PlanSalaryCell salary={plan.salary} />
+                      </td>
+                      <td className="py-2.5 pr-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             to={`/kpi-plans/${plan.id}`}
-                            className="text-sm font-medium text-slate-900 dark:text-slate-100"
+                            aria-label={t('kpiPlans.openPlan', {
+                              name: employeeName(plan.employee),
+                            })}
+                            className="inline-flex h-8 items-center rounded-lg px-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-400/10 dark:text-emerald-400"
                           >
-                            {employeeName(plan.employee)}
+                            {t('kpiPlans.openPlanShort')}
                           </Link>
-                          <span className="block text-xs text-slate-500 dark:text-slate-400">
-                            @{plan.employee.username}
-                            {plan.employee.jobTitle ? ` · ${plan.employee.jobTitle}` : ''}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 pr-3 text-sm text-slate-600 dark:text-slate-300">
-                      {plan.templateName}
-                    </td>
-                    <td
-                      className={`py-2.5 pr-3 text-right text-sm tabular-nums ${
-                        plan.targetCount < plan.itemCount
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {t('kpiPlans.targetProgress', {
-                        done: formatNumber(plan.targetCount, locale),
-                        total: formatNumber(plan.itemCount, locale),
-                      })}
-                    </td>
-                    <td className="py-2.5 pr-3 text-right text-sm text-slate-400 dark:text-slate-500">
-                      {plan.totalScore === null ? (
-                        t('kpiPlans.noScore')
-                      ) : (
-                        <PlanScoreMeter
-                          score={plan.totalScore}
-                          name={employeeName(plan.employee)}
-                          compact
-                          className="ml-auto w-40"
-                        />
-                      )}
-                    </td>
-                    <td className="py-2.5 pr-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          to={`/kpi-plans/${plan.id}`}
-                          aria-label={t('kpiPlans.openPlan', {
-                            name: employeeName(plan.employee),
-                          })}
-                          className="inline-flex h-8 items-center rounded-lg px-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-400/10 dark:text-emerald-400"
-                        >
-                          {t('kpiPlans.openPlanShort')}
-                        </Link>
-                        {isOpenPeriod ? (
-                          <DeletePlanButton
-                            name={employeeName(plan.employee)}
-                            onDelete={() => void removePlan(plan)}
-                            disabled={deleteMutation.isPending}
+                          {isOpenPeriod ? (
+                            <DeletePlanButton
+                              name={employeeName(plan.employee)}
+                              onDelete={() => void removePlan(plan)}
+                              disabled={deleteMutation.isPending}
+                            />
+                          ) : null}
+                          <RecordInfoButton
+                            tableName="kpi_assignments"
+                            recordId={plan.id}
+                            title={employeeName(plan.employee)}
                           />
-                        ) : null}
-                        <RecordInfoButton
-                          tableName="kpi_assignments"
-                          recordId={plan.id}
-                          title={employeeName(plan.employee)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : null}
 
-      {period && isOpenPeriod ? (
-        <button
-          type="button"
-          onClick={() => setAssignOpen(true)}
-          className="fixed bottom-6 right-6 z-30 inline-flex h-14 items-center gap-2 rounded-full bg-emerald-400 pl-4 pr-5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-300 active:scale-95"
-        >
-          <PlusIcon className="h-6 w-6" />
-          {t('kpiPlans.assign')}
-        </button>
-      ) : null}
+        <div ref={sentinelRef} className="h-1" />
+        {plansQuery.isFetchingNextPage ? (
+          <p className="py-4 text-center text-xs text-slate-500">{t('kpiPlans.loading')}</p>
+        ) : null}
 
-      <NewPeriodDrawer
-        open={newPeriodOpen}
-        onClose={() => setNewPeriodOpen(false)}
-        onSubmit={(year, month) => openPeriodMutation.mutate({ year, month })}
-        pending={openPeriodMutation.isPending}
-      />
+        {period && isOpenPeriod ? (
+          <button
+            type="button"
+            onClick={() => setAssignOpen(true)}
+            className="fixed bottom-6 right-6 z-30 inline-flex h-14 items-center gap-2 rounded-full bg-emerald-400 pl-4 pr-5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-300 active:scale-95"
+          >
+            <PlusIcon className="h-6 w-6" />
+            {t('kpiPlans.assign')}
+          </button>
+        ) : null}
 
-      {period ? (
-        <AssignDrawer
-          open={assignOpen}
-          period={period}
-          onClose={() => setAssignOpen(false)}
-          onAssigned={async (count) => {
-            setAssignOpen(false);
-            setNotice({
-              tone: 'success',
-              text: t('kpiPlans.assigned', { count: formatNumber(count, locale) }),
-            });
-            await refresh();
-          }}
-          onError={(text) => setNotice({ tone: 'error', text })}
+        <NewPeriodDrawer
+          open={newPeriodOpen}
+          onClose={() => setNewPeriodOpen(false)}
+          onSubmit={(year, month) => openPeriodMutation.mutate({ year, month })}
+          pending={openPeriodMutation.isPending}
         />
-      ) : null}
-      {passwordAction ? (
-        <PasswordConfirmModal
-          title={t(PASSWORD_ACTION_TITLES[passwordAction.kind])}
-          message={passwordAction.message}
-          confirmLabel={t(PASSWORD_ACTION_CONFIRMS[passwordAction.kind])}
-          tone={passwordAction.kind === 'export' ? 'primary' : 'danger'}
-          pending={
-            closeMutation.isPending || reopenMutation.isPending || exportMutation.isPending
-          }
-          error={passwordError}
-          onClose={() => setPasswordAction(null)}
-          onConfirm={(password) => {
-            setPasswordError(null);
-            const input = { id: passwordAction.periodId, password };
 
-            switch (passwordAction.kind) {
-              case 'close':
-                return closeMutation.mutateAsync(input);
-              case 'reopen':
-                return reopenMutation.mutateAsync(input);
-              case 'export':
-                return exportMutation.mutateAsync(input);
+        {period ? (
+          <AssignDrawer
+            open={assignOpen}
+            period={period}
+            onClose={() => setAssignOpen(false)}
+            onAssigned={async (count) => {
+              setAssignOpen(false);
+              setNotice({
+                tone: 'success',
+                text: t('kpiPlans.assigned', { count: formatNumber(count, locale) }),
+              });
+              await refresh();
+            }}
+            onError={(text) => setNotice({ tone: 'error', text })}
+          />
+        ) : null}
+        {passwordAction ? (
+          <PasswordConfirmModal
+            title={t(PASSWORD_ACTION_TITLES[passwordAction.kind])}
+            message={passwordAction.message}
+            confirmLabel={t(PASSWORD_ACTION_CONFIRMS[passwordAction.kind])}
+            tone={passwordAction.kind === 'export' ? 'primary' : 'danger'}
+            pending={
+              closeMutation.isPending || reopenMutation.isPending || exportMutation.isPending
             }
-          }}
-        />
-      ) : null}
-      <EmployeeCardModal employeeId={cardEmployeeId} onClose={() => setCardEmployeeId(null)} />
+            error={passwordError}
+            onClose={() => setPasswordAction(null)}
+            onConfirm={(password) => {
+              setPasswordError(null);
+              const input = { id: passwordAction.periodId, password };
+
+              switch (passwordAction.kind) {
+                case 'close':
+                  return closeMutation.mutateAsync(input);
+                case 'reopen':
+                  return reopenMutation.mutateAsync(input);
+                case 'export':
+                  return exportMutation.mutateAsync(input);
+              }
+            }}
+          />
+        ) : null}
+        <EmployeeCardModal employeeId={cardEmployeeId} onClose={() => setCardEmployeeId(null)} />
+      </SalaryRevealProvider>
     </AppShell>
   );
 }
@@ -1142,7 +1483,11 @@ function AssignDrawer({
                 />
                 <PersonAvatar
                   person={employee}
-                  path={employee.avatar ? (employee.avatar.smallImageUrl ?? employee.avatar.contentUrl) : null}
+                  path={
+                    employee.avatar
+                      ? (employee.avatar.smallImageUrl ?? employee.avatar.contentUrl)
+                      : null
+                  }
                   className="h-8 w-8 text-[11px]"
                 />
                 <span className="min-w-0 flex-1 py-2">

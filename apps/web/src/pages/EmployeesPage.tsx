@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -8,10 +8,12 @@ import {
   type EmployeeListQuery,
   type EmployeeSortField,
 } from '../api/employees';
+import { listStores } from '../api/stores';
 import { AppShell } from '../components/AppShell';
 import { AuthenticatedImage } from '../components/AuthenticatedImage';
 import { BulkActionBar, type BulkAction } from '../components/BulkActionBar';
 import { EmployeeCardModal } from '../components/EmployeeCardModal';
+import { JobStoreMeta } from '../components/JobStoreMeta';
 import { RecordInfoButton } from '../components/RecordInfo';
 import { Drawer } from '../components/Drawer';
 import { SelectCheckbox } from '../components/SelectCheckbox';
@@ -23,7 +25,12 @@ import { useTranslation, type TranslationKey } from '../i18n/locale-store';
 import { isBulkBarVisible, type BulkNotice } from '../lib/bulk';
 import { useSelection } from '../lib/use-selection';
 import { useAuthStore } from '../store/auth-store';
-import type { EmployeeResponse } from '../types/api';
+import {
+  EMPTY_EMPLOYEE_FILTERS,
+  useEmployeeListStore,
+  type EmployeeFilters,
+} from '../store/employee-list-store';
+import type { EmployeeResponse, StoreOption } from '../types/api';
 import { confirmAction } from '../store/confirm-store';
 
 /** Checkbox state for one row; `disabledReason` locks the box (the signed-in user's row). */
@@ -107,11 +114,14 @@ function StatusBadges({ employee }: { employee: EmployeeResponse }) {
 
 function EmployeeCard({
   employee,
+  storeName,
   onShowCard,
   canManage,
   selection,
 }: {
   employee: EmployeeResponse;
+  /** The default store's name (ADR-058); null without one. */
+  storeName: string | null;
   onShowCard: (employee: EmployeeResponse) => void;
   canManage: boolean;
   selection: RowSelection | null;
@@ -135,6 +145,9 @@ function EmployeeCard({
         <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
           @{employee.username}
           {employee.email ? ` \u00b7 ${employee.email}` : ''}
+        </span>
+        <span className="mt-0.5 block">
+          <JobStoreMeta jobTitle={employee.jobTitle} storeName={storeName} />
         </span>
       </span>
       {canManage ? (
@@ -185,11 +198,13 @@ function EmployeeCard({
 
 function EmployeeRow({
   employee,
+  storeName,
   onShowCard,
   canManage,
   selection,
 }: {
   employee: EmployeeResponse;
+  storeName: string | null;
   onShowCard: (employee: EmployeeResponse) => void;
   canManage: boolean;
   selection: RowSelection | null;
@@ -235,12 +250,22 @@ function EmployeeRow({
       </td>
       <td className="py-2 pr-3 text-sm text-slate-700 dark:text-slate-300">{employee.lastname}</td>
       <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">@{employee.username}</td>
+      <td className="max-w-[12rem] py-2 pr-3 text-sm text-slate-700 dark:text-slate-300">
+        <span className="block truncate" title={employee.jobTitle ?? undefined}>
+          {employee.jobTitle ?? '—'}
+        </span>
+      </td>
+      <td className="max-w-[10rem] py-2 pr-3 text-sm text-slate-700 dark:text-slate-300">
+        <span className="block truncate" title={storeName ?? undefined}>
+          {storeName ?? '—'}
+        </span>
+      </td>
       {canManage ? (
         <>
-          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">
+          <td className="hidden py-2 pr-3 text-sm text-slate-500 xl:table-cell dark:text-slate-400">
             {employee.email ?? '—'}
           </td>
-          <td className="py-2 pr-3 text-sm text-slate-500 dark:text-slate-400">
+          <td className="hidden py-2 pr-3 text-sm text-slate-500 xl:table-cell dark:text-slate-400">
             {employee.phoneNumber ?? '—'}
           </td>
         </>
@@ -280,25 +305,7 @@ function EmployeeRow({
   );
 }
 
-/** Filters the user is editing in the drawer, applied to the query only on confirm. */
-interface FilterState {
-  status: 'all' | 'active' | 'inactive';
-  managersOnly: boolean;
-  erpLinkedOnly: boolean;
-  withAvatarOnly: boolean;
-  /** Default store (ADR-058); `null`: every store. */
-  storeId: number | null;
-}
-
-const EMPTY_FILTERS: FilterState = {
-  status: 'all',
-  managersOnly: false,
-  erpLinkedOnly: false,
-  withAvatarOnly: false,
-  storeId: null,
-};
-
-function countActiveFilters(filters: FilterState): number {
+function countActiveFilters(filters: EmployeeFilters): number {
   return (
     (filters.status === 'all' ? 0 : 1) +
     (filters.managersOnly ? 1 : 0) +
@@ -308,7 +315,7 @@ function countActiveFilters(filters: FilterState): number {
   );
 }
 
-function toQuery(filters: FilterState): EmployeeListQuery {
+function toQuery(filters: EmployeeFilters): EmployeeListQuery {
   return {
     ...(filters.status === 'all' ? {} : { isActive: filters.status === 'active' }),
     ...(filters.managersOnly ? { fullAccess: true } : {}),
@@ -344,16 +351,27 @@ const SORT_OPTIONS: [SortOption, ...SortOption[]] = [
   { value: 'createdAt-asc', labelKey: 'employees.sortOldest', sort: 'createdAt', order: 'asc' },
 ];
 
+/** The store's name; its number only when Tiger has no name for it. */
+function storeLabel(store: StoreOption): string {
+  return store.name ?? String(store.nr);
+}
+
 export function EmployeesPage() {
   const { t, locale } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  // Search, filters and sort outlive the page, so a trip into an employee and back keeps
+  // them; a reload starts clean (employee-list-store).
+  const searchInput = useEmployeeListStore((state) => state.searchInput);
+  const setSearchInput = useEmployeeListStore((state) => state.setSearchInput);
+  const appliedFilters = useEmployeeListStore((state) => state.filters);
+  const setAppliedFilters = useEmployeeListStore((state) => state.setFilters);
+  const sortValue = useEmployeeListStore((state) => state.sortValue);
+  const setSortValue = useEmployeeListStore((state) => state.setSortValue);
+  // Starts from the kept text, so coming back does not wait for the debounce.
+  const [search, setSearch] = useState(() => searchInput.trim());
   const [filterOpen, setFilterOpen] = useState(false);
-  const [draftFilters, setDraftFilters] = useState<FilterState>(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<FilterState>(EMPTY_FILTERS);
-  const [sortValue, setSortValue] = useState('firstname-asc');
+  const [draftFilters, setDraftFilters] = useState<EmployeeFilters>(appliedFilters);
   const [cardEmployee, setCardEmployee] = useState<EmployeeResponse | null>(null);
   const [notice, setNotice] = useState<BulkNotice | null>(null);
   const canManage = useAuthStore((state) => state.employee?.fullAccess ?? false);
@@ -393,6 +411,14 @@ export function EmployeesPage() {
     () => employeesQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [employeesQuery.data],
   );
+  // Default store names (ADR-058); the same cached list the store pickers use.
+  const storesQuery = useQuery({ queryKey: ['stores', ''], queryFn: () => listStores('') });
+  const storeNames = useMemo(
+    () => new Map((storesQuery.data ?? []).map((store) => [store.id, storeLabel(store)])),
+    [storesQuery.data],
+  );
+  const storeNameOf = (employee: EmployeeResponse) =>
+    employee.defaultStoreId === null ? null : (storeNames.get(employee.defaultStoreId) ?? null);
   const total = employeesQuery.data?.pages[0]?.total ?? 0;
 
   // Bulk selection (ADR-035): scoped to the query and limited to loaded rows. The signed-in
@@ -541,8 +567,8 @@ export function EmployeesPage() {
   }
 
   function clearFilters() {
-    setDraftFilters(EMPTY_FILTERS);
-    setAppliedFilters(EMPTY_FILTERS);
+    setDraftFilters(EMPTY_EMPLOYEE_FILTERS);
+    setAppliedFilters(EMPTY_EMPLOYEE_FILTERS);
     setFilterOpen(false);
   }
 
@@ -734,10 +760,10 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* Active filter summary */}
-      {isFiltered ? (
+      {/* How many employees the list holds, always; the filter chips only while filtering. */}
+      {employeesQuery.data ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">
+          <span aria-live="polite" className="text-slate-500 dark:text-slate-400">
             {t('employees.resultCount', { count: formatNumber(total, locale) })}
           </span>
           {search ? (
@@ -818,6 +844,7 @@ export function EmployeesPage() {
               <EmployeeCard
                 key={employee.id}
                 employee={employee}
+                storeName={storeNameOf(employee)}
                 onShowCard={setCardEmployee}
                 canManage={canManage}
                 selection={rowSelection(employee)}
@@ -846,10 +873,17 @@ export function EmployeesPage() {
                   </th>
                   <th className="py-2 pr-3 font-medium">{t('employees.columnLastname')}</th>
                   <th className="py-2 pr-3 font-medium">{t('employees.columnUsername')}</th>
+                  <th className="py-2 pr-3 font-medium">{t('employeeCard.jobTitle')}</th>
+                  <th className="py-2 pr-3 font-medium">{t('employeeCard.defaultStore')}</th>
                   {canManage ? (
                     <>
-                      <th className="py-2 pr-3 font-medium">{t('employeeForm.emailLabel')}</th>
-                      <th className="py-2 pr-3 font-medium">{t('employees.columnPhone')}</th>
+                      {/* Below xl the row is too narrow; the employee card has both. */}
+                      <th className="hidden py-2 pr-3 font-medium xl:table-cell">
+                        {t('employeeForm.emailLabel')}
+                      </th>
+                      <th className="hidden py-2 pr-3 font-medium xl:table-cell">
+                        {t('employees.columnPhone')}
+                      </th>
                     </>
                   ) : null}
                   <th className="py-2 pr-3 font-medium">{t('employees.statusColumn')}</th>
@@ -865,6 +899,7 @@ export function EmployeesPage() {
                   <EmployeeRow
                     key={employee.id}
                     employee={employee}
+                    storeName={storeNameOf(employee)}
                     onShowCard={setCardEmployee}
                     canManage={canManage}
                     selection={rowSelection(employee)}

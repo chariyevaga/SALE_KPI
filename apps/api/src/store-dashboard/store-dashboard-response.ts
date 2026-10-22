@@ -4,6 +4,7 @@ import { LocalizedTextResponse } from '../kpi-definitions/kpi-definition-respons
 import { KPI_UNITS, type KpiUnit } from '../kpi-definitions/kpi-definition.types.js';
 import {
   MONTH_STATUSES,
+  STORE_DASHBOARD_AGGREGATIONS,
   type MonthStatus,
   type StoreDashboardAggregation,
 } from './store-dashboard-rules.js';
@@ -24,7 +25,8 @@ export class StoreDashboardMonthResponse {
     type: Number,
     nullable: true,
     example: 362482.5,
-    description: 'Seçilen yılın ay değeri; o ay satış/iade belgesi yoksa `null`.',
+    description:
+      "Seçilen yılın ay değeri; o ay satış/iade belgesi (ziyaretçi KPI'larında sayılmış ziyaretçi) yoksa `null`.",
   })
   current: number | null;
 
@@ -143,9 +145,9 @@ export class StoreDashboardKpiResponse {
 
   @ApiProperty({
     type: String,
-    enum: ['sum', 'average'],
+    enum: STORE_DASHBOARD_AGGREGATIONS,
     description:
-      'Ayların nasıl birleştiği: ciro, fiş ve yeni müşteri toplanır; müşteri, eski müşteri ve ürün çeşitliliği ay içinde tekil olduğu için aylık ortalaması alınır.',
+      'Ayların ve mağazaların nasıl birleştiği: ciro, fiş, yeni müşteri ve ziyaretçi sayısı toplanır (`sum`); müşteri, eski müşteri ve ürün çeşitliliği ay içinde tekil olduğu için aylık ortalaması alınır (`average`); dönüşüm bir orandır, fişler ve ziyaretçiler önce toplanıp sonra bölünür (`ratio`, ADR-065).',
   })
   aggregation: StoreDashboardAggregation;
 
@@ -213,7 +215,7 @@ export class StoreDashboardResponse {
   @ApiProperty({
     type: () => StoreDashboardKpiResponse,
     isArray: true,
-    description: 'Katalog sırasıyla #1–#6.',
+    description: 'Katalog sırasıyla #1–#7 ve #16 (ADR-065).',
   })
   kpis: StoreDashboardKpiResponse[];
 }

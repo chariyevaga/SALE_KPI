@@ -117,7 +117,8 @@ interface PlanData {
  * The measures are not computed here. `dbo.kpi_month_values(@month_start)` reads the same
  * `kpi_report_documents` view the target reports use (ADR-038), so the Tiger rules of
  * docs/TIGER_DATA.md keep a single implementation. The store conversion is computed from
- * Tiger's receipts and the entered daily visitor counts (ADR-052). KPIs no source can
+ * Tiger's receipts and the entered daily visitor counts (ADR-052); the visitor count itself
+ * comes from `dbo.kpi_month_visitor_values` (ADR-064). KPIs no source can
  * measure would be typed in by a manager and never overwritten by a recalculation.
  */
 @Injectable()
@@ -486,7 +487,10 @@ export class KpiResultsService {
     };
   }
 
-  /** The month's values of every KPI Tiger measures, the item group ones included. */
+  /**
+   * The month's values of every KPI with a month function: what Tiger measures, the item
+   * group KPIs and the entered visitor counts (ADR-064).
+   */
   private readMonthValues(month: string): Promise<MonthValueRow[]> {
     return this.dataSource.query<MonthValueRow[]>(
       `
@@ -505,6 +509,14 @@ export class KpiResultsService {
           [group_code],
           [value]
         FROM [dbo].[kpi_month_group_values](@0)
+        UNION ALL
+        SELECT
+          [kpi_code],
+          [entity_ref],
+          [currency],
+          CAST(NULL AS nvarchar(25)),
+          [value]
+        FROM [dbo].[kpi_month_visitor_values](@0)
       `,
       [month],
     );

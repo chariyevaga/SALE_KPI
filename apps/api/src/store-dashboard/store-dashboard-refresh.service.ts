@@ -14,10 +14,15 @@ import {
   getFirmNumber,
   getStoreDashboardRefreshIntervalMinutes,
 } from '../config/environment.js';
-import { dateInZone } from '../kpi-results/conversion-rules.js';
+import {
+  calculateConversion,
+  consideredDays,
+  dateInZone,
+} from '../kpi-results/conversion-rules.js';
 import { StoreKpiMonthValueEntity } from './entities/store-kpi-month-value.entity.js';
 import {
-  STORE_DASHBOARD_KPI_CODES,
+  STORE_DASHBOARD_CONVERSION_CODE,
+  STORE_DASHBOARD_MONTH_VALUE_CODES,
   planRefresh,
   refreshWindow,
   type StoreMonthValue,
@@ -46,8 +51,9 @@ interface RefreshResult {
 /**
  * Keeps `store_kpi_month_values` current (ADR-061), so the store dashboard reads stored values
  * and never computes from Tiger per request (ADR-010). Each run reads January of last year
- * through the current month from `dbo.kpi_month_values` in one query; older years keep the
- * values they were last refreshed with.
+ * through the current month from `dbo.kpi_month_values` and `dbo.kpi_month_visitor_values`
+ * in one query, and measures the conversion of each store and month with the calculation's
+ * rules (ADR-065); older years keep the values they were last refreshed with.
  *
  * - Runs once when the API starts, then every `STORE_DASHBOARD_REFRESH_INTERVAL_MINUTES`
  *   (default 60, 0 = off).
@@ -108,8 +114,9 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
     const startedAt = Date.now();
 
     try {
-      const window = refreshWindow(dateInZone(now, getBusinessTimeZone()));
-      const result = await this.refresh(window.from, window.to);
+      const today = dateInZone(now, getBusinessTimeZone());
+      const window = refreshWindow(today);
+      const result = await this.refresh(window.from, window.to, today);
 
       this.lastRunAt = new Date();
       this.logger.log(
@@ -126,9 +133,13 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
     }
   }
 
-  private async refresh(from: string, to: string): Promise<RefreshResult> {
-    const fresh = await this.readMonthValues(from, to);
+  private async refresh(from: string, to: string, today: string): Promise<RefreshResult> {
     const firmNr = getFirmNumber();
+    const [monthValues, conversions] = await Promise.all([
+      this.readMonthValues(from, to),
+      this.measureConversions(firmNr, from, today),
+    ]);
+    const fresh = [...monthValues, ...conversions];
 
     return this.dataSource.transaction(async (manager) => {
       const stored = await manager.find(StoreKpiMonthValueEntity, {
@@ -152,14 +163,10 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
         { log: false },
       );
 
-      for (const { id, value } of plan.updates) {
-        await this.audit.update(
-          manager,
-          StoreKpiMonthValueEntity,
-          { id },
-          { value },
-          { log: false },
-        );
+      for (const { id, ...values } of plan.updates) {
+        await this.audit.update(manager, StoreKpiMonthValueEntity, { id }, values, {
+          log: false,
+        });
       }
 
       return {
@@ -173,10 +180,11 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
 
   /**
    * Every store's values of the dashboard KPIs for each month from `from` to `to`, from the
-   * single implementation of the measures (`dbo.kpi_month_values`, ADR-041), in one query.
+   * single implementations of the measures (`dbo.kpi_month_values`, ADR-041, and
+   * `dbo.kpi_month_visitor_values`, ADR-064), in one query.
    */
   private async readMonthValues(from: string, to: string): Promise<StoreMonthValue[]> {
-    const codes = STORE_DASHBOARD_KPI_CODES.map((_, index) => `@${String(index + 2)}`);
+    const codes = STORE_DASHBOARD_MONTH_VALUE_CODES.map((_, index) => `@${String(index + 2)}`);
     const rows = await this.dataSource.query<
       {
         monthStart: string;
@@ -201,11 +209,17 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
           v.[currency] AS [currency],
           v.[value] AS [value]
         FROM [months] m
-        CROSS APPLY [dbo].[kpi_month_values](m.[month_start]) v
+        CROSS APPLY (
+          SELECT [kpi_code], [entity_ref], [currency], [value]
+          FROM [dbo].[kpi_month_values](m.[month_start])
+          UNION ALL
+          SELECT [kpi_code], [entity_ref], [currency], [value]
+          FROM [dbo].[kpi_month_visitor_values](m.[month_start])
+        ) v
         WHERE v.[kpi_code] IN (${codes.join(', ')})
         OPTION (MAXRECURSION 100)
       `,
-      [from, to, ...STORE_DASHBOARD_KPI_CODES],
+      [from, to, ...STORE_DASHBOARD_MONTH_VALUE_CODES],
     );
 
     return rows.map((row) => ({
@@ -214,6 +228,96 @@ export class StoreDashboardRefreshService implements OnApplicationBootstrap, OnA
       kpiCode: row.kpiCode,
       currency: row.currency,
       value: Number(row.value),
+      numerator: null,
+      denominator: null,
     }));
+  }
+
+  /**
+   * The conversion (#7) of every store and month from `from` up to yesterday, measured like
+   * a plan row of that one store (conversion-rules.ts, ADR-052): only days with an entered
+   * visitor count, their sales receipts over their visitors, no value below the coverage
+   * rule. Receipts and visitors are kept, so stores and months add up as a rate (ADR-065).
+   */
+  private async measureConversions(
+    firmNr: number,
+    from: string,
+    today: string,
+  ): Promise<StoreMonthValue[]> {
+    const counts = await this.dataSource.query<
+      { storeId: number; storeNr: number; day: string; visitors: number }[]
+    >(
+      `
+        SELECT
+          v.[store_id] AS [storeId],
+          CAST(s.[nr] AS int) AS [storeNr],
+          CONVERT(char(10), v.[visit_date], 23) AS [day],
+          v.[visitor_count] AS [visitors]
+        FROM [dbo].[store_visitor_counts] v
+        JOIN [dbo].[stores] s ON s.[id] = v.[store_id]
+        WHERE s.[firm_nr] = @0 AND v.[visit_date] >= @1 AND v.[visit_date] < @2
+      `,
+      [firmNr, from, today],
+    );
+
+    if (counts.length === 0) {
+      return [];
+    }
+
+    const days = counts.map((count) => count.day).sort();
+    const first = days[0] ?? from;
+    const last = days.at(-1) ?? from;
+    // Sales receipts only: returns do not change how many customers were served (decision 19).
+    const receiptRows = await this.dataSource.query<
+      { storeNr: number; day: string; receipts: number }[]
+    >(
+      `
+        SELECT
+          [store_nr] AS [storeNr],
+          CONVERT(char(10), [sale_date], 23) AS [day],
+          COUNT(*) AS [receipts]
+        FROM [dbo].[kpi_report_documents]
+        WHERE [trcode] = 7
+          AND [month_start] BETWEEN @0 AND @1
+          AND [sale_date] BETWEEN @2 AND @3
+        GROUP BY [store_nr], [sale_date]
+      `,
+      [`${first.slice(0, 7)}-01`, `${last.slice(0, 7)}-01`, first, last],
+    );
+    const receipts = new Map(
+      receiptRows.map((row) => [`${String(row.storeNr)}|${row.day}`, Number(row.receipts)]),
+    );
+    const visitors = new Map(
+      counts.map((count) => [`${String(count.storeId)}|${count.day}`, Number(count.visitors)]),
+    );
+    const storeMonths = new Map(
+      counts.map((count) => [
+        `${String(count.storeId)}|${count.day.slice(0, 7)}`,
+        { storeId: count.storeId, storeNr: count.storeNr, month: count.day.slice(0, 7) },
+      ]),
+    );
+
+    return [...storeMonths.values()].flatMap(({ storeId, storeNr, month }): StoreMonthValue[] => {
+      const result = calculateConversion(
+        [{ storeId, storeNr }],
+        consideredDays(Number(month.slice(0, 4)), Number(month.slice(5, 7)), today),
+        receipts,
+        visitors,
+      );
+
+      return result.value === null
+        ? []
+        : [
+            {
+              monthStart: `${month}-01`,
+              storeNr,
+              kpiCode: STORE_DASHBOARD_CONVERSION_CODE,
+              currency: null,
+              value: result.value,
+              numerator: result.detail.receipts,
+              denominator: result.detail.visitors,
+            },
+          ];
+    });
   }
 }

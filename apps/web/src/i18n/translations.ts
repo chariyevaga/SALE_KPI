@@ -237,6 +237,10 @@ interface TranslationShape {
     inactiveBadge: string;
     kpiCount: string;
     weightSummary: string;
+    columnPlans: string;
+    planCount: string;
+    unused: string;
+    openPlans: string;
     columnName: string;
     columnDescription: string;
     columnKpis: string;
@@ -461,7 +465,9 @@ interface TranslationShape {
     emptyPeriods: string;
     noSearchResults: string;
     searchPlaceholder: string;
-    resultCount: string;
+    templateFilter: string;
+    clearTemplateFilter: string;
+    noTemplatePlans: string;
     targetProgress: string;
     columnEmployee: string;
     columnTemplate: string;
@@ -485,6 +491,16 @@ interface TranslationShape {
     periodClosedError: string;
     selectTemplate: string;
     employeesEmpty: string;
+    salaryTitle: string;
+    salaryFixed: string;
+    salaryKpi: string;
+    salaryPayable: string;
+    salaryPlans: string;
+    salaryWithout: string;
+    salaryNotCalculated: string;
+    salaryNone: string;
+    salaryBarLabel: string;
+    noSalary: string;
   };
   kpiPlanForm: {
     title: string;
@@ -602,6 +618,18 @@ interface TranslationShape {
     fixedPercent: string;
     kpiPercent: string;
     preview: string;
+    calcOpen: string;
+    calcClose: string;
+    calcTitle: string;
+    calcHint: string;
+    calcPartLabel: string;
+    calcFixedAmount: string;
+    calcKpiAmount: string;
+    calcResult: string;
+    calcApply: string;
+    calcNeedPercents: string;
+    calcZeroPercent: string;
+    calcTooLarge: string;
     save: string;
     saving: string;
     saveError: string;
@@ -803,6 +831,8 @@ interface TranslationShape {
     growth: string;
     noGrowth: string;
     percent: string;
+    /** A change between two percentages, e.g. the conversion's difference. */
+    percentPoints: string;
     monthlyAverage: string;
     total: string;
     difference: string;
@@ -818,6 +848,18 @@ interface TranslationShape {
     singleStore: string;
     openKpi: string;
     customersNote: string;
+    ratioNote: string;
+    /** Short names on the tabs and cards, next to each KPI's icon. */
+    kpiShort: {
+      sales: string;
+      receipts: string;
+      customers: string;
+      newCustomers: string;
+      returningCustomers: string;
+      productVariety: string;
+      conversion: string;
+      visitors: string;
+    };
   };
   errors: {
     generic: string;
@@ -1065,6 +1107,10 @@ export const translations: Record<Locale, TranslationShape> = {
       inactiveBadge: 'Pasif',
       kpiCount: '{count} KPI',
       weightSummary: 'Ağırlık %{total}',
+      columnPlans: 'Planlar',
+      planCount: 'Plan: {count}',
+      unused: 'Kullanılmadı',
+      openPlans: '{name} şablonuyla oluşturulan planları göster ({count})',
       columnName: 'Ad',
       columnDescription: 'Açıklama',
       columnKpis: 'KPI sayısı',
@@ -1304,7 +1350,9 @@ export const translations: Record<Locale, TranslationShape> = {
       emptyPeriods: 'Henüz KPI dönemi yok. Başlamak için bir ay açın.',
       noSearchResults: 'Aramaya uygun plan bulunamadı.',
       searchPlaceholder: 'Çalışan ara',
-      resultCount: '{count} plan',
+      templateFilter: 'Şablon: {name}',
+      clearTemplateFilter: 'Şablon süzgecini kaldır',
+      noTemplatePlans: 'Bu dönemde bu şablonla oluşturulmuş plan yok.',
       targetProgress: '{done}/{total} hedef',
       columnEmployee: 'Çalışan',
       columnTemplate: 'Şablon',
@@ -1328,6 +1376,17 @@ export const translations: Record<Locale, TranslationShape> = {
       periodClosedError: 'Dönem kapalı olduğu için değişiklik yapılamadı.',
       selectTemplate: 'Şablon seçin',
       employeesEmpty: 'Çalışan bulunamadı.',
+      salaryTitle: 'Bu dönem ödenecek',
+      salaryFixed: 'Sabit',
+      salaryKpi: "KPI'dan",
+      salaryPayable: 'Alınacak',
+      salaryPlans: '{count} planın toplamı',
+      salaryWithout: '{count} kişinin bu ay geçerli maaşı yok',
+      salaryNotCalculated: '{count} kişinin puanı hesaplanmadı; yalnız sabit kısım sayıldı',
+      salaryNone:
+        'Bu planların hiçbirinin bu ay geçerli maaşı yok. Maaş, çalışanın Maaş sekmesinden girilir.',
+      salaryBarLabel: "Sabit %{fixed} · KPI'dan kazanılan %{earned}",
+      noSalary: 'Bu ay geçerli maaş yok',
     },
     kpiPlanForm: {
       title: 'KPI planı',
@@ -1448,6 +1507,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Sabit (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Sabit {fixed} + KPI {kpi}',
+      calcOpen: 'Maaşı sabit ya da KPI tutarından hesapla',
+      calcClose: 'Hesap makinesini kapat',
+      calcTitle: 'Maaşı hesapla',
+      calcHint: 'Bir kısmın tutarını yazın; maaş yüzdelere göre hesaplanır.',
+      calcPartLabel: 'Bilinen kısım',
+      calcFixedAmount: 'Sabit kısım ne kadar olsun? ({currency})',
+      calcKpiAmount: 'KPI kısmı ne kadar olsun? ({currency})',
+      calcResult: 'Maaş',
+      calcApply: 'Maaşa yaz',
+      calcNeedPercents: 'Önce sabit ve KPI yüzdelerini girin; toplamları 100 olmalı.',
+      calcZeroPercent: 'Bu kısmın yüzdesi 0; maaş ondan hesaplanamaz.',
+      calcTooLarge: 'Hesaplanan maaş izin verilen en büyük tutarı aşıyor.',
       save: 'Kaydet',
       saving: 'Kaydediliyor…',
       saveError: 'Maaş kaydedilemedi.',
@@ -1670,6 +1741,7 @@ export const translations: Record<Locale, TranslationShape> = {
       growth: 'Artış',
       noGrowth: 'Karşılaştırma yok',
       percent: '%{value}',
+      percentPoints: '{value} yüzde puan',
       monthlyAverage: 'Aylık ortalama',
       total: 'Toplam',
       difference: 'Fark',
@@ -1686,6 +1758,18 @@ export const translations: Record<Locale, TranslationShape> = {
       openKpi: '{name} ayrıntısı',
       customersNote:
         'Mağazalar toplanırken iki mağazada da görülen müşteri ya da ürün iki kez sayılır.',
+      ratioNote:
+        "Dönüşüm yalnız ziyaretçi sayısı girilmiş günlerden hesaplanır: o günlerin satış fişleri ÷ ziyaretçileri. Günlerinin %80'inden azına sayı girilen ay ölçülmez (—). Mağazalar ve aylar birleşirken fişler ve ziyaretçiler önce toplanır, sonra bölünür.",
+      kpiShort: {
+        sales: 'Ciro',
+        receipts: 'Fiş',
+        customers: 'Müşteri',
+        newCustomers: 'Yeni müşteri',
+        returningCustomers: 'Eski müşteri',
+        productVariety: 'Ürün çeşidi',
+        conversion: 'Dönüşüm',
+        visitors: 'Ziyaretçi',
+      },
     },
     errors: {
       generic: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.',
@@ -1932,6 +2016,10 @@ export const translations: Record<Locale, TranslationShape> = {
       inactiveBadge: 'Inactive',
       kpiCount: '{count} KPIs',
       weightSummary: 'Weight {total}%',
+      columnPlans: 'Plans',
+      planCount: 'Plans: {count}',
+      unused: 'Not used',
+      openPlans: 'Show the plans built from {name} ({count})',
       columnName: 'Name',
       columnDescription: 'Description',
       columnKpis: 'KPIs',
@@ -2170,7 +2258,9 @@ export const translations: Record<Locale, TranslationShape> = {
       emptyPeriods: 'No KPI period yet. Open a month to start.',
       noSearchResults: 'No plans match your search.',
       searchPlaceholder: 'Search employees',
-      resultCount: '{count} plans',
+      templateFilter: 'Template: {name}',
+      clearTemplateFilter: 'Remove the template filter',
+      noTemplatePlans: 'No plan in this period was built from this template.',
       targetProgress: '{done}/{total} targets',
       columnEmployee: 'Employee',
       columnTemplate: 'Template',
@@ -2194,6 +2284,17 @@ export const translations: Record<Locale, TranslationShape> = {
       periodClosedError: 'The period is closed, so nothing was changed.',
       selectTemplate: 'Select a template',
       employeesEmpty: 'No employees found.',
+      salaryTitle: 'Payable this period',
+      salaryFixed: 'Fixed',
+      salaryKpi: 'From KPIs',
+      salaryPayable: 'Payable',
+      salaryPlans: 'Total of {count} plans',
+      salaryWithout: '{count} without a salary for this month',
+      salaryNotCalculated: '{count} not calculated yet; only the fixed part is counted',
+      salaryNone:
+        "None of these plans has a salary for this month. Salaries are entered on the employee's Salary tab.",
+      salaryBarLabel: 'Fixed {fixed}% · earned from KPIs {earned}%',
+      noSalary: 'No salary for this month',
     },
     kpiPlanForm: {
       title: 'KPI plan',
@@ -2314,6 +2415,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Fixed (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Fixed {fixed} + KPI {kpi}',
+      calcOpen: 'Work out the salary from the fixed or KPI amount',
+      calcClose: 'Close the calculator',
+      calcTitle: 'Work out the salary',
+      calcHint: 'Type what one part should be; the salary follows from the percentages.',
+      calcPartLabel: 'Known part',
+      calcFixedAmount: 'Fixed part should be ({currency})',
+      calcKpiAmount: 'KPI part should be ({currency})',
+      calcResult: 'Salary',
+      calcApply: 'Use as salary',
+      calcNeedPercents: 'Enter the fixed and KPI percentages first; they must add up to 100.',
+      calcZeroPercent: 'This part is 0%; the salary cannot be worked out from it.',
+      calcTooLarge: 'The salary would be above the largest allowed amount.',
       save: 'Save',
       saving: 'Saving…',
       saveError: 'Could not save the salary.',
@@ -2535,6 +2648,7 @@ export const translations: Record<Locale, TranslationShape> = {
       growth: 'Growth',
       noGrowth: 'No comparison',
       percent: '{value}%',
+      percentPoints: '{value} pp',
       monthlyAverage: 'Monthly average',
       total: 'Total',
       difference: 'Difference',
@@ -2551,6 +2665,18 @@ export const translations: Record<Locale, TranslationShape> = {
       openKpi: '{name} details',
       customersNote:
         'When stores are added together, a customer or item seen in two stores counts twice.',
+      ratioNote:
+        'Conversion counts only days with an entered visitor count: their sales receipts ÷ their visitors. A month with counts on fewer than 80% of its days is not measured (—). Stores and months are combined by adding receipts and visitors first, then dividing.',
+      kpiShort: {
+        sales: 'Sales',
+        receipts: 'Receipts',
+        customers: 'Customers',
+        newCustomers: 'New customers',
+        returningCustomers: 'Returning',
+        productVariety: 'Product variety',
+        conversion: 'Conversion',
+        visitors: 'Visitors',
+      },
     },
     errors: {
       generic: 'An unexpected error occurred. Please try again.',
@@ -2796,6 +2922,10 @@ export const translations: Record<Locale, TranslationShape> = {
       inactiveBadge: 'Неактивен',
       kpiCount: 'KPI: {count}',
       weightSummary: 'Вес {total} %',
+      columnPlans: 'Планы',
+      planCount: 'Планов: {count}',
+      unused: 'Не используется',
+      openPlans: 'Показать планы по шаблону {name} ({count})',
       columnName: 'Название',
       columnDescription: 'Описание',
       columnKpis: 'KPI',
@@ -3036,7 +3166,9 @@ export const translations: Record<Locale, TranslationShape> = {
       emptyPeriods: 'Периодов KPI ещё нет. Откройте месяц, чтобы начать.',
       noSearchResults: 'По запросу планов не найдено.',
       searchPlaceholder: 'Поиск сотрудника',
-      resultCount: 'Планов: {count}',
+      templateFilter: 'Шаблон: {name}',
+      clearTemplateFilter: 'Убрать фильтр по шаблону',
+      noTemplatePlans: 'В этом периоде нет планов по этому шаблону.',
       targetProgress: '{done}/{total} целей',
       columnEmployee: 'Сотрудник',
       columnTemplate: 'Шаблон',
@@ -3060,6 +3192,17 @@ export const translations: Record<Locale, TranslationShape> = {
       periodClosedError: 'Период закрыт, изменения не сохранены.',
       selectTemplate: 'Выберите шаблон',
       employeesEmpty: 'Сотрудники не найдены.',
+      salaryTitle: 'К выплате за период',
+      salaryFixed: 'Фикс.',
+      salaryKpi: 'По KPI',
+      salaryPayable: 'К выплате',
+      salaryPlans: 'Итого по планам: {count}',
+      salaryWithout: 'Без зарплаты за этот месяц: {count}',
+      salaryNotCalculated: 'Не рассчитано: {count}; учтена только фиксированная часть',
+      salaryNone:
+        'Ни у одного из этих планов нет действующей зарплаты за этот месяц. Зарплату вводят на вкладке «Зарплата» сотрудника.',
+      salaryBarLabel: 'Фикс. {fixed}% · заработано по KPI {earned}%',
+      noSalary: 'Нет зарплаты за этот месяц',
     },
     kpiPlanForm: {
       title: 'План KPI',
@@ -3180,6 +3323,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Фикс. (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Фикс. {fixed} + KPI {kpi}',
+      calcOpen: 'Рассчитать зарплату по фиксированной части или части KPI',
+      calcClose: 'Закрыть калькулятор',
+      calcTitle: 'Расчёт зарплаты',
+      calcHint: 'Введите сумму одной части — зарплата рассчитается по процентам.',
+      calcPartLabel: 'Известная часть',
+      calcFixedAmount: 'Фиксированная часть ({currency})',
+      calcKpiAmount: 'Часть KPI ({currency})',
+      calcResult: 'Зарплата',
+      calcApply: 'Подставить в зарплату',
+      calcNeedPercents: 'Сначала введите проценты фиксированной части и KPI; в сумме 100.',
+      calcZeroPercent: 'Доля этой части 0%; по ней зарплату не рассчитать.',
+      calcTooLarge: 'Зарплата превысит максимально допустимую сумму.',
       save: 'Сохранить',
       saving: 'Сохранение…',
       saveError: 'Не удалось сохранить зарплату.',
@@ -3401,6 +3556,7 @@ export const translations: Record<Locale, TranslationShape> = {
       growth: 'Рост',
       noGrowth: 'Нет сравнения',
       percent: '{value}%',
+      percentPoints: '{value} п.п.',
       monthlyAverage: 'Среднее за месяц',
       total: 'Итого',
       difference: 'Разница',
@@ -3417,6 +3573,18 @@ export const translations: Record<Locale, TranslationShape> = {
       openKpi: '{name}: подробнее',
       customersNote:
         'При сложении магазинов покупатель или товар, встречающийся в двух магазинах, учитывается дважды.',
+      ratioNote:
+        'Конверсия считается только по дням с введённым числом посетителей: чеки продаж этих дней ÷ их посетители. Месяц, где число введено менее чем за 80% дней, не измеряется (—). При объединении магазинов и месяцев сначала складываются чеки и посетители, затем делятся.',
+      kpiShort: {
+        sales: 'Выручка',
+        receipts: 'Чеки',
+        customers: 'Покупатели',
+        newCustomers: 'Новые',
+        returningCustomers: 'Постоянные',
+        productVariety: 'Ассортимент',
+        conversion: 'Конверсия',
+        visitors: 'Посетители',
+      },
     },
     errors: {
       generic: 'Произошла непредвиденная ошибка. Попробуйте ещё раз.',
@@ -3662,6 +3830,10 @@ export const translations: Record<Locale, TranslationShape> = {
       inactiveBadge: 'Passiw',
       kpiCount: '{count} KPI',
       weightSummary: 'Agram {total}%',
+      columnPlans: 'Meýilnamalar',
+      planCount: 'Meýilnama: {count}',
+      unused: 'Ulanylmadyk',
+      openPlans: '{name} şablony bilen düzülen meýilnamalary görkez ({count})',
       columnName: 'Ady',
       columnDescription: 'Düşündiriş',
       columnKpis: 'KPI sany',
@@ -3904,7 +4076,9 @@ export const translations: Record<Locale, TranslationShape> = {
       emptyPeriods: 'Entek KPI döwri ýok. Başlamak üçin bir aý açyň.',
       noSearchResults: 'Gözlege laýyk meýilnama tapylmady.',
       searchPlaceholder: 'Işgär gözle',
-      resultCount: '{count} meýilnama',
+      templateFilter: 'Şablon: {name}',
+      clearTemplateFilter: 'Şablon süzgüjini aýyr',
+      noTemplatePlans: 'Bu döwürde bu şablon bilen düzülen meýilnama ýok.',
       targetProgress: '{done}/{total} maksat',
       columnEmployee: 'Işgär',
       columnTemplate: 'Şablon',
@@ -3929,6 +4103,17 @@ export const translations: Record<Locale, TranslationShape> = {
       periodClosedError: 'Döwür ýapyk bolany üçin üýtgeşme ýazylmady.',
       selectTemplate: 'Şablon saýlaň',
       employeesEmpty: 'Işgär tapylmady.',
+      salaryTitle: 'Bu döwür üçin tölenjek',
+      salaryFixed: 'Hemişelik',
+      salaryKpi: 'KPI-dan',
+      salaryPayable: 'Alynjak',
+      salaryPlans: '{count} meýilnamanyň jemi',
+      salaryWithout: '{count} işgäriň bu aý üçin aýlygy ýok',
+      salaryNotCalculated: '{count} işgäriň baly hasaplanmady; diňe hemişelik bölek hasaba alyndy',
+      salaryNone:
+        'Bu meýilnamalaryň hiç biriniň bu aý üçin güýjündäki aýlygy ýok. Aýlyk işgäriň Aýlyk bölüminden girizilýär.',
+      salaryBarLabel: 'Hemişelik %{fixed} · KPI-dan gazanylan %{earned}',
+      noSalary: 'Bu aý üçin aýlyk ýok',
     },
     kpiPlanForm: {
       title: 'KPI meýilnamasy',
@@ -4049,6 +4234,18 @@ export const translations: Record<Locale, TranslationShape> = {
       fixedPercent: 'Hemişelik (%)',
       kpiPercent: 'KPI (%)',
       preview: 'Hemişelik {fixed} + KPI {kpi}',
+      calcOpen: 'Aýlygy hemişelik ýa-da KPI möçberinden hasapla',
+      calcClose: 'Hasaplaýjyny ýap',
+      calcTitle: 'Aýlygy hasapla',
+      calcHint: 'Bir bölegiň möçberini ýazyň; aýlyk göterimlere görä hasaplanar.',
+      calcPartLabel: 'Belli bölek',
+      calcFixedAmount: 'Hemişelik bölek näçe bolsun? ({currency})',
+      calcKpiAmount: 'KPI bölegi näçe bolsun? ({currency})',
+      calcResult: 'Aýlyk',
+      calcApply: 'Aýlyga ýaz',
+      calcNeedPercents: 'Ilki hemişelik we KPI göterimlerini giriziň; jemi 100 bolmaly.',
+      calcZeroPercent: 'Bu bölegiň göterimi 0; aýlygy ondan hasaplap bolmaýar.',
+      calcTooLarge: 'Aýlyk rugsat berlen iň uly möçberden geçýär.',
       save: 'Ýatda sakla',
       saving: 'Ýatda saklanýar…',
       saveError: 'Aýlyk ýatda saklanyp bilmedi.',
@@ -4270,6 +4467,7 @@ export const translations: Record<Locale, TranslationShape> = {
       growth: 'Ösüş',
       noGrowth: 'Deňeşdirme ýok',
       percent: '%{value}',
+      percentPoints: '{value} göterim bendi',
       monthlyAverage: 'Aýlyk ortaça',
       total: 'Jemi',
       difference: 'Tapawut',
@@ -4286,6 +4484,18 @@ export const translations: Record<Locale, TranslationShape> = {
       openKpi: '{name} jikme-jikligi',
       customersNote:
         'Dükanlar goşulanda iki dükanda-da görlen müşderi ýa-da haryt iki gezek sanalýar.',
+      ratioNote:
+        'Konwersiýa diňe gelýänleriň sany girizilen günlerden hasaplanýar: şol günleriň satuw çekleri ÷ gelýänleri. Günleriniň 80%-den azyna san girizilen aý ölçenilmeýär (—). Dükanlar we aýlar birleşende çekler we gelýänler ilki goşulýar, soňra bölünýär.',
+      kpiShort: {
+        sales: 'Satuw',
+        receipts: 'Çekler',
+        customers: 'Müşderiler',
+        newCustomers: 'Täze müşderi',
+        returningCustomers: 'Köne müşderi',
+        productVariety: 'Haryt dürlüligi',
+        conversion: 'Konwersiýa',
+        visitors: 'Gelýänler',
+      },
     },
     errors: {
       generic: 'Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň.',

@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { SalaryPayoutResponse } from '../employee-salaries/salary-payout.js';
+import {
+  SalaryPayoutResponse,
+  SalaryPayoutTotalResponse,
+  sumSalaryPayouts,
+} from '../employee-salaries/salary-payout.js';
 import type { EmployeeEntity } from '../employees/entities/employee.entity.js';
 import { readKpiDefinitionName } from '../kpi-definitions/kpi-definition-response.js';
 import { KPI_PERIOD_STATUSES } from '../kpi-periods/entities/kpi-period.entity.js';
@@ -200,11 +204,43 @@ export class KpiAssignmentSummaryResponse {
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   scoreCalculatedAt: Date | null;
 
+  @ApiProperty({
+    type: () => SalaryPayoutResponse,
+    nullable: true,
+    description:
+      'Planın ayında geçerli maaş ve puanla kazanılan (ADR-049, ADR-067); o ay geçerli maaş yoksa `null`.',
+  })
+  salary: SalaryPayoutResponse | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt: Date;
 
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt: Date;
+}
+
+/** What the listed plans pay altogether: every matching plan, not only the page (ADR-067). */
+export class KpiAssignmentSalarySummaryResponse {
+  @ApiProperty({ type: Number, example: 8, description: 'Arama ve süzgece uyan plan sayısı.' })
+  planCount: number;
+
+  @ApiProperty({ type: Number, example: 1, description: 'O ay geçerli maaşı olmayan plan sayısı.' })
+  withoutSalaryCount: number;
+
+  @ApiProperty({
+    type: Number,
+    example: 2,
+    description:
+      'Maaşı olup puanı hiç hesaplanmamış plan sayısı; toplamda yalnız sabit kısmı vardır.',
+  })
+  notCalculatedCount: number;
+
+  @ApiProperty({
+    type: () => SalaryPayoutTotalResponse,
+    isArray: true,
+    description: 'Para birimi başına toplamlar (önce TMT); TMT ile USD toplanmaz.',
+  })
+  totals: SalaryPayoutTotalResponse[];
 }
 
 export class KpiAssignmentListResponse {
@@ -219,6 +255,9 @@ export class KpiAssignmentListResponse {
 
   @ApiProperty({ type: Number })
   limit: number;
+
+  @ApiProperty({ type: () => KpiAssignmentSalarySummaryResponse })
+  salarySummary: KpiAssignmentSalarySummaryResponse;
 }
 
 export const KPI_ASSIGNMENT_SKIP_REASONS = [
@@ -472,10 +511,24 @@ export interface KpiAssignmentItemStats {
   targetCount: number;
 }
 
+/** The plans' payouts, one per plan with `null` for a plan without a salary (ADR-067). */
+export function toKpiSalarySummary(
+  payouts: readonly (SalaryPayoutResponse | null)[],
+): KpiAssignmentSalarySummaryResponse {
+  return {
+    planCount: payouts.length,
+    withoutSalaryCount: payouts.filter((payout) => payout === null).length,
+    notCalculatedCount: payouts.filter((payout) => payout !== null && payout.kpiEarned === null)
+      .length,
+    totals: sumSalaryPayouts(payouts),
+  };
+}
+
 export function toKpiAssignmentSummary(
   assignment: KpiAssignmentEntity,
   employee: EmployeeEntity,
   stats: KpiAssignmentItemStats | undefined,
+  salary: SalaryPayoutResponse | null,
 ): KpiAssignmentSummaryResponse {
   return {
     id: assignment.id,
@@ -487,6 +540,7 @@ export function toKpiAssignmentSummary(
     totalScore: assignment.totalScore,
     scoredItemCount: assignment.scoredItemCount,
     scoreCalculatedAt: assignment.scoreCalculatedAt,
+    salary,
     createdAt: assignment.createdAt,
     updatedAt: assignment.updatedAt,
   };

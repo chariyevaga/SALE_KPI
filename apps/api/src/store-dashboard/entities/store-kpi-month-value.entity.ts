@@ -5,7 +5,8 @@ import { decimalTransformer } from '../../common/decimal.js';
 
 /**
  * What one store did in one month for one store KPI (migration 1799704900000, ADR-061): a
- * copy of `dbo.kpi_month_values` that the store dashboard reads instead of Tiger. Only
+ * copy of `dbo.kpi_month_values` (and of the visitor counts and the conversion, ADR-065)
+ * that the store dashboard reads instead of Tiger. Only
  * StoreDashboardRefreshService writes it, as the system.
  */
 @Entity({ name: 'store_kpi_month_values', schema: 'dbo' })
@@ -46,4 +47,28 @@ export class StoreKpiMonthValueEntity extends AuditedEntity {
     transformer: decimalTransformer,
   })
   value: number;
+
+  /**
+   * Rates only (the conversion, ADR-065): the parts `value` divides — receipts and visitors —
+   * so stores and months add up as Σ receipts / Σ visitors. NULL for every other KPI.
+   */
+  @Column({
+    name: 'numerator',
+    type: 'decimal',
+    precision: 19,
+    scale: 4,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  numerator: number | null;
+
+  @Column({
+    name: 'denominator',
+    type: 'decimal',
+    precision: 19,
+    scale: 4,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  denominator: number | null;
 }

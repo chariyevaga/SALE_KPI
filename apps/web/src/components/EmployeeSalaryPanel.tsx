@@ -11,6 +11,7 @@ import { localizeApiError } from '../i18n/api-errors';
 import { formatMonth, formatNumber } from '../i18n/formatters';
 import { useTranslation, type Translate } from '../i18n/locale-store';
 import { ApiError } from '../lib/api-client';
+import { salaryFromPart, splitSalaryAmount, type SalaryPart } from '../lib/salary-calculator';
 import type { EmployeeSalary, SalaryCurrency } from '../types/api';
 import { FormField, formInputClassName } from './FormField';
 import { Modal } from './Modal';
@@ -151,6 +152,176 @@ function TrashIcon() {
   );
 }
 
+function CalculatorIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+    >
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M8.5 7h7M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h.01M15.5 18h.01" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Salary calculator
+// ---------------------------------------------------------------------------
+
+/**
+ * Works the salary out backwards from one of its parts: "the fixed part should be 1.000 at
+ * 30 %" gives 3.333,33. It reads the form's percentages, so changing them updates the result;
+ * nothing changes in the form until "Use as salary".
+ */
+function SalaryCalculator({
+  currency,
+  fixedPercent,
+  onApply,
+}: {
+  currency: SalaryCurrency;
+  /** `null` while the form's percentages do not add up to 100. */
+  fixedPercent: number | null;
+  onApply: (amount: number) => void;
+}) {
+  const { t, locale } = useTranslation();
+  const [part, setPart] = useState<SalaryPart>('fixed');
+  const [value, setValue] = useState('');
+  const partValue = Number(value.replace(',', '.'));
+  const result =
+    fixedPercent === null || value.trim() === ''
+      ? null
+      : salaryFromPart(part, partValue, fixedPercent);
+  const partPercent =
+    fixedPercent === null ? null : part === 'fixed' ? fixedPercent : 100 - fixedPercent;
+  const tooLarge = result !== null && result.amount > MAX_AMOUNT;
+  const canApply = result !== null && !tooLarge;
+
+  function apply() {
+    if (canApply) {
+      onApply(result.amount);
+    }
+  }
+
+  const parts: { value: SalaryPart; label: string }[] = [
+    {
+      value: 'fixed',
+      label: t('salary.fixedPart', {
+        percent: fixedPercent === null ? '—' : formatNumber(fixedPercent, locale),
+      }),
+    },
+    {
+      value: 'kpi',
+      label: t('salary.kpiPart', {
+        percent:
+          fixedPercent === null ? '—' : formatNumber(roundPercent(100 - fixedPercent), locale),
+      }),
+    },
+  ];
+
+  return (
+    <section
+      id="salary-calculator"
+      aria-label={t('salary.calcTitle')}
+      className="-mt-1 rounded-xl border border-emerald-400/40 bg-emerald-50/60 p-3 dark:border-emerald-400/25 dark:bg-emerald-400/5"
+    >
+      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        {t('salary.calcTitle')}
+      </p>
+      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('salary.calcHint')}</p>
+
+      <div
+        role="radiogroup"
+        aria-label={t('salary.calcPartLabel')}
+        className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800"
+      >
+        {parts.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={part === option.value}
+            onClick={() => setPart(option.value)}
+            className={`min-h-[44px] rounded-lg px-2 text-sm font-medium transition ${
+              part === option.value
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-white'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <label
+        htmlFor="salary-calculator-part"
+        className="mt-3 block text-xs font-medium text-slate-700 dark:text-slate-200"
+      >
+        {t(part === 'fixed' ? 'salary.calcFixedAmount' : 'salary.calcKpiAmount', { currency })}
+      </label>
+      <input
+        id="salary-calculator-part"
+        type="text"
+        inputMode="decimal"
+        autoFocus
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => {
+          // Enter takes the result instead of submitting the salary form.
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            apply();
+          }
+        }}
+        placeholder="1000"
+        className={`${formInputClassName} mt-1`}
+      />
+
+      {fixedPercent === null ? (
+        <p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+          {t('salary.calcNeedPercents')}
+        </p>
+      ) : partPercent === 0 ? (
+        <p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+          {t('salary.calcZeroPercent')}
+        </p>
+      ) : result ? (
+        <div aria-live="polite" className="mt-3 rounded-lg bg-white px-3 py-2 dark:bg-slate-900">
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('salary.calcResult')}</p>
+          <p className="text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+            {money(result.amount, currency, locale)}
+          </p>
+          <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+            {t('salary.preview', {
+              fixed: money(result.fixedAmount, currency, locale),
+              kpi: money(result.kpiAmount, currency, locale),
+            })}
+          </p>
+          {tooLarge ? (
+            <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+              {t('salary.calcTooLarge')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={apply}
+        disabled={!canApply}
+        className="mt-3 h-11 w-full rounded-xl border border-emerald-500/60 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-400/10 disabled:opacity-40 dark:text-emerald-400"
+      >
+        {t('salary.calcApply')}
+      </button>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Add / correct modal
 // ---------------------------------------------------------------------------
@@ -191,6 +362,7 @@ function SalaryModal({
   const [currency, setCurrency] = useState<SalaryCurrency>(source?.currency ?? 'TMT');
   const [fixed, setFixed] = useState(String(source?.fixedPercent ?? 30));
   const [kpi, setKpi] = useState(String(source?.kpiPercent ?? 70));
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   const amountValue = Number(amount.replace(',', '.'));
   const fixedValue = Number(fixed.replace(',', '.'));
@@ -259,13 +431,7 @@ function SalaryModal({
     }
   }
 
-  const preview =
-    amountValid && percentsValid
-      ? {
-          fixed: Math.round(amountValue * fixedValue) / 100,
-          kpi: Math.round((amountValue - Math.round(amountValue * fixedValue) / 100) * 100) / 100,
-        }
-      : null;
+  const preview = amountValid && percentsValid ? splitSalaryAmount(amountValue, fixedValue) : null;
 
   return (
     <Modal
@@ -305,16 +471,33 @@ function SalaryModal({
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <FormField label={t('salary.amount')} htmlFor="salary-amount" required>
-            <input
-              id="salary-amount"
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder={t('salary.amountPlaceholder')}
-              required
-              className={formInputClassName}
-            />
+            <div className="relative">
+              <input
+                id="salary-amount"
+                type="text"
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                placeholder={t('salary.amountPlaceholder')}
+                required
+                className={`${formInputClassName} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setCalculatorOpen((open) => !open)}
+                aria-label={t(calculatorOpen ? 'salary.calcClose' : 'salary.calcOpen')}
+                title={t(calculatorOpen ? 'salary.calcClose' : 'salary.calcOpen')}
+                aria-expanded={calculatorOpen}
+                aria-controls="salary-calculator"
+                className={`absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl transition ${
+                  calculatorOpen
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                <CalculatorIcon />
+              </button>
+            </div>
           </FormField>
           <FormField label={t('salary.currency')} htmlFor="salary-currency" required>
             <select
@@ -331,6 +514,17 @@ function SalaryModal({
             </select>
           </FormField>
         </div>
+
+        {calculatorOpen ? (
+          <SalaryCalculator
+            currency={currency}
+            fixedPercent={percentsValid ? fixedValue : null}
+            onApply={(value) => {
+              setAmount(String(value));
+              setCalculatorOpen(false);
+            }}
+          />
+        ) : null}
 
         <div className="grid grid-cols-2 gap-2">
           <FormField label={t('salary.fixedPercent')} htmlFor="salary-fixed" required>
@@ -366,8 +560,8 @@ function SalaryModal({
         {preview ? (
           <p className="-mt-1 rounded-lg bg-slate-50 px-3 py-2 text-xs tabular-nums text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
             {t('salary.preview', {
-              fixed: money(preview.fixed, currency, locale),
-              kpi: money(preview.kpi, currency, locale),
+              fixed: money(preview.fixedAmount, currency, locale),
+              kpi: money(preview.kpiAmount, currency, locale),
             })}
           </p>
         ) : null}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/locale-store';
+import { useScrollLock } from '../lib/use-scroll-lock';
 
 interface DrawerProps {
   open: boolean;
@@ -37,6 +38,8 @@ export function Drawer({
 }: DrawerProps) {
   const { t } = useTranslation();
   const isOverlay = variant === 'overlay';
+  // The page behind an open drawer stands still; the navigation drawer only opens on phones.
+  useScrollLock(open);
 
   return (
     <div

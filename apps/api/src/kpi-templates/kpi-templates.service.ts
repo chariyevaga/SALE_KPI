@@ -13,6 +13,7 @@ import type { BulkDeleteResponse, BulkUpdateResponse } from '../common/dto/bulk.
 import { getFirmNumber } from '../config/environment.js';
 import { KpiAssignmentEntity } from '../kpi-assignments/entities/kpi-assignment.entity.js';
 import { KpiDefinitionEntity } from '../kpi-definitions/entities/kpi-definition.entity.js';
+import { periodLabel } from '../kpi-periods/kpi-period-rules.js';
 import {
   readKpiDefinitionInputSchema,
   readKpiDefinitionName,
@@ -38,6 +39,7 @@ import {
 import {
   type KpiTemplateBulkCopyResponse,
   type KpiTemplateItemStats,
+  type KpiTemplatePlanUsage,
   type KpiTemplateListResponse,
   type KpiTemplateResponse,
   toKpiTemplateResponse,
@@ -144,11 +146,16 @@ export class KpiTemplatesService {
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
-    const stats = await this.loadItemStats(templates.map((template) => template.id));
+    const ids = templates.map((template) => template.id);
+    const [stats, usage] = await Promise.all([this.loadItemStats(ids), this.loadPlanUsage(ids)]);
 
     return {
       items: templates.map((template) =>
-        toKpiTemplateSummary(template, stats.get(template.id.toLowerCase())),
+        toKpiTemplateSummary(
+          template,
+          stats.get(template.id.toLowerCase()),
+          usage.get(template.id.toLowerCase()),
+        ),
       ),
       limit,
       page,
@@ -658,6 +665,37 @@ export class KpiTemplatesService {
         row.templateId.toLowerCase(),
         { itemCount: Number(row.itemCount), totalWeight: Number(row.totalWeight) },
       ]),
+    );
+  }
+
+  /** How many KPI plans each template was assigned to, and the newest month among them. */
+  private async loadPlanUsage(templateIds: string[]): Promise<Map<string, KpiTemplatePlanUsage>> {
+    if (templateIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.assignmentRepository
+      .createQueryBuilder('assignment')
+      .innerJoin('assignment.period', 'period')
+      .select('assignment.templateId', 'templateId')
+      .addSelect('COUNT(*)', 'planCount')
+      .addSelect('MAX(period.year * 100 + period.month)', 'lastMonth')
+      .where('assignment.templateId IN (:...templateIds)', { templateIds })
+      .groupBy('assignment.templateId')
+      .getRawMany<{ templateId: string; planCount: number; lastMonth: number }>();
+
+    return new Map(
+      rows.map((row) => {
+        const lastMonth = Number(row.lastMonth);
+
+        return [
+          row.templateId.toLowerCase(),
+          {
+            planCount: Number(row.planCount),
+            lastPeriod: periodLabel({ year: Math.floor(lastMonth / 100), month: lastMonth % 100 }),
+          },
+        ];
+      }),
     );
   }
 
